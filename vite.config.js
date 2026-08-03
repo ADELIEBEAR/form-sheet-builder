@@ -6,13 +6,17 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          supabase: ['@supabase/supabase-js'],
+          icons: ['@phosphor-icons/react'],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
-    proxy: {
-      '/api': 'http://localhost:8787',
-      '/oauth': 'http://localhost:8787',
-      '/media': 'http://localhost:8787',
-    },
   },
 })

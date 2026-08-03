@@ -29,6 +29,7 @@ export default function ImageUpload({ value, formId, onChange }) {
       const body = new FormData()
       body.append('file', blob, `${file.name.replace(/\.[^.]+$/, '')}.webp`)
       if (formId) body.append('formId', formId)
+      if (value) body.append('oldUrl', value)
       const data = await api('/api/uploads', { method: 'POST', body })
       onChange(data.url)
     } catch (caught) {

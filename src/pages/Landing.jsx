@@ -37,9 +37,9 @@ export default function Landing() {
       </section>
 
       <section className="benefits" aria-label="주요 기능">
-        <article><CloudArrowUp size={26} /><div><h2>응답을 안전하게</h2><p>D1에 먼저 저장해 시트 오류가 나도 응답을 잃지 않습니다.</p></div></article>
+        <article><CloudArrowUp size={26} /><div><h2>응답을 안전하게</h2><p>Supabase에 먼저 저장해 시트 오류가 나도 응답을 잃지 않습니다.</p></div></article>
         <article><GoogleLogo size={26} /><div><h2>Google Sheet 자동 기록</h2><p>질문이 바뀌면 헤더도 맞추고 새 응답을 다음 행에 추가합니다.</p></div></article>
-        <article><CheckCircle size={26} /><div><h2>이미지는 가볍게</h2><p>WebP로 압축한 뒤 R2에 저장해 DB와 전송량을 아낍니다.</p></div></article>
+        <article><CheckCircle size={26} /><div><h2>이미지는 가볍게</h2><p>WebP로 압축한 뒤 Storage에 저장해 DB 용량을 아낍니다.</p></div></article>
       </section>
     </main>
   )

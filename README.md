@@ -1,81 +1,59 @@
 # 폼메이커
 
-폼을 제작하고 제출 응답을 Cloudflare D1과 Google Sheets에 함께 저장하는 풀스택 폼 제작기입니다. 기존 Supabase 프로젝트와 완전히 분리되어 있으며 Cloudflare 무료 한도를 우선 사용합니다.
+폼을 만들고 응답을 Supabase와 Google Sheets에 저장하는 React 기반 폼 제작기입니다.
 
-## 포함된 기능
+## 주요 기능
 
 - Google 로그인
-- 폼 생성, 복제, 수정, 삭제
-- 단답형, 장문형, 이메일, 전화번호, 숫자, 날짜, 단일 선택, 다중 선택, 안내 문구
-- 필수 응답 및 질문 순서 변경
-- 공개 링크와 미리보기
-- D1 응답 저장
-- Google Sheet 새 문서 생성 또는 기존 문서 연결
-- 제출 즉시 Sheet 행 추가, 실패한 응답 재전송
-- R2 이미지 업로드, 브라우저 WebP 압축
-- 응답 목록과 CSV 다운로드
-- 선택형 Cloudflare Turnstile 검증
-- 모바일 공개 폼
+- 폼 생성, 복제, 수정, 삭제 및 공개 링크
+- 단답형, 장문형, 이메일, 전화번호, 숫자, 날짜, 단일·다중 선택, 안내 문구
+- Supabase Postgres 응답 저장과 RLS 접근 제어
+- Google Sheets 생성·연결 및 로그인 상태의 자동 동기화
+- 브라우저 WebP 압축 후 Supabase Storage 업로드
+- 응답 표, CSV 다운로드, 실패한 시트 전송 재시도
+
+## 이미지 비용 방지 구조
+
+이미지는 `forms` JSON 안에 base64로 넣지 않습니다. 브라우저에서 WebP로 압축한 뒤 `form-builder-assets` Storage 버킷에 저장하고 DB에는 URL만 기록합니다. DB 제약 조건도 `data:image/...` 형식의 인라인 이미지 저장을 거부합니다.
+
+기존 `forms`, `responses`, `google_tokens` 데이터는 유지하며 새 앱은 다음 전용 표를 사용합니다.
+
+- `form_builder_forms`
+- `form_builder_responses`
 
 ## 로컬 실행
 
 ```bash
 npm install
-copy .dev.vars.example .dev.vars
-npm run db:local
 npm run dev
 ```
 
-`npm run dev`는 프런트엔드를 빌드하고 Cloudflare 로컬 런타임을 `http://localhost:8787`에서 시작합니다.
+기본 연결 대상은 기존 `form-builder` Supabase 프로젝트입니다. 다른 프로젝트를 쓰려면 환경 변수를 설정합니다.
 
-## Cloudflare 준비
-
-```bash
-npx wrangler login
-npx wrangler d1 create form-sheet-builder-db
-npx wrangler r2 bucket create form-sheet-builder-images
+```env
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 ```
 
-출력된 D1 ID를 `wrangler.jsonc`의 `database_id`에 넣고 다음 명령을 실행합니다.
+## Supabase 구성
+
+적용된 SQL은 `supabase/migrations/20260803190000_create_form_builder_v2.sql`에 있습니다. Google Sheets 동기화 함수는 `supabase/functions/form-builder-sheet-sync/index.ts`입니다.
+
+Edge Function은 로그인한 폼 소유자만 실행할 수 있습니다. 공개 응답은 즉시 DB에 저장되고, 폼 소유자가 대시보드를 열면 대기 중인 응답이 Google Sheet로 자동 전송됩니다.
+
+## Vercel 배포
+
+1. Vercel에서 이 GitHub 저장소를 가져옵니다.
+2. Framework Preset은 `Vite`, Build Command는 `npm run build`, Output Directory는 `dist`를 사용합니다.
+3. 배포 주소를 Supabase Dashboard의 Authentication → URL Configuration → Redirect URLs에 추가합니다.
+4. Google Cloud OAuth 설정에도 Supabase 프로젝트의 Google callback URL을 유지합니다.
+
+`vercel.json`에 SPA 새로고침용 rewrite가 포함되어 있습니다.
+
+## 검사
 
 ```bash
-npm run db:remote
-npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler secret put TOKEN_ENCRYPTION_KEY
-npx wrangler secret put SESSION_SECRET
-npm run deploy
+npm run check
 ```
 
-암호화 키는 아래처럼 만들 수 있습니다.
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-## Google Cloud 설정
-
-1. Google Cloud Console에서 새 프로젝트를 만듭니다.
-2. Google Sheets API를 활성화합니다.
-3. OAuth 동의 화면을 설정합니다.
-4. 웹 애플리케이션 OAuth 클라이언트를 만듭니다.
-5. 승인된 리디렉션 URI에 `https://배포주소/oauth/google/callback`을 추가합니다.
-6. Client ID를 `wrangler.jsonc`의 `GOOGLE_CLIENT_ID`에 넣습니다.
-7. Client Secret은 `wrangler secret put GOOGLE_CLIENT_SECRET`으로 저장합니다.
-
-Google 검수 전에는 OAuth 테스트 사용자에 실제 관리자 계정을 추가해야 합니다.
-
-## 보안 메모
-
-- Google refresh token은 AES-GCM으로 암호화해 D1에 저장합니다.
-- 세션 쿠키는 HttpOnly, Secure, SameSite=Lax로 발급됩니다.
-- 이미지 업로드는 로그인 사용자만 가능하며 5MB로 제한됩니다.
-- 공개 제출 API에는 기본 속도 제한과 선택형 Turnstile 검증이 포함됩니다.
-- `ADMIN_EMAILS`를 설정하면 해당 이메일만 로그인할 수 있습니다.
-- 비밀키와 `.dev.vars`는 GitHub에 올리지 않습니다.
-
-## 데이터 흐름
-
-1. 방문자가 공개 폼을 제출합니다.
-2. Worker가 답변을 검증하고 D1에 먼저 저장합니다.
-3. Google Sheet가 연결돼 있으면 같은 응답을 행으로 추가합니다.
-4. Sheet 오류가 발생해도 D1 응답은 보존되고 관리자 화면에서 재전송할 수 있습니다.
+프로덕션 빌드와 폼 데이터 검증 테스트를 실행합니다.

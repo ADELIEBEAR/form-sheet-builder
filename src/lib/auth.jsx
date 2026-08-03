@@ -1,21 +1,73 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { api } from './api'
+import { supabase } from './supabase'
 
 const AuthContext = createContext(null)
+
+function mapUser(user) {
+  if (!user) return null
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.user_metadata?.full_name || user.user_metadata?.name || user.email,
+    avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || '',
+  }
+}
+
+async function rememberGoogleTokens(session) {
+  if (!session?.user || !session.provider_token) return
+  window.localStorage.setItem('form_builder_google_provider_token', session.provider_token)
+  if (session.provider_refresh_token) window.localStorage.setItem('form_builder_google_provider_refresh_token', session.provider_refresh_token)
+  const payload = {
+    user_id: session.user.id,
+    access_token: session.provider_token,
+    updated_at: new Date().toISOString(),
+  }
+  if (session.provider_refresh_token) payload.refresh_token = session.provider_refresh_token
+  await supabase.from('google_tokens').upsert(payload, { onConflict: 'user_id' })
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api('/api/me').then((data) => setUser(data.user)).catch(() => setUser(null)).finally(() => setLoading(false))
+    let mounted = true
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
+      setUser(mapUser(data.session?.user))
+      rememberGoogleTokens(data.session).catch(() => {})
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+      setUser(mapUser(session?.user))
+      rememberGoogleTokens(session).catch(() => {})
+      setLoading(false)
+    })
+    return () => { mounted = false; subscription.unsubscribe() }
   }, [])
 
   const value = useMemo(() => ({
     user,
     loading,
-    login: (returnTo = '/dashboard') => { window.location.href = `/oauth/google/start?return_to=${encodeURIComponent(returnTo)}` },
-    logout: async () => { await api('/api/auth/logout', { method: 'POST' }); setUser(null); window.location.href = '/' },
+    login: async (returnTo = '/dashboard') => {
+      window.localStorage.setItem('form_builder_return_to', returnTo)
+      const redirectTo = `${window.location.origin}${returnTo}`
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          scopes: 'openid email profile https://www.googleapis.com/auth/spreadsheets',
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      })
+      if (error) throw error
+    },
+    logout: async () => {
+      await supabase.auth.signOut()
+      window.localStorage.removeItem('form_builder_google_provider_token')
+      window.location.href = '/'
+    },
   }), [user, loading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

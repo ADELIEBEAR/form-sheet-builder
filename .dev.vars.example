@@ -1,0 +1,7 @@
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+TOKEN_ENCRYPTION_KEY="base64-encoded-32-byte-key"
+SESSION_SECRET="a-long-random-string"
+APP_URL="http://localhost:8787"
+ADMIN_EMAILS="you@example.com"
+TURNSTILE_SECRET=""

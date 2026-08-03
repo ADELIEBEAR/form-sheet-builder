@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "form-sheet-builder",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-03",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/oauth/*", "/media/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "form-sheet-builder-db",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "form-sheet-builder-images"
+    }
+  ],
+  "vars": {
+    "APP_URL": "http://localhost:8787",
+    "GOOGLE_CLIENT_ID": "REPLACE_IN_CLOUDFLARE",
+    "ADMIN_EMAILS": ""
+  }
+}

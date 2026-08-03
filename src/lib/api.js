@@ -1,5 +1,5 @@
 import { ASSET_BUCKET, supabase } from './supabase'
-import { sanitizeForm, validateAnswers, ValidationError } from './validation'
+import { sanitizeProject, validateAnswers, ValidationError } from './validation'
 
 export class ApiError extends Error {
   constructor(message, status = 500, details) {
@@ -14,40 +14,38 @@ function fail(error, fallback = '요청을 처리하지 못했습니다.') {
   throw new ApiError(error?.message || fallback, 500, error)
 }
 
-function parseBody(options) {
+function bodyOf(options) {
   if (!options?.body || options.body instanceof FormData) return options?.body
-  if (typeof options.body === 'string') {
-    try { return JSON.parse(options.body) } catch { return {} }
-  }
-  return options.body
+  if (typeof options.body !== 'string') return options.body
+  try { return JSON.parse(options.body) } catch { return {} }
 }
 
-function serializeForm(row) {
-  const countRelation = row.form_builder_responses
+function serializeProject(row) {
+  const countRelation = row.form_maker_submissions
   const responseCount = Array.isArray(countRelation) ? Number(countRelation[0]?.count || 0) : Number(row.response_count || 0)
   return {
     id: row.id,
-    userId: row.user_id,
+    ownerId: row.owner_id,
     title: row.title,
-    description: row.description || '',
     slug: row.slug,
-    questions: row.questions || [],
+    description: row.description || '',
+    pages: row.pages || [],
     theme: row.theme || {},
-    successMessage: row.success_message || '응답이 제출되었습니다.',
-    isPublished: Boolean(row.is_published),
+    settings: row.settings || {},
+    status: row.status || 'draft',
     sheetId: row.sheet_id || '',
     sheetUrl: row.sheet_url || '',
     sheetName: row.sheet_name || '응답',
+    responseCount,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    responseCount,
   }
 }
 
-function serializeResponse(row) {
+function serializeSubmission(row) {
   return {
     id: row.id,
-    formId: row.form_id,
+    projectId: row.project_id,
     answers: row.answers || {},
     sheetSyncStatus: row.sheet_sync_status || 'not_connected',
     sheetSyncError: row.sheet_sync_error || '',
@@ -61,45 +59,48 @@ async function requireUser() {
   return data.user
 }
 
-async function ownedForm(id) {
-  const { data, error } = await supabase.from('form_builder_forms').select('*').eq('id', id).single()
+async function ownedProject(id) {
+  const { data, error } = await supabase.from('form_maker_projects').select('*').eq('id', id).single()
   if (error || !data) throw new ApiError('폼을 찾을 수 없습니다.', error?.code === 'PGRST116' ? 404 : 500, error)
   return data
 }
 
 function providerToken() {
-  return window.localStorage.getItem('form_builder_google_provider_token') || ''
+  return window.localStorage.getItem('form_maker_google_provider_token') || ''
 }
 
 async function googleFetch(path, options = {}) {
   const token = providerToken()
-  if (!token) throw new ApiError('Google Sheets 권한이 없습니다. 로그아웃한 뒤 Google로 다시 로그인해 주세요.', 401)
+  if (!token) throw new ApiError('Google Sheets 권한이 없습니다. Google로 다시 로그인해 주세요.', 401)
   const response = await fetch(`https://sheets.googleapis.com/v4/${path}`, {
     ...options,
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(options.headers || {}) },
   })
-  const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new ApiError(body?.error?.message || 'Google Sheets 요청에 실패했습니다.', response.status, body)
-  return body
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) throw new ApiError(result?.error?.message || 'Google Sheets 요청에 실패했습니다.', response.status, result)
+  return result
 }
 
-async function writeSheetHeader(form) {
-  if (!form.sheetId) return
-  const sheetName = form.sheetName || '응답'
-  const headers = ['제출 시각', ...form.questions.filter((question) => question.type !== 'notice').map((question) => question.label)]
-  await googleFetch(`spreadsheets/${encodeURIComponent(form.sheetId)}/values/${encodeURIComponent(`${sheetName}!A1`)}?valueInputOption=RAW`, {
+function sheetHeaders(project) {
+  return ['제출 시각', ...project.pages.flatMap((page) => page.fields || []).filter((field) => field.type !== 'heading').map((field) => field.label)]
+}
+
+async function writeSheetHeader(project) {
+  if (!project.sheetId) return
+  const range = `${project.sheetName || '응답'}!A1`
+  await googleFetch(`spreadsheets/${encodeURIComponent(project.sheetId)}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
     method: 'PUT',
-    body: JSON.stringify({ range: `${sheetName}!A1`, majorDimension: 'ROWS', values: [headers] }),
+    body: JSON.stringify({ range, majorDimension: 'ROWS', values: [sheetHeaders(project)] }),
   })
 }
 
-async function connectSheet(formId, input) {
-  const row = await ownedForm(formId)
+async function connectSheet(projectId, input) {
+  const row = await ownedProject(projectId)
   let sheet
   if (input.action === 'create') {
     const created = await googleFetch('spreadsheets', {
       method: 'POST',
-      body: JSON.stringify({ properties: { title: `${row.title} - 응답` }, sheets: [{ properties: { title: '응답' } }] }),
+      body: JSON.stringify({ properties: { title: `${row.title} 응답` }, sheets: [{ properties: { title: '응답' } }] }),
     })
     sheet = { id: created.spreadsheetId, url: created.spreadsheetUrl, name: created.sheets?.[0]?.properties?.title || '응답' }
   } else {
@@ -109,185 +110,140 @@ async function connectSheet(formId, input) {
     const found = await googleFetch(`spreadsheets/${encodeURIComponent(id)}?fields=spreadsheetId,spreadsheetUrl,sheets.properties.title`)
     sheet = { id: found.spreadsheetId, url: found.spreadsheetUrl, name: found.sheets?.[0]?.properties?.title || '응답' }
   }
-  const { data, error } = await supabase.from('form_builder_forms').update({
-    sheet_id: sheet.id,
-    sheet_url: sheet.url,
-    sheet_name: sheet.name,
-    updated_at: new Date().toISOString(),
-  }).eq('id', formId).select().single()
+  const { data, error } = await supabase.from('form_maker_projects').update({ sheet_id: sheet.id, sheet_url: sheet.url, sheet_name: sheet.name }).eq('id', projectId).select().single()
   if (error) fail(error)
-  const form = serializeForm(data)
-  await writeSheetHeader(form)
-  return { form }
+  const project = serializeProject(data)
+  await writeSheetHeader(project)
+  return { project }
 }
 
-async function invokeSheetSync(formId, responseId) {
-  const { data, error } = await supabase.functions.invoke('form-builder-sheet-sync', {
-    body: { formId, responseId },
-  })
-  if (error) throw new ApiError(error.message || 'Google Sheets 동기화에 실패했습니다.', 500, error)
-  if (data?.error) throw new ApiError(data.error, 500, data)
-  return data
-}
-
-async function syncPendingResponses(forms) {
-  const connectedIds = forms.filter((form) => form.sheetId).map((form) => form.id)
-  if (!connectedIds.length) return
-  const { data } = await supabase.from('form_builder_responses')
-    .select('id,form_id')
-    .in('form_id', connectedIds)
-    .eq('sheet_sync_status', 'pending')
-    .order('submitted_at', { ascending: true })
-    .limit(20)
-  for (const response of data || []) {
-    await invokeSheetSync(response.form_id, response.id).catch(() => {})
-  }
-}
-
-function assetPathFromUrl(url) {
+function assetPath(url) {
   const marker = `/storage/v1/object/public/${ASSET_BUCKET}/`
   const index = String(url || '').indexOf(marker)
   return index < 0 ? '' : decodeURIComponent(String(url).slice(index + marker.length))
 }
 
-async function handleUpload(formData) {
+async function uploadAsset(formData) {
   const user = await requireUser()
-  const file = formData?.get('file')
-  if (!(file instanceof File)) throw new ApiError('이미지 파일이 필요합니다.', 400)
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new ApiError('JPG, PNG, WebP 이미지만 올릴 수 있습니다.', 400)
-  if (file.size > 5 * 1024 * 1024) throw new ApiError('이미지는 5MB 이하여야 합니다.', 413)
-  const formId = String(formData.get('formId') || 'drafts')
-  const path = `${user.id}/${formId}/${crypto.randomUUID()}.webp`
-  const { error } = await supabase.storage.from(ASSET_BUCKET).upload(path, file, { contentType: file.type, cacheControl: '31536000', upsert: false })
-  if (error) fail(error, '이미지 업로드에 실패했습니다.')
+  const file = formData.get('file')
+  if (!(file instanceof Blob) || !file.type.startsWith('image/')) throw new ApiError('이미지 파일만 업로드할 수 있습니다.', 400)
+  if (file.size > 5 * 1024 * 1024) throw new ApiError('이미지는 5MB 이하로 올려주세요.', 413)
+  const path = `${user.id}/${crypto.randomUUID()}.webp`
+  const { error } = await supabase.storage.from(ASSET_BUCKET).upload(path, file, { contentType: 'image/webp', upsert: false })
+  if (error) fail(error, '이미지를 업로드하지 못했습니다.')
   const { data } = supabase.storage.from(ASSET_BUCKET).getPublicUrl(path)
-  const oldPath = assetPathFromUrl(formData.get('oldUrl'))
-  if (oldPath && oldPath.startsWith(`${user.id}/`)) await supabase.storage.from(ASSET_BUCKET).remove([oldPath]).catch(() => {})
+  const oldPath = assetPath(formData.get('oldUrl'))
+  if (oldPath?.startsWith(`${user.id}/`)) supabase.storage.from(ASSET_BUCKET).remove([oldPath]).catch(() => {})
   return { url: data.publicUrl }
+}
+
+async function invokeSheetSync(projectId, submissionId, syncKey) {
+  const { data, error } = await supabase.functions.invoke('form-maker-sheet-sync', { body: { projectId, submissionId, syncKey } })
+  if (error) throw new ApiError(error.message || 'Google Sheets 동기화에 실패했습니다.', 500, error)
+  if (!data?.ok) throw new ApiError(data?.error || 'Google Sheets 동기화에 실패했습니다.', 500, data)
+  return data
 }
 
 export async function api(path, options = {}) {
   const method = String(options.method || 'GET').toUpperCase()
-  const body = parseBody(options)
-
+  const body = bodyOf(options)
   try {
-    if (path === '/api/me' && method === 'GET') {
+    if (path === '/maker/projects' && method === 'GET') {
+      await requireUser()
+      const { data, error } = await supabase.from('form_maker_projects').select('*, form_maker_submissions(count)').order('updated_at', { ascending: false })
+      if (error) fail(error)
+      return { projects: (data || []).map(serializeProject) }
+    }
+
+    if (path === '/maker/projects' && method === 'POST') {
       const user = await requireUser()
-      return { user: { id: user.id, email: user.email, name: user.user_metadata?.full_name || user.user_metadata?.name || user.email, avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || '' } }
-    }
-
-    if (path === '/api/auth/logout' && method === 'POST') {
-      const { error } = await supabase.auth.signOut()
-      if (error) fail(error)
-      return null
-    }
-
-    if (path === '/api/forms' && method === 'GET') {
-      const user = await requireUser()
-      const { data, error } = await supabase.from('form_builder_forms')
-        .select('*, form_builder_responses(count)')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-      if (error) fail(error)
-      const forms = (data || []).map(serializeForm)
-      await syncPendingResponses(forms)
-      return { forms }
-    }
-
-    if (path === '/api/forms' && method === 'POST') {
-      const user = await requireUser()
-      const input = sanitizeForm(body)
-      const payload = { ...input, user_id: user.id }
-      let result = await supabase.from('form_builder_forms').insert(payload).select().single()
-      if (result.error?.code === '23505') result = await supabase.from('form_builder_forms').insert({ ...payload, slug: `${input.slug}-${crypto.randomUUID().slice(0, 6)}` }).select().single()
-      if (result.error) fail(result.error)
-      return { form: serializeForm(result.data) }
-    }
-
-    const publicFormMatch = path.match(/^\/api\/public\/forms\/([^/]+)$/)
-    if (publicFormMatch && method === 'GET') {
-      const slug = decodeURIComponent(publicFormMatch[1])
-      const { data, error } = await supabase.from('form_builder_forms').select('*').eq('slug', slug).eq('is_published', true).single()
-      if (error || !data) throw new ApiError('게시되지 않았거나 존재하지 않는 폼입니다.', 404, error)
-      return { form: serializeForm(data) }
-    }
-
-    const publicResponseMatch = path.match(/^\/api\/public\/forms\/([^/]+)\/responses$/)
-    if (publicResponseMatch && method === 'POST') {
-      if (body?.website) return { ok: true }
-      if (Number(body?.startedAt) && Date.now() - Number(body.startedAt) < 1200) throw new ApiError('너무 빠르게 제출했습니다. 내용을 확인해 주세요.', 400)
-      const slug = decodeURIComponent(publicResponseMatch[1])
-      const { data: row, error: formError } = await supabase.from('form_builder_forms').select('*').eq('slug', slug).eq('is_published', true).single()
-      if (formError || !row) throw new ApiError('게시되지 않았거나 존재하지 않는 폼입니다.', 404, formError)
-      const form = serializeForm(row)
-      const responseId = crypto.randomUUID()
-      const status = form.sheetId ? 'pending' : 'not_connected'
-      const answers = validateAnswers(form.questions, body?.answers)
-      const { error } = await supabase.from('form_builder_responses').insert({ id: responseId, form_id: form.id, answers, sheet_sync_status: status })
-      if (error) fail(error, '응답을 저장하지 못했습니다.')
-      return { ok: true, id: responseId }
-    }
-
-    if (path === '/api/uploads' && method === 'POST') return handleUpload(body)
-
-    const responseListMatch = path.match(/^\/api\/forms\/([^/]+)\/responses$/)
-    if (responseListMatch && method === 'GET') {
-      await ownedForm(responseListMatch[1])
-      const { data, error } = await supabase.from('form_builder_responses').select('*').eq('form_id', responseListMatch[1]).order('submitted_at', { ascending: false }).limit(5000)
-      if (error) fail(error)
-      return { responses: (data || []).map(serializeResponse) }
-    }
-
-    const retryMatch = path.match(/^\/api\/forms\/([^/]+)\/responses\/([^/]+)\/retry$/)
-    if (retryMatch && method === 'POST') {
-      await ownedForm(retryMatch[1])
-      await invokeSheetSync(retryMatch[1], retryMatch[2])
-      const { data, error } = await supabase.from('form_builder_responses').select('*').eq('id', retryMatch[2]).single()
-      if (error) fail(error)
-      return { response: serializeResponse(data) }
-    }
-
-    const sheetMatch = path.match(/^\/api\/forms\/([^/]+)\/sheet$/)
-    if (sheetMatch && method === 'POST') return connectSheet(sheetMatch[1], body || {})
-
-    const duplicateMatch = path.match(/^\/api\/forms\/([^/]+)\/duplicate$/)
-    if (duplicateMatch && method === 'POST') {
-      const user = await requireUser()
-      const current = await ownedForm(duplicateMatch[1])
-      const id = crypto.randomUUID()
-      const { data, error } = await supabase.from('form_builder_forms').insert({
-        user_id: user.id,
-        title: `${current.title} 복사본`,
-        description: current.description,
-        slug: `${current.slug}-copy-${id.slice(0, 5)}`,
-        questions: current.questions,
-        theme: current.theme,
-        success_message: current.success_message,
-        is_published: false,
-      }).select().single()
-      if (error) fail(error)
-      return { form: serializeForm(data) }
-    }
-
-    const formMatch = path.match(/^\/api\/forms\/([^/]+)$/)
-    if (formMatch && method === 'GET') return { form: serializeForm(await ownedForm(formMatch[1])) }
-
-    if (formMatch && method === 'PUT') {
-      const input = sanitizeForm(body)
-      const { data, error } = await supabase.from('form_builder_forms').update(input).eq('id', formMatch[1]).select().single()
+      const input = sanitizeProject(body)
+      const { data, error } = await supabase.from('form_maker_projects').insert({ ...input, owner_id: user.id }).select().single()
       if (error?.code === '23505') throw new ApiError('이미 사용 중인 공개 주소입니다.', 409, error)
       if (error) fail(error)
-      const form = serializeForm(data)
-      if (form.sheetId) writeSheetHeader(form).catch(() => {})
-      return { form }
+      return { project: serializeProject(data) }
     }
 
-    if (formMatch && method === 'DELETE') {
-      const current = await ownedForm(formMatch[1])
-      const { error } = await supabase.from('form_builder_forms').delete().eq('id', formMatch[1])
+    const publicMatch = path.match(/^\/maker\/public\/([^/]+)$/)
+    if (publicMatch && method === 'GET') {
+      const { data, error } = await supabase.from('form_maker_projects').select('*').eq('slug', decodeURIComponent(publicMatch[1])).eq('status', 'published').single()
+      if (error || !data) throw new ApiError('공개되지 않았거나 존재하지 않는 폼입니다.', 404, error)
+      return { project: serializeProject(data) }
+    }
+
+    const publicSubmitMatch = path.match(/^\/maker\/public\/([^/]+)\/submissions$/)
+    if (publicSubmitMatch && method === 'POST') {
+      if (body?.website) throw new ApiError('올바르지 않은 제출입니다.', 400)
+      if (!Number.isFinite(Number(body?.startedAt)) || Date.now() - Number(body.startedAt) < 1200) throw new ApiError('너무 빠르게 제출되었습니다. 내용을 확인해 주세요.', 400)
+      const { data: row, error: findError } = await supabase.from('form_maker_projects').select('*').eq('slug', decodeURIComponent(publicSubmitMatch[1])).eq('status', 'published').single()
+      if (findError || !row) throw new ApiError('공개되지 않았거나 존재하지 않는 폼입니다.', 404, findError)
+      const answers = validateAnswers(row.pages || [], body?.answers)
+      const submissionId = crypto.randomUUID()
+      const syncKey = crypto.randomUUID()
+      const { error } = await supabase.from('form_maker_submissions').insert({ id: submissionId, project_id: row.id, answers, sync_key: syncKey, sheet_sync_status: row.sheet_id ? 'pending' : 'not_connected' })
+      if (error) fail(error, '응답을 저장하지 못했습니다.')
+      if (row.sheet_id) invokeSheetSync(row.id, submissionId, syncKey).catch(() => {})
+      return { ok: true, id: submissionId }
+    }
+
+    if (path === '/maker/assets' && method === 'POST') return uploadAsset(body)
+
+    const submissionsMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions$/)
+    if (submissionsMatch && method === 'GET') {
+      await ownedProject(submissionsMatch[1])
+      const { data, error } = await supabase.from('form_maker_submissions').select('*').eq('project_id', submissionsMatch[1]).order('submitted_at', { ascending: false }).limit(5000)
       if (error) fail(error)
-      const pathToDelete = assetPathFromUrl(current.theme?.coverUrl)
-      if (pathToDelete) await supabase.storage.from(ASSET_BUCKET).remove([pathToDelete]).catch(() => {})
+      return { submissions: (data || []).map(serializeSubmission) }
+    }
+
+    const retryMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions\/([^/]+)\/sync$/)
+    if (retryMatch && method === 'POST') {
+      await ownedProject(retryMatch[1])
+      await invokeSheetSync(retryMatch[1], retryMatch[2])
+      const { data, error } = await supabase.from('form_maker_submissions').select('*').eq('id', retryMatch[2]).single()
+      if (error) fail(error)
+      return { submission: serializeSubmission(data) }
+    }
+
+    const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)
+    if (sheetMatch && method === 'POST') return connectSheet(sheetMatch[1], body || {})
+
+    const duplicateMatch = path.match(/^\/maker\/projects\/([^/]+)\/duplicate$/)
+    if (duplicateMatch && method === 'POST') {
+      const user = await requireUser()
+      const current = await ownedProject(duplicateMatch[1])
+      const id = crypto.randomUUID()
+      const { data, error } = await supabase.from('form_maker_projects').insert({
+        owner_id: user.id,
+        title: `${current.title} 복사본`,
+        slug: `${current.slug}-copy-${id.slice(0, 5)}`,
+        description: current.description,
+        pages: current.pages,
+        theme: current.theme,
+        settings: current.settings,
+        status: 'draft',
+      }).select().single()
+      if (error) fail(error)
+      return { project: serializeProject(data) }
+    }
+
+    const projectMatch = path.match(/^\/maker\/projects\/([^/]+)$/)
+    if (projectMatch && method === 'GET') return { project: serializeProject(await ownedProject(projectMatch[1])) }
+    if (projectMatch && method === 'PUT') {
+      const input = sanitizeProject(body)
+      const { data, error } = await supabase.from('form_maker_projects').update(input).eq('id', projectMatch[1]).select().single()
+      if (error?.code === '23505') throw new ApiError('이미 사용 중인 공개 주소입니다.', 409, error)
+      if (error) fail(error)
+      const project = serializeProject(data)
+      if (project.sheetId) writeSheetHeader(project).catch(() => {})
+      return { project }
+    }
+    if (projectMatch && method === 'DELETE') {
+      const current = await ownedProject(projectMatch[1])
+      const { error } = await supabase.from('form_maker_projects').delete().eq('id', projectMatch[1])
+      if (error) fail(error)
+      const oldPath = assetPath(current.theme?.coverUrl)
+      if (oldPath) await supabase.storage.from(ASSET_BUCKET).remove([oldPath]).catch(() => {})
       return null
     }
 

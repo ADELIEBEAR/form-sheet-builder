@@ -30,7 +30,7 @@ export default function ImageUpload({ value, formId, onChange }) {
       body.append('file', blob, `${file.name.replace(/\.[^.]+$/, '')}.webp`)
       if (formId) body.append('formId', formId)
       if (value) body.append('oldUrl', value)
-      const data = await api('/api/uploads', { method: 'POST', body })
+      const data = await api('/maker/assets', { method: 'POST', body })
       onChange(data.url)
     } catch (caught) {
       setError(caught.message)
@@ -41,7 +41,7 @@ export default function ImageUpload({ value, formId, onChange }) {
 
   return (
     <div className="image-upload">
-      {value ? <img src={value} alt="폼 커버 미리보기" /> : <div className="image-placeholder"><ImageSquare size={30} /><span>커버 이미지</span></div>}
+      {value ? <img src={value} alt="폼 상단 이미지 미리보기" /> : <div className="image-placeholder"><ImageSquare size={30} /><span>상단 이미지</span></div>}
       <div className="image-actions">
         <button className="button secondary" type="button" onClick={() => inputRef.current?.click()} disabled={busy}>{busy ? <SpinnerGap className="spin" /> : <ImageSquare />} {value ? '이미지 변경' : '이미지 올리기'}</button>
         {value ? <button className="icon-button danger" type="button" onClick={() => onChange('')} aria-label="이미지 제거"><Trash /></button> : null}

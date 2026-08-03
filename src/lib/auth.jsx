@@ -15,15 +15,15 @@ function mapUser(user) {
 
 async function rememberGoogleTokens(session) {
   if (!session?.user || !session.provider_token) return
-  window.localStorage.setItem('form_builder_google_provider_token', session.provider_token)
-  if (session.provider_refresh_token) window.localStorage.setItem('form_builder_google_provider_refresh_token', session.provider_refresh_token)
+  window.localStorage.setItem('form_maker_google_provider_token', session.provider_token)
+  if (session.provider_refresh_token) window.localStorage.setItem('form_maker_google_provider_refresh_token', session.provider_refresh_token)
   const payload = {
     user_id: session.user.id,
     access_token: session.provider_token,
     updated_at: new Date().toISOString(),
   }
   if (session.provider_refresh_token) payload.refresh_token = session.provider_refresh_token
-  await supabase.from('google_tokens').upsert(payload, { onConflict: 'user_id' })
+  await supabase.from('form_maker_google_tokens').upsert(payload, { onConflict: 'user_id' })
 }
 
 export function AuthProvider({ children }) {
@@ -50,8 +50,8 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     user,
     loading,
-    login: async (returnTo = '/dashboard') => {
-      window.localStorage.setItem('form_builder_return_to', returnTo)
+    login: async (returnTo = '/workspace') => {
+      window.localStorage.setItem('form_maker_return_to', returnTo)
       const redirectTo = `${window.location.origin}${returnTo}`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -65,7 +65,8 @@ export function AuthProvider({ children }) {
     },
     logout: async () => {
       await supabase.auth.signOut()
-      window.localStorage.removeItem('form_builder_google_provider_token')
+      window.localStorage.removeItem('form_maker_google_provider_token')
+      window.localStorage.removeItem('form_maker_google_provider_refresh_token')
       window.location.href = '/'
     },
   }), [user, loading])

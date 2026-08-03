@@ -1,62 +1,48 @@
-import { ArrowClockwise, ArrowSquareOut, DownloadSimple, SpinnerGap, WarningCircle } from '@phosphor-icons/react'
+import { ArrowClockwise, ArrowSquareOut, DownloadSimple, SpinnerGap } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from '../lib/router'
-import AppShell from '../components/AppShell'
-import EmptyState from '../components/EmptyState'
+import AppFrame from '../components/AppFrame'
 import { api, downloadCsv } from '../lib/api'
-import { responseRows } from '../lib/form'
+import { allFields, responseRows } from '../lib/maker'
 
-const statusLabel = {
-  synced: '시트 저장됨',
-  pending: '전송 중',
-  failed: '재전송 필요',
-  not_connected: '시트 미연결',
-}
+const statusLabel = { synced: '시트 저장됨', pending: '전송 대기', failed: '재전송 필요', not_connected: '시트 미연결' }
 
 export default function Responses() {
-  const { formId } = useParams()
-  const [form, setForm] = useState(null)
-  const [responses, setResponses] = useState([])
+  const { projectId } = useParams()
+  const [project, setProject] = useState(null)
+  const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [retrying, setRetrying] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([api(`/api/forms/${formId}`), api(`/api/forms/${formId}/responses`)]).then(([formData, responseData]) => { setForm(formData.form); setResponses(responseData.responses) }).catch((caught) => setError(caught.message)).finally(() => setLoading(false))
-  }, [formId])
+    Promise.all([api(`/maker/projects/${projectId}`), api(`/maker/projects/${projectId}/submissions`)]).then(([projectData, submissionData]) => {
+      setProject(projectData.project)
+      setSubmissions(submissionData.submissions)
+    }).catch((caught) => setError(caught.message)).finally(() => setLoading(false))
+  }, [projectId])
 
-  const questions = useMemo(() => form?.questions.filter((question) => question.type !== 'notice') || [], [form])
+  const fields = useMemo(() => allFields(project), [project])
 
-  async function retry(responseId) {
-    setRetrying(responseId)
+  async function retry(submissionId) {
+    setRetrying(submissionId)
     try {
-      const data = await api(`/api/forms/${formId}/responses/${responseId}/retry`, { method: 'POST' })
-      setResponses((current) => current.map((response) => response.id === responseId ? data.response : response))
-    } catch (caught) {
-      setError(caught.message)
-    } finally {
-      setRetrying('')
-    }
+      const data = await api(`/maker/projects/${projectId}/submissions/${submissionId}/sync`, { method: 'POST' })
+      setSubmissions((current) => current.map((submission) => submission.id === submissionId ? data.submission : submission))
+    } catch (caught) { setError(caught.message) } finally { setRetrying('') }
   }
 
-  const actions = form ? <>{form.sheetUrl ? <a className="button secondary compact" href={form.sheetUrl} target="_blank" rel="noreferrer">시트 열기 <ArrowSquareOut /></a> : null}<button className="button primary compact" type="button" onClick={() => downloadCsv(`${form.title}-응답.csv`, responseRows(form, responses))}><DownloadSimple /> CSV</button></> : null
+  const actions = project ? <>{project.sheetUrl ? <a className="studio-secondary" href={project.sheetUrl} target="_blank" rel="noreferrer">시트 열기 <ArrowSquareOut /></a> : null}<button className="studio-primary" type="button" onClick={() => downloadCsv(`${project.title}-응답.csv`, responseRows(project, submissions))}><DownloadSimple /> CSV 내려받기</button></> : null
 
   return (
-    <AppShell backTo={form ? `/builder/${formId}` : '/dashboard'} actions={actions}>
-      <main className="responses-page container wide">
-        {loading ? <><div className="skeleton skeleton-title" /><div className="skeleton table-skeleton" /></> : null}
-        {error ? <div className="error-panel"><WarningCircle /> {error}</div> : null}
-        {!loading && form ? <div className="page-heading"><div><h1>{form.title}</h1><p>총 {responses.length.toLocaleString()}개의 응답</p></div></div> : null}
-        {!loading && responses.length === 0 ? <EmptyState title="아직 응답이 없습니다" body="공개 링크를 공유하면 새 응답이 여기에 쌓입니다." /> : null}
-        {responses.length > 0 ? (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>제출 시각</th>{questions.map((question) => <th key={question.id}>{question.label}</th>)}<th>Google Sheets</th></tr></thead>
-              <tbody>{responses.map((response) => <tr key={response.id}><td className="date-cell">{new Date(response.submittedAt).toLocaleString('ko-KR')}</td>{questions.map((question) => { const value = response.answers[question.id]; return <td key={question.id}>{Array.isArray(value) ? value.join(', ') : value || <span className="empty-value">응답 없음</span>}</td> })}<td><span className={`sync-status ${response.sheetSyncStatus}`}>{statusLabel[response.sheetSyncStatus] || response.sheetSyncStatus}</span>{response.sheetSyncStatus === 'failed' ? <button className="retry-button" type="button" onClick={() => retry(response.id)} disabled={retrying === response.id}>{retrying === response.id ? <SpinnerGap className="spin" /> : <ArrowClockwise />} 재전송</button> : null}</td></tr>)}</tbody>
-            </table>
-          </div>
-        ) : null}
+    <AppFrame backTo={`/studio/${projectId}`} center={project ? <strong className="response-header-title">{project.title}</strong> : null} actions={actions}>
+      <main className="responses-main">
+        {loading ? <div className="responses-loading"><div /><div /><div /></div> : null}
+        {error ? <div className="inline-alert">{error}</div> : null}
+        {!loading && project ? <div className="responses-heading"><div><h1>응답</h1><p>총 {submissions.length.toLocaleString()}개의 응답이 저장되어 있습니다.</p></div><div className="response-summary"><span>Google Sheets</span><strong>{project.sheetId ? '연결됨' : '연결되지 않음'}</strong></div></div> : null}
+        {!loading && submissions.length === 0 ? <section className="response-empty"><h2>아직 들어온 응답이 없습니다</h2><p>공개 링크를 공유하면 제출된 응답이 여기에 표시됩니다.</p></section> : null}
+        {submissions.length > 0 ? <div className="response-table-wrap"><table><thead><tr><th>제출 시각</th>{fields.map((field) => <th key={field.id}>{field.label}</th>)}<th>시트 상태</th></tr></thead><tbody>{submissions.map((submission) => <tr key={submission.id}><td className="date-cell">{new Date(submission.submittedAt).toLocaleString('ko-KR')}</td>{fields.map((field) => { const value = submission.answers[field.id]; return <td key={field.id}>{Array.isArray(value) ? value.join(', ') : value || <span className="empty-cell">응답 없음</span>}</td> })}<td><span className={`sheet-status ${submission.sheetSyncStatus}`}>{statusLabel[submission.sheetSyncStatus] || submission.sheetSyncStatus}</span>{submission.sheetSyncStatus === 'failed' ? <button className="retry-sync" type="button" onClick={() => retry(submission.id)} disabled={retrying === submission.id}>{retrying === submission.id ? <SpinnerGap className="spin" /> : <ArrowClockwise />} 재전송</button> : null}</td></tr>)}</tbody></table></div> : null}
       </main>
-    </AppShell>
+    </AppFrame>
   )
 }

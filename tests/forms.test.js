@@ -1,31 +1,37 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeSlug, sanitizeForm, validateAnswers } from '../src/lib/validation'
+import { normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
-describe('form validation', () => {
+const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
+
+describe('form maker validation', () => {
   it('normalizes a readable Korean slug', () => {
     expect(normalizeSlug(' 신규 상담 신청 ', '제목')).toBe('신규-상담-신청')
   })
 
-  it('normalizes options and accepts a Storage URL', () => {
-    const form = sanitizeForm({
+  it('normalizes choices and accepts the isolated Storage URL', () => {
+    const project = sanitizeProject({
       title: '상담 신청',
-      questions: [{ id: 'q1', type: 'radio', label: '관심 분야', required: true, options: [' 주식 ', '', '코인'] }],
-      theme: { accent: '#0f766e', surface: '#f3f7f6', coverUrl: 'https://example.supabase.co/storage/v1/object/public/form-builder-assets/user/image.webp' },
+      pages: page([{ id: 'q1', type: 'single', label: '관심 분야', required: true, options: [' 주식 ', '', '코인'] }]),
+      theme: { accent: '#3157e8', background: '#eef1f8', text: '#1e2430', card: '#ffffff', coverUrl: 'https://example.supabase.co/storage/v1/object/public/form-maker-assets/user/image.webp' },
     })
-    expect(form.questions[0].options).toEqual(['주식', '코인'])
-    expect(form.theme.coverUrl).toContain('/storage/v1/object/public/')
+    expect(project.pages[0].fields[0].options).toEqual(['주식', '코인'])
+    expect(project.theme.coverUrl).toContain('/form-maker-assets/')
   })
 
   it('rejects inline base64 images', () => {
-    expect(() => sanitizeForm({ title: '폼', questions: [], theme: { coverUrl: 'data:image/png;base64,abc' } })).toThrow('DB에 직접 저장')
+    expect(() => sanitizeProject({ title: '폼', pages: page([]), theme: { coverUrl: 'data:image/png;base64,abc' } })).toThrow('DB에 직접 저장')
   })
 
-  it('rejects a missing required response', () => {
-    expect(() => validateAnswers([{ id: 'q1', type: 'short', label: '이름', required: true }], {})).toThrow('필수 질문')
+  it('rejects a missing required response across pages', () => {
+    expect(() => validateAnswers(page([{ id: 'q1', type: 'short', label: '이름', required: true }]), {})).toThrow('필수 질문')
   })
 
-  it('drops invalid checkbox choices', () => {
-    const answers = validateAnswers([{ id: 'q1', type: 'checkbox', label: '선택', options: ['A', 'B'] }], { q1: ['A', 'C'] })
+  it('drops invalid multiple-choice values', () => {
+    const answers = validateAnswers(page([{ id: 'q1', type: 'multi', label: '선택', options: ['A', 'B'] }]), { q1: ['A', 'C'] })
     expect(answers.q1).toEqual(['A'])
+  })
+
+  it('rejects ratings outside the configured scale', () => {
+    expect(() => validateAnswers(page([{ id: 'q1', type: 'rating', label: '평가', scale: 5 }]), { q1: '8' })).toThrow('별점 범위')
   })
 })

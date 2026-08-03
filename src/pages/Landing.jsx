@@ -1,45 +1,42 @@
-import { ArrowRight, CheckCircle, CloudArrowUp, GoogleLogo, ImageSquare, SquaresFour } from '@phosphor-icons/react'
+import { ArrowRight, Check, GoogleLogo } from '@phosphor-icons/react'
 import { Navigate } from '../lib/router'
 import { useAuth } from '../lib/auth'
+import FormCanvas from '../components/FormCanvas'
+
+const previewProject = {
+  title: '프로젝트 신청서',
+  description: '필요한 내용을 남겨주시면 확인 후 연락드릴게요.',
+  pages: [{ id: 'sample-page', title: '기본 정보', fields: [
+    { id: 'sample-name', type: 'short', label: '이름을 알려주세요', required: true, placeholder: '홍길동' },
+    { id: 'sample-type', type: 'single', label: '어떤 작업이 필요한가요?', required: true, options: ['브랜드 디자인', '웹사이트', '기타'] },
+  ] }],
+  theme: { accent: '#3157e8', background: '#eef1f8', card: '#ffffff', text: '#1e2430', radius: 18, showProgress: false },
+  settings: { submitLabel: '신청서 보내기' },
+}
 
 export default function Landing() {
   const { user, loading, login } = useAuth()
-  if (!loading && user) return <Navigate to="/dashboard" replace />
-
+  if (!loading && user) return <Navigate to="/workspace" replace />
   return (
-    <main className="landing">
-      <nav className="landing-nav">
-        <a className="brand" href="/"><span className="brand-mark"><SquaresFour weight="fill" /></span><span>폼메이커</span></a>
-        <button className="button secondary compact" type="button" onClick={() => login()}>로그인</button>
+    <main className="new-landing">
+      <nav className="landing-bar">
+        <a className="maker-logo dark-logo" href="/"><span className="maker-glyph"><i /><i /><i /></span><strong>폼메이커</strong></a>
+        <button className="landing-login" type="button" onClick={() => login()}>로그인</button>
       </nav>
-
-      <section className="hero">
-        <div className="hero-copy">
-          <span className="eyebrow">Google Sheets 연동 폼 제작기</span>
-          <h1>폼을 만들면,<br />응답 정리는 끝.</h1>
-          <p>링크로 응답을 받고 Google Sheet에 바로 쌓으세요. 이미지 트래픽은 분리해 비용 걱정도 줄였습니다.</p>
-          <button className="button primary hero-button" type="button" onClick={() => login()}>Google로 시작하기 <ArrowRight weight="bold" /></button>
+      <section className="landing-hero">
+        <div className="landing-copy">
+          <span className="landing-kicker">폼 제작부터 응답 정리까지</span>
+          <h1>질문을 만들고,<br />답변에 바로 집중하세요.</h1>
+          <p>여러 페이지로 구성한 폼을 링크로 공유하고, 들어온 응답을 Google Sheet에 차곡차곡 기록합니다.</p>
+          <button className="landing-cta" type="button" onClick={() => login('/workspace')}><GoogleLogo weight="bold" /> Google로 시작하기 <ArrowRight weight="bold" /></button>
+          <div className="landing-checks"><span><Check weight="bold" /> 응답 먼저 안전하게 저장</span><span><Check weight="bold" /> 이미지는 DB와 분리</span></div>
         </div>
-
-        <div className="hero-product" aria-label="폼 제작기 기능 미리보기">
-          <div className="product-top"><span>신규 상담 신청</span><span className="status-badge">게시 중</span></div>
-          <div className="product-body">
-            <div className="mini-sidebar"><span className="active"><SquaresFour /> 질문</span><span><ImageSquare /> 디자인</span><span><GoogleLogo /> 시트</span></div>
-            <div className="mini-form">
-              <div className="mini-heading" />
-              <div className="mini-copy" />
-              <div className="mini-question"><strong>이름을 알려주세요</strong><span /></div>
-              <div className="mini-question"><strong>연락처를 입력해주세요</strong><span /></div>
-              <div className="mini-submit">제출하기</div>
-            </div>
-          </div>
-        </div>
+        <div className="landing-demo" aria-label="새 폼메이커 실제 폼 미리보기"><div className="demo-browser"><span /><span /><span /><small>formmaker.app/s/project</small></div><FormCanvas project={previewProject} preview selectedFieldId="sample-type" /></div>
       </section>
-
-      <section className="benefits" aria-label="주요 기능">
-        <article><CloudArrowUp size={26} /><div><h2>응답을 안전하게</h2><p>Supabase에 먼저 저장해 시트 오류가 나도 응답을 잃지 않습니다.</p></div></article>
-        <article><GoogleLogo size={26} /><div><h2>Google Sheet 자동 기록</h2><p>질문이 바뀌면 헤더도 맞추고 새 응답을 다음 행에 추가합니다.</p></div></article>
-        <article><CheckCircle size={26} /><div><h2>이미지는 가볍게</h2><p>WebP로 압축한 뒤 Storage에 저장해 DB 용량을 아낍니다.</p></div></article>
+      <section className="landing-story">
+        <strong>작성 화면은 단순하게</strong>
+        <p>왼쪽에서 질문을 구성하고, 가운데에서 실제 화면을 확인하고, 오른쪽에서 세부 설정을 바꿉니다.</p>
+        <div className="story-steps"><article><span>질문 구성</span><h2>페이지를 나누고<br />필요한 질문을 추가하세요.</h2></article><article><span>실시간 미리보기</span><h2>응답자가 볼 화면을<br />만들면서 바로 확인하세요.</h2></article><article><span>응답 정리</span><h2>Supabase에 보관하고<br />Google Sheet로 옮기세요.</h2></article></div>
       </section>
     </main>
   )

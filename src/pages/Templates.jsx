@@ -1,5 +1,5 @@
-import { ArrowRight, CalendarCheck, ChatCircleDots, ClipboardText, Plus, Star } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { ArrowRight, Briefcase, CalendarCheck, ChatCircleDots, ClipboardText, EnvelopeOpen, GraduationCap, HandHeart, Hourglass, Plus, Receipt, ShoppingBag, Smiley, Star } from '@phosphor-icons/react'
+import { useMemo, useState } from 'react'
 import AppFrame from '../components/AppFrame'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
@@ -11,12 +11,24 @@ const icons = {
   reservation: CalendarCheck,
   feedback: Star,
   event: ClipboardText,
+  job: Briefcase,
+  quote: Receipt,
+  class: GraduationCap,
+  waitlist: Hourglass,
+  order: ShoppingBag,
+  rsvp: EnvelopeOpen,
+  volunteer: HandHeart,
+  checkin: Smiley,
 }
+
+const categories = ['전체', ...new Set(FORM_TEMPLATES.map((template) => template.category))]
 
 export default function Templates() {
   const navigate = useNavigate()
   const [creating, setCreating] = useState('')
+  const [category, setCategory] = useState('전체')
   const [error, setError] = useState('')
+  const filteredTemplates = useMemo(() => category === '전체' ? FORM_TEMPLATES : FORM_TEMPLATES.filter((template) => template.category === category), [category])
 
   async function useTemplate(templateId) {
     setCreating(templateId)
@@ -33,15 +45,19 @@ export default function Templates() {
   return (
     <AppFrame sidebar={<WorkspaceSidebar active="templates" />} actions={<Link className="studio-primary header-new" to="/studio/new"><Plus weight="bold" /> 새 폼</Link>}>
       <main className="workspace-main templates-main">
-        <div className="workspace-heading"><div><span className="page-eyebrow">빠른 시작</span><h1>템플릿</h1><p>자주 쓰는 질문이 준비되어 있습니다. 선택한 뒤 내 상황에 맞게 바로 고치세요.</p></div></div>
+        <div className="workspace-heading"><div><span className="page-eyebrow">빠른 시작 · {FORM_TEMPLATES.length}가지</span><h1>어떤 폼이 필요하세요?</h1><p>자주 쓰는 질문과 어울리는 디자인까지 준비했습니다. 고른 뒤 내 상황에 맞게 바로 바꾸세요.</p></div></div>
+        <div className="template-filters" aria-label="템플릿 종류">
+          {categories.map((item) => <button className={category === item ? 'active' : ''} type="button" key={item} onClick={() => setCategory(item)}>{item}<span>{item === '전체' ? FORM_TEMPLATES.length : FORM_TEMPLATES.filter((template) => template.category === item).length}</span></button>)}
+        </div>
         {error ? <div className="inline-alert">{error}</div> : null}
         <section className="template-grid" aria-label="폼 템플릿 목록">
-          {FORM_TEMPLATES.map((template, index) => {
-            const Icon = icons[template.id]
+          {filteredTemplates.map((template, index) => {
+            const Icon = icons[template.id] || ClipboardText
             return (
               <article className={`template-card template-${template.id}`} key={template.id}>
                 <div className="template-preview" style={{ '--template-accent': template.accent }}>
-                  <span className="template-number">0{index + 1}</span>
+                  <span className="template-number">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="template-category">{template.category}</span>
                   <Icon weight="duotone" />
                   <i /><i /><i />
                 </div>

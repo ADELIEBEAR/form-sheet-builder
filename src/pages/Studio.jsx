@@ -127,6 +127,11 @@ export default function Studio() {
     })
   }
 
+  function navigateCanvas(nextPageIndex, nextFieldId) {
+    setPageIndex(nextPageIndex)
+    setSelectedFieldId(nextFieldId)
+  }
+
   function removePage(index) {
     if (project.pages.length === 1) {
       setError('페이지는 하나 이상 필요합니다.')
@@ -285,7 +290,7 @@ export default function Studio() {
               selectedFieldId={selectedFieldId}
               onProjectChange={changeProject}
               onPageChange={updatePage}
-              onPage={selectPage}
+              onNavigate={navigateCanvas}
               onFieldSelect={selectField}
               onFieldChange={updateField}
               onFieldAdd={addField}

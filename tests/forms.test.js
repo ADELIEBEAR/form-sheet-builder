@@ -34,11 +34,20 @@ describe('form maker validation', () => {
   })
 
   it('stores a valid Korean font and clamps typography sizes', () => {
-    const project = sanitizeProject({ title: '글자 설정 폼', pages: page([]), theme: { font: 'jua', titleSize: 200, questionSize: 10, bodySize: 50 } })
-    expect(project.theme.font).toBe('jua')
+    const project = sanitizeProject({ title: '글자 설정 폼', pages: page([]), theme: { font: 'black-han', titleSize: 200, questionSize: 10, bodySize: 50 } })
+    expect(project.theme.font).toBe('black-han')
     expect(project.theme.titleSize).toBe(72)
     expect(project.theme.questionSize).toBe(20)
     expect(project.theme.bodySize).toBe(22)
+  })
+
+  it('stores supported visual effects and rejects unknown animation settings', () => {
+    const supported = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'liquid', motion: 'playful' } })
+    const fallback = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'webgl-magic', motion: 'fastest' } })
+    expect(supported.theme.effect).toBe('liquid')
+    expect(supported.theme.motion).toBe('playful')
+    expect(fallback.theme.effect).toBe('aurora')
+    expect(fallback.theme.motion).toBe('soft')
   })
 
   it('rejects a missing required response across pages', () => {

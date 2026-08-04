@@ -2,6 +2,8 @@ import { FIELD_TYPES, FONT_PRESETS } from './maker'
 
 const allowedTypes = new Set(FIELD_TYPES.map(([type]) => type))
 const allowedFonts = new Set(FONT_PRESETS.map(([font]) => font))
+const allowedEffects = new Set(['aurora', 'liquid', 'clouds', 'prism', 'ripple', 'grid', 'grain', 'none'])
+const allowedMotions = new Set(['none', 'calm', 'soft', 'playful'])
 
 export class ValidationError extends Error {
   name = 'ValidationError'
@@ -87,6 +89,8 @@ export function sanitizeProject(input) {
       titleSize: safeSize(input?.theme?.titleSize, 56, 28, 72),
       questionSize: safeSize(input?.theme?.questionSize, 32, 20, 48),
       bodySize: safeSize(input?.theme?.bodySize, 16, 12, 22),
+      effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
+      motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',
     },
     settings: {
       successTitle: String(input?.settings?.successTitle || '응답이 접수되었습니다').slice(0, 200),

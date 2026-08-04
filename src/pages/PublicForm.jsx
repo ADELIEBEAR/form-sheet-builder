@@ -18,12 +18,51 @@ export default function PublicForm() {
     api(`/maker/public/${encodeURIComponent(slug)}`).then((data) => { setProject(data.project); setStatus('ready') }).catch((caught) => { setMessage(caught.message); setStatus('error') })
   }, [slug])
 
+  function answerError(field, value) {
+    if (field.type === 'heading') return ''
+    const empty = value == null || value === '' || (Array.isArray(value) && value.length === 0)
+    if (field.required && empty) return '이 질문에 답해 주세요.'
+    if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())) return '이메일 주소를 확인해 주세요.'
+    return ''
+  }
+
+  function changeAnswers(next) {
+    setAnswers(next)
+    setErrors((current) => {
+      const nextErrors = { ...current }
+      for (const field of project.pages.flatMap((page) => page.fields || [])) {
+        if (!answerError(field, next[field.id])) delete nextErrors[field.id]
+      }
+      return nextErrors
+    })
+  }
+
+  function movePage(nextIndex) {
+    const layout = project.theme?.layout || 'focus'
+    if (layout === 'focus' && nextIndex > pageIndex && pageIndex > 0) {
+      const fields = project.pages.flatMap((page) => page.fields || [])
+      const currentField = fields[pageIndex - 1]
+      const currentError = currentField ? answerError(currentField, answers[currentField.id]) : ''
+      if (currentError) {
+        setErrors((current) => ({ ...current, [currentField.id]: currentError }))
+        return
+      }
+    }
+    if (layout === 'card' && nextIndex > pageIndex) {
+      const pageErrors = Object.fromEntries((project.pages[pageIndex]?.fields || []).map((field) => [field.id, answerError(field, answers[field.id])]).filter(([, error]) => error))
+      if (Object.keys(pageErrors).length) {
+        setErrors((current) => ({ ...current, ...pageErrors }))
+        return
+      }
+    }
+    setPageIndex(nextIndex)
+  }
+
   function validate() {
     const next = {}
     project.pages.flatMap((page) => page.fields || []).forEach((field) => {
-      if (field.type === 'heading' || !field.required) return
-      const value = answers[field.id]
-      if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) next[field.id] = '필수 질문입니다.'
+      const error = answerError(field, answers[field.id])
+      if (error) next[field.id] = error
     })
     setErrors(next)
     if (Object.keys(next).length) {
@@ -59,7 +98,7 @@ export default function PublicForm() {
   return (
     <main className="public-page" style={{ background: project.theme?.background || '#f0edfb' }}>
       <form className="public-form-wrap" onSubmit={submit} noValidate>
-        <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={setAnswers} onPage={setPageIndex} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
+        <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={changeAnswers} onPage={movePage} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
         <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
         {message ? <div className="public-submit-error"><WarningCircle /> {message}</div> : null}
       </form>

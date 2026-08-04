@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
-import { FONT_STACKS } from '../lib/maker'
+import { FONT_STACKS, formSteps } from '../lib/maker'
+import FocusEffects from './FocusEffects'
 import FormField from './FormField'
 
 function canvasStyle(project) {
@@ -34,12 +35,13 @@ function FocusBackdrop({ project }) {
     <>
       {project.theme?.coverUrl ? <div className="focus-image" style={{ backgroundImage: `url("${project.theme.coverUrl}")` }} /> : null}
       <div className="focus-tint" />
+      <FocusEffects theme={project.theme} />
     </>
   )
 }
 
 function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, errors, preview, submitted, submitting }) {
-  const steps = project.pages.flatMap((page, pageIndex) => (page.fields || []).map((field) => ({ field, page, pageIndex })))
+  const steps = formSteps(project)
   const total = steps.length
   const style = canvasStyle(project)
 
@@ -55,20 +57,20 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, errors, p
       <FocusBackdrop project={project} />
       <div className="focus-shell">
         <header className="focus-topbar">
-          <span className="focus-brand-mark"><i /><i /><i /></span>
+          <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onStep?.(0)} aria-label="처음 화면으로"><i /><i /><i /></button>
           {project.theme?.showProgress !== false && !isCover ? <div className="focus-progress"><span style={{ width: `${(currentNumber / Math.max(total, 1)) * 100}%` }} /></div> : <span />}
           <small>{isCover ? 'FORM' : `${currentNumber} / ${total}`}</small>
         </header>
 
         {isCover ? (
-          <main className="focus-cover-card focus-content-card">
+          <main className="focus-cover-card focus-content-card focus-card-enter" key="cover">
             <span className="focus-kicker">WELCOME</span>
             <h1>{project.title}</h1>
             {project.description ? <p>{project.description}</p> : null}
             <button className="focus-primary" type="button" onClick={() => onStep?.(1)} disabled={preview || !canContinue}>시작하기 <ArrowRight /></button>
           </main>
         ) : current ? (
-          <main className="focus-question-card focus-content-card">
+          <main className="focus-question-card focus-content-card focus-card-enter" key={current.field.id}>
             <div className="focus-question-meta">
               <span>{current.page.title || `페이지 ${current.pageIndex + 1}`}</span>
               {current.field.required ? <small>필수</small> : null}

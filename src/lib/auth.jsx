@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
         provider: 'google',
         options: {
           redirectTo: authReturnUrl(returnTo),
-          scopes: 'openid email profile https://www.googleapis.com/auth/spreadsheets',
+          scopes: 'openid email profile',
           queryParams: { access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true' },
         },
       })

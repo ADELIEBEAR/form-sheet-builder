@@ -349,9 +349,6 @@ input[type="radio"] + .choice-indicator { border-radius: 50%; }
 .response-table-wrap td { max-width: 320px; padding: 13px; border-top: 1px solid var(--app-line); line-height: 1.55; vertical-align: top; }
 .date-cell { white-space: nowrap; color: var(--app-muted); }
 .empty-cell { color: #a0a6b1; }
-.sheet-status { padding: 4px 6px; border-radius: 6px; background: var(--app-soft); color: var(--app-muted); white-space: nowrap; font-size: 9px; font-weight: 750; }
-.sheet-status.synced { background: #e1f3ec; color: #17745c; }
-.sheet-status.failed { background: #fff0f2; color: var(--app-danger); }
 .retry-sync { margin-left: 5px; padding: 4px; border: 0; background: transparent; color: var(--app-danger); display: inline-flex; align-items: center; gap: 3px; font-size: 9px; cursor: pointer; }
 .response-empty { min-height: 380px; border: 1px dashed var(--app-line-strong); border-radius: 13px; background: var(--app-surface); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .response-empty h2 { margin: 0; }

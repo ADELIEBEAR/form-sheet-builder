@@ -6,7 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const BACKUP_SHEET_TITLE = '폼메이커 응답 백업'
+const BACKUP_SHEET_ID = Deno.env.get('FORM_MAKER_BACKUP_SHEET_ID') || '14BpX7cxcKVrw2LF0bQWW9CNjmBcY7HVj7HcQNaaSPL0'
+const BACKUP_SHEET_URL = `https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/edit`
+const BACKUP_SHEET_TITLE = '백업'
 
 class HttpError extends Error {
   status: number
@@ -21,7 +23,11 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'content-type': 'application/json; charset=utf-8' } })
 }
 
-type GoogleTokenRow = { access_token: string; refresh_token?: string | null }
+type GoogleTokenRow = {
+  access_token: string
+  refresh_token?: string | null
+  source: 'google_tokens' | 'form_maker_google_tokens'
+}
 
 type ProjectRow = {
   id: string
@@ -41,10 +47,10 @@ type BackupSheetRow = {
   sheet_title: string
 }
 
-async function refreshGoogleAccessToken(admin: any, userId: string, refreshToken?: string | null) {
+async function refreshGoogleAccessToken(admin: any, userId: string, tokenRow: GoogleTokenRow) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID') || ''
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') || ''
-  if (!refreshToken || !clientId || !clientSecret) return ''
+  if (!tokenRow.refresh_token || !clientId || !clientSecret) return ''
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -53,13 +59,13 @@ async function refreshGoogleAccessToken(admin: any, userId: string, refreshToken
       client_id: clientId,
       client_secret: clientSecret,
       grant_type: 'refresh_token',
-      refresh_token: refreshToken,
+      refresh_token: tokenRow.refresh_token,
     }),
   })
   const tokenData = await tokenResponse.json().catch(() => ({}))
   if (!tokenResponse.ok || typeof tokenData?.access_token !== 'string') return ''
 
-  await admin.from('form_maker_google_tokens').update({ access_token: tokenData.access_token, updated_at: new Date().toISOString() }).eq('user_id', userId)
+  await admin.from(tokenRow.source).update({ access_token: tokenData.access_token, updated_at: new Date().toISOString() }).eq('user_id', userId)
   return tokenData.access_token
 }
 
@@ -71,10 +77,29 @@ async function googleRequest(admin: any, userId: string, tokenRow: GoogleTokenRo
   const firstResponse = await request(tokenRow.access_token)
   if (firstResponse.status !== 401) return firstResponse
 
-  const refreshedToken = await refreshGoogleAccessToken(admin, userId, tokenRow.refresh_token)
+  const refreshedToken = await refreshGoogleAccessToken(admin, userId, tokenRow)
   if (!refreshedToken) return firstResponse
   tokenRow.access_token = refreshedToken
   return request(refreshedToken)
+}
+
+async function loadGoogleToken(admin: any, userId: string) {
+  const { data: legacyToken, error: legacyError } = await admin
+    .from('google_tokens')
+    .select('access_token,refresh_token')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (legacyError) throw legacyError
+  if (legacyToken?.access_token) return { ...legacyToken, source: 'google_tokens' } as GoogleTokenRow
+
+  const { data: makerToken, error: makerError } = await admin
+    .from('form_maker_google_tokens')
+    .select('access_token,refresh_token')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (makerError) throw makerError
+  if (makerToken?.access_token) return { ...makerToken, source: 'form_maker_google_tokens' } as GoogleTokenRow
+  return null
 }
 
 async function googleError(response: Response, fallback: string) {
@@ -88,8 +113,24 @@ function projectSheetName(project: ProjectRow) {
     .replace(/[\\/?*\[\]:]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 78) || '제목 없는 폼'
-  return `${cleanTitle} · ${project.id.slice(0, 6)}`.slice(0, 100)
+    .slice(0, 96) || '제목 없는 폼'
+  return `${cleanTitle}-응답`.slice(0, 100)
+}
+
+function uniqueProjectSheetName(project: ProjectRow, sheetTitles: Set<string>) {
+  const preferred = projectSheetName(project)
+  if (!sheetTitles.has(preferred)) return preferred
+
+  const suffix = ` (${project.id.slice(0, 6)})`
+  const base = preferred.slice(0, Math.max(1, 100 - suffix.length))
+  let candidate = `${base}${suffix}`
+  let attempt = 2
+  while (sheetTitles.has(candidate)) {
+    const numberedSuffix = ` (${project.id.slice(0, 6)}-${attempt})`
+    candidate = `${preferred.slice(0, Math.max(1, 100 - numberedSuffix.length))}${numberedSuffix}`
+    attempt += 1
+  }
+  return candidate
 }
 
 function quotedSheetName(sheetName: string) {
@@ -103,30 +144,6 @@ function projectHeaders(project: ProjectRow) {
   return ['제출 시각', 'DB 판정', '판정 사유', ...fields.map((field: any) => String(field.label || ''))]
 }
 
-async function createBackupSheet(admin: any, project: ProjectRow, tokenRow: GoogleTokenRow, sheetName: string) {
-  const response = await googleRequest(admin, project.owner_id, tokenRow, 'https://sheets.googleapis.com/v4/spreadsheets', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      properties: { title: BACKUP_SHEET_TITLE },
-      sheets: [{ properties: { title: sheetName } }],
-    }),
-  })
-  if (!response.ok) throw await googleError(response, '백업시트를 만들지 못했습니다.')
-  const created = await response.json()
-  if (!created?.spreadsheetId) throw new HttpError('Google이 생성한 백업시트를 확인하지 못했습니다.', 502)
-  const sheetUrl = created.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${created.spreadsheetId}/edit`
-  const backup: BackupSheetRow = {
-    user_id: project.owner_id,
-    sheet_id: created.spreadsheetId,
-    sheet_url: sheetUrl,
-    sheet_title: BACKUP_SHEET_TITLE,
-  }
-  const { error } = await admin.from('form_maker_backup_sheets').upsert({ ...backup, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-  if (error) throw error
-  return backup
-}
-
 async function readBackupSheet(admin: any, project: ProjectRow, tokenRow: GoogleTokenRow, backup: BackupSheetRow) {
   const response = await googleRequest(
     admin,
@@ -135,7 +152,6 @@ async function readBackupSheet(admin: any, project: ProjectRow, tokenRow: Google
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(backup.sheet_id)}?fields=spreadsheetId,spreadsheetUrl,sheets.properties(sheetId,title)`,
     { method: 'GET', headers: { 'content-type': 'application/json' } },
   )
-  if (response.status === 404) return null
   if (!response.ok) throw await googleError(response, '백업시트를 열지 못했습니다.')
   return response.json()
 }
@@ -182,31 +198,36 @@ async function writeProjectHeader(admin: any, project: ProjectRow, tokenRow: Goo
 }
 
 async function ensureProjectBackupSheet(admin: any, project: ProjectRow, tokenRow: GoogleTokenRow) {
-  const { data: savedBackup, error: backupError } = await admin
+  const { data: assignedBackup, error: assignedBackupError } = await admin
     .from('form_maker_backup_sheets')
     .select('user_id,sheet_id,sheet_url,sheet_title')
     .eq('user_id', project.owner_id)
     .maybeSingle()
+  if (assignedBackupError) throw assignedBackupError
+  if (!assignedBackup || assignedBackup.sheet_id !== BACKUP_SHEET_ID) {
+    throw new HttpError('이 계정의 백업 저장 위치가 아직 설정되지 않았습니다.', 409)
+  }
+
+  const backup: BackupSheetRow = {
+    user_id: project.owner_id,
+    sheet_id: BACKUP_SHEET_ID,
+    sheet_url: BACKUP_SHEET_URL,
+    sheet_title: BACKUP_SHEET_TITLE,
+  }
+  const workbook = await readBackupSheet(admin, project, tokenRow, backup)
+  const { error: backupError } = await admin
+    .from('form_maker_backup_sheets')
+    .upsert({ ...backup, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   if (backupError) throw backupError
 
-  const preservedName = savedBackup
-    && project.sheet_id === savedBackup.sheet_id
+  const preservedName = project.sheet_id === BACKUP_SHEET_ID
     && project.sheet_name
     && project.sheet_name !== '응답'
     ? project.sheet_name
     : ''
-  const sheetName = preservedName || projectSheetName(project)
-  let backup = savedBackup as BackupSheetRow | null
-  let workbook: any = null
-
-  if (backup) workbook = await readBackupSheet(admin, project, tokenRow, backup)
-  if (!backup || !workbook) {
-    backup = await createBackupSheet(admin, project, tokenRow, sheetName)
-    workbook = { sheets: [{ properties: { title: sheetName } }] }
-  }
-
-  const tabExists = Array.isArray(workbook?.sheets)
-    && workbook.sheets.some((sheet: any) => sheet?.properties?.title === sheetName)
+  const sheetTitles = new Set<string>((workbook?.sheets || []).map((sheet: any) => String(sheet?.properties?.title || '')))
+  const sheetName = preservedName || uniqueProjectSheetName(project, sheetTitles)
+  const tabExists = sheetTitles.has(sheetName)
   if (!tabExists) await addProjectSheet(admin, project, tokenRow, backup, sheetName)
   await writeProjectHeader(admin, project, tokenRow, backup, sheetName)
 
@@ -274,11 +295,7 @@ Deno.serve(async (request) => {
       }
     }
 
-    const { data: tokenRow } = await admin
-      .from('form_maker_google_tokens')
-      .select('access_token,refresh_token')
-      .eq('user_id', project.owner_id)
-      .maybeSingle()
+    const tokenRow = await loadGoogleToken(admin, project.owner_id)
     if (!tokenRow?.access_token) throw new HttpError('Google 권한이 필요합니다. 한 번만 다시 로그인해 주세요.', 401)
 
     if (action === 'ensure') {

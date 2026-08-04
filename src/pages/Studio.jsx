@@ -19,7 +19,6 @@ import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
-import IntegrationPanel from '../components/IntegrationPanel'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
@@ -524,7 +523,6 @@ export default function Studio() {
                       </div>
                     ) : null}
                   </div>
-                  <IntegrationPanel projectId={projectId} project={project} onConnected={changeProject} />
                 </div>
               ) : null}
         </aside>

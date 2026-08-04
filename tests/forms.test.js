@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moveItem, normalizeMemoColor, THEME_PRESETS } from '../src/lib/maker'
+import { moveItem, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
 import { normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
@@ -134,5 +134,20 @@ describe('form maker validation', () => {
 
   it('rejects ratings outside the configured scale', () => {
     expect(() => validateAnswers(page([{ id: 'q1', type: 'rating', label: '평가', scale: 5 }]), { q1: '8' })).toThrow('별점 범위')
+  })
+
+  it('exports response data without internal backup status', () => {
+    const project = { pages: page([{ id: 'q1', type: 'short', label: '이름' }]) }
+    const rows = responseRows(project, [{
+      submittedAt: '2026-08-04T09:00:00.000Z',
+      qualityStatus: 'normal',
+      qualityReasons: [],
+      answers: { q1: '홍길동' },
+      sheetSyncStatus: 'failed',
+    }])
+
+    expect(rows[0]).toEqual(['제출 시각', 'DB 판정', '판정 사유', '이름'])
+    expect(rows[1]).toHaveLength(4)
+    expect(rows.flat()).not.toContain('failed')
   })
 })

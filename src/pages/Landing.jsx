@@ -27,7 +27,7 @@ export default function Landing() {
         <div className="landing-copy">
           <span className="landing-kicker">폼 제작부터 응답 정리까지</span>
           <h1>질문을 만들고,<br />답변에 바로 집중하세요.</h1>
-          <p>여러 페이지로 구성한 폼을 링크로 공유하고, 들어온 응답을 Google Sheet에 차곡차곡 기록합니다.</p>
+          <p>여러 페이지로 구성한 폼을 링크로 공유하고, 들어온 응답을 안전하게 보관하고 정리합니다.</p>
           <button className="landing-cta" type="button" onClick={() => login('/workspace')}><GoogleLogo weight="bold" /> Google로 폼 만들기 <ArrowRight weight="bold" /></button>
           <div className="landing-checks"><span><Check weight="bold" /> 응답 먼저 안전하게 저장</span><span><Check weight="bold" /> 관리자 응답 권한 별도</span><span><Check weight="bold" /> 이미지는 DB와 분리</span></div>
         </div>
@@ -36,7 +36,7 @@ export default function Landing() {
       <section className="landing-story">
         <strong>작성 화면은 단순하게</strong>
         <p>폼 화면에서 제목과 질문을 바로 누르고 고칩니다. 설정창을 오갈 필요 없이 만드는 흐름에만 집중할 수 있어요.</p>
-        <div className="story-steps"><article><span>직접 편집</span><h2>보이는 화면에서<br />누르고 바로 수정하세요.</h2></article><article><span>고정 편집 도구</span><h2>디자인과 설정은<br />항상 옆에서 바꾸세요.</h2></article><article><span>응답 정리</span><h2>Supabase에 보관하고<br />Google Sheet로 옮기세요.</h2></article></div>
+        <div className="story-steps"><article><span>직접 편집</span><h2>보이는 화면에서<br />누르고 바로 수정하세요.</h2></article><article><span>고정 편집 도구</span><h2>디자인과 설정은<br />항상 옆에서 바꾸세요.</h2></article><article><span>응답 정리</span><h2>답변을 안전하게 보관하고<br />필요한 파일로 저장하세요.</h2></article></div>
       </section>
     </main>
   )

@@ -73,21 +73,13 @@ async function loadPublishedProject(slug) {
   return Array.isArray(rows) ? rows[0] || null : null
 }
 
-function deploymentOrigin(request) {
-  const deploymentHost = process.env.VERCEL_URL
-  if (deploymentHost) return `https://${deploymentHost}`
-  const host = String(request.headers?.host || '')
-  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host)) return `http://${host}`
-  return 'https://form-maker-next.vercel.app'
-}
-
 export default async function handler(request, response) {
   const rawSlug = Array.isArray(request.query?.slug) ? request.query.slug[0] : request.query?.slug
   const slug = String(rawSlug || '').normalize('NFKC').slice(0, 64)
-  const origin = deploymentOrigin(request)
+  const appOrigin = process.env.FORM_MAKER_SITE_URL || 'https://form-maker-next.vercel.app'
 
   try {
-    const indexResponse = await fetch(`${origin}/index.html`, { headers: { accept: 'text/html' } })
+    const indexResponse = await fetch(`${appOrigin}/index.html`, { headers: { accept: 'text/html' } })
     if (!indexResponse.ok) throw new Error('App shell unavailable')
     const indexHtml = await indexResponse.text()
     if (!/^[\p{L}\p{N}-]{1,64}$/u.test(slug)) {

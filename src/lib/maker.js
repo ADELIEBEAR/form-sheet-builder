@@ -21,7 +21,7 @@ export const FIELD_GROUPS = [
 
 export const TYPE_LABEL = Object.fromEntries(FIELD_TYPES)
 
-export const ACCENT_PRESETS = ['#3157e8', '#6d4aff', '#d8436b', '#cc5b24', '#13866f', '#27313d']
+export const ACCENT_PRESETS = ['#2f6757', '#3157e8', '#6d4aff', '#d8436b', '#cc5b24', '#27313d']
 
 export function makeField(type = 'short') {
   const labels = {
@@ -66,11 +66,11 @@ export function emptyProject() {
     description: '간단한 안내 문구를 적어주세요.',
     pages: [makePage(0)],
     theme: {
-      accent: '#3157e8',
-      background: '#eef1f8',
-      card: '#ffffff',
-      text: '#1e2430',
-      radius: 18,
+      accent: '#2f6757',
+      background: '#efede7',
+      card: '#fffdfa',
+      text: '#232724',
+      radius: 14,
       coverUrl: '',
       showProgress: true,
     },

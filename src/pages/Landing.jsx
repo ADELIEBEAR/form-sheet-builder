@@ -10,7 +10,7 @@ const previewProject = {
     { id: 'sample-name', type: 'short', label: '이름을 알려주세요', required: true, placeholder: '홍길동' },
     { id: 'sample-type', type: 'single', label: '어떤 작업이 필요한가요?', required: true, options: ['브랜드 디자인', '웹사이트', '기타'] },
   ] }],
-  theme: { accent: '#3157e8', background: '#eef1f8', card: '#ffffff', text: '#1e2430', radius: 18, showProgress: false },
+  theme: { accent: '#2f6757', background: '#efede7', card: '#fffdfa', text: '#232724', radius: 14, showProgress: false },
   settings: { submitLabel: '신청서 보내기' },
 }
 
@@ -35,8 +35,8 @@ export default function Landing() {
       </section>
       <section className="landing-story">
         <strong>작성 화면은 단순하게</strong>
-        <p>왼쪽에서 질문을 구성하고, 가운데에서 실제 화면을 확인하고, 오른쪽에서 세부 설정을 바꿉니다.</p>
-        <div className="story-steps"><article><span>질문 구성</span><h2>페이지를 나누고<br />필요한 질문을 추가하세요.</h2></article><article><span>실시간 미리보기</span><h2>응답자가 볼 화면을<br />만들면서 바로 확인하세요.</h2></article><article><span>응답 정리</span><h2>Supabase에 보관하고<br />Google Sheet로 옮기세요.</h2></article></div>
+        <p>폼 화면에서 제목과 질문을 바로 누르고 고칩니다. 설정창을 오갈 필요 없이 만드는 흐름에만 집중할 수 있어요.</p>
+        <div className="story-steps"><article><span>직접 편집</span><h2>보이는 화면에서<br />누르고 바로 수정하세요.</h2></article><article><span>간결한 설정</span><h2>디자인과 연동은<br />필요할 때만 열어보세요.</h2></article><article><span>응답 정리</span><h2>Supabase에 보관하고<br />Google Sheet로 옮기세요.</h2></article></div>
       </section>
     </main>
   )

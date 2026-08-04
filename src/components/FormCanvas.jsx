@@ -5,11 +5,11 @@ export default function FormCanvas({ project, pageIndex = 0, answers = {}, onAns
   const page = project.pages?.[pageIndex]
   if (!page) return null
   const style = {
-    '--preview-accent': project.theme?.accent || '#3157e8',
-    '--preview-bg': project.theme?.background || '#eef1f8',
-    '--preview-card': project.theme?.card || '#ffffff',
-    '--preview-text': project.theme?.text || '#1e2430',
-    '--preview-radius': `${project.theme?.radius ?? 18}px`,
+    '--preview-accent': project.theme?.accent || '#2f6757',
+    '--preview-bg': project.theme?.background || '#efede7',
+    '--preview-card': project.theme?.card || '#fffdfa',
+    '--preview-text': project.theme?.text || '#232724',
+    '--preview-radius': `${project.theme?.radius ?? 14}px`,
   }
 
   if (submitted) return <div className="form-canvas success-canvas" style={style}><div className="success-symbol"><CheckCircle weight="fill" /></div><h1>{project.settings?.successTitle}</h1><p>{project.settings?.successMessage}</p></div>

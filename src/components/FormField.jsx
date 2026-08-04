@@ -1,14 +1,14 @@
 import { Check, Star } from '@phosphor-icons/react'
 
-export default function FormField({ field, value, onChange, error, preview = false, accent = '#3157e8' }) {
+export default function FormField({ field, value, onChange, error, preview = false, hidePrompt = false, accent = '#2f6757' }) {
   const set = (next) => onChange?.(next)
   if (field.type === 'heading') return <div className="render-heading"><h3>{field.label}</h3>{field.description ? <p>{field.description}</p> : null}</div>
 
   const common = { disabled: preview, value: value || '', placeholder: field.placeholder || '답변을 입력해 주세요', onChange: (event) => set(event.target.value) }
   return (
     <fieldset className={`render-field ${error ? 'field-invalid' : ''}`} style={{ '--field-accent': accent }}>
-      <legend>{field.label}{field.required ? <span>필수</span> : null}</legend>
-      {field.description ? <p className="render-help">{field.description}</p> : null}
+      <legend className={hidePrompt ? 'visually-hidden' : ''}>{field.label}{!hidePrompt && field.required ? <span>필수</span> : null}</legend>
+      {!hidePrompt && field.description ? <p className="render-help">{field.description}</p> : null}
       {['short', 'email', 'phone', 'number', 'date'].includes(field.type) ? <input {...common} type={{ short: 'text', email: 'email', phone: 'tel', number: 'number', date: 'date' }[field.type]} /> : null}
       {field.type === 'long' ? <textarea {...common} rows="4" /> : null}
       {field.type === 'select' ? <select disabled={preview} value={value || ''} onChange={(event) => set(event.target.value)}><option value="">선택해 주세요</option>{field.options.map((option) => <option key={option}>{option}</option>)}</select> : null}

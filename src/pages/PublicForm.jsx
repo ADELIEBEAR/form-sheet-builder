@@ -51,7 +51,7 @@ export default function PublicForm() {
   if (status === 'error') return <main className="public-error"><WarningCircle /><h1>폼을 열 수 없습니다</h1><p>{message}</p></main>
 
   return (
-    <main className="public-page" style={{ background: project.theme?.background || '#eef1f8' }}>
+    <main className="public-page" style={{ background: project.theme?.background || '#efede7' }}>
       <form className="public-form-wrap" onSubmit={submit} noValidate>
         <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={setAnswers} onPage={setPageIndex} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
         <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>

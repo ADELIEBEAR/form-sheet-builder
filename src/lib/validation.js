@@ -60,6 +60,8 @@ export function sanitizeProject(input) {
   })
   if (fieldCount > 150) throw new ValidationError('질문은 최대 150개까지 만들 수 있습니다.')
   const coverUrl = String(input?.theme?.coverUrl || '')
+  const requestedRadius = input?.theme?.radius
+  const radius = requestedRadius === '' || requestedRadius == null ? 14 : Number(requestedRadius)
   if (coverUrl.startsWith('data:')) throw new ValidationError('이미지는 DB에 직접 저장할 수 없습니다. 업로드 기능을 이용해 주세요.')
   return {
     title,
@@ -67,11 +69,11 @@ export function sanitizeProject(input) {
     description: String(input?.description || '').slice(0, 3000),
     pages,
     theme: {
-      accent: safeColor(input?.theme?.accent, '#3157e8'),
-      background: safeColor(input?.theme?.background, '#eef1f8'),
-      card: safeColor(input?.theme?.card, '#ffffff'),
-      text: safeColor(input?.theme?.text, '#1e2430'),
-      radius: Math.min(28, Math.max(0, Number(input?.theme?.radius) || 18)),
+      accent: safeColor(input?.theme?.accent, '#2f6757'),
+      background: safeColor(input?.theme?.background, '#efede7'),
+      card: safeColor(input?.theme?.card, '#fffdfa'),
+      text: safeColor(input?.theme?.text, '#232724'),
+      radius: Math.min(28, Math.max(0, Number.isFinite(radius) ? radius : 14)),
       coverUrl: coverUrl.slice(0, 1000),
       showProgress: input?.theme?.showProgress !== false,
     },

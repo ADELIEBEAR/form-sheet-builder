@@ -22,6 +22,11 @@ describe('form maker validation', () => {
     expect(() => sanitizeProject({ title: '폼', pages: page([]), theme: { coverUrl: 'data:image/png;base64,abc' } })).toThrow('DB에 직접 저장')
   })
 
+  it('keeps a square-corner theme when radius is zero', () => {
+    const project = sanitizeProject({ title: '각진 폼', pages: page([]), theme: { radius: 0 } })
+    expect(project.theme.radius).toBe(0)
+  })
+
   it('rejects a missing required response across pages', () => {
     expect(() => validateAnswers(page([{ id: 'q1', type: 'short', label: '이름', required: true }]), {})).toThrow('필수 질문')
   })

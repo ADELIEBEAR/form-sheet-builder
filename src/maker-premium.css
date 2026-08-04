@@ -610,20 +610,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .inline-field-actions-top button.danger { margin-left: 3px; background: color-mix(in srgb, #c33d53 8%, transparent); }
 .inline-field-controls { align-items: center; }
 
-.response-lock-settings { border-top: 1px solid var(--app-line); }
-.admin-only-badge { padding: 12px; border: 1px solid #d8d2f1; border-radius: 11px; background: #f8f6ff; display: grid; grid-template-columns: 32px 1fr 18px; align-items: center; gap: 9px; color: var(--app-accent); }
-.admin-only-badge > svg:first-child { width: 28px; height: 28px; padding: 6px; border-radius: 9px; background: #e9e4ff; }
-.admin-only-badge > span { display: grid; gap: 2px; }
-.admin-only-badge strong { color: var(--app-text); font-size: 11px; }
-.admin-only-badge small { color: var(--app-muted); font-size: 8px; line-height: 1.45; }
-.lock-toggle { margin-block: 17px 14px; }
-.pin-fields { display: grid; gap: 0; }
-.pin-input { min-height: 39px; padding: 0 9px; border: 1px solid var(--app-line); border-radius: 8px; background: var(--app-bg); display: flex; align-items: center; gap: 7px; }
-.pin-input svg { color: var(--app-muted); }
-.pin-input input { min-width: 0; min-height: 36px; padding: 0 !important; border: 0 !important; outline: 0 !important; background: transparent !important; box-shadow: none !important; }
-.lock-save-button { width: 100%; min-height: 40px; margin-top: 8px; border: 0; border-radius: 9px; background: #292536; color: #fff; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 10px; font-weight: 780; cursor: pointer; }
-.lock-save-button:disabled { opacity: .45; cursor: default; }
-
 /* Foldered workspace */
 .folder-filter { margin: -12px 0 25px; display: flex; flex-wrap: wrap; gap: 7px; }
 .folder-filter button { min-height: 35px; padding: 0 11px; border: 1px solid var(--app-line); border-radius: 10px; background: #fff; color: var(--app-muted); display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 740; cursor: pointer; }
@@ -749,6 +735,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .response-lock-gate form input { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; font-size: 13px; }
 .response-lock-gate form button { min-height: 46px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--app-accent); color: #fff; display: inline-flex; align-items: center; gap: 6px; font-weight: 770; cursor: pointer; }
 .response-lock-gate form button:disabled { opacity: .5; cursor: default; }
+.response-admin-gate { width: min(570px, 100%); }
+.admin-gate-note { margin: 22px 0 0; padding: 13px 14px; border: 1px solid #ddd7ef; border-radius: 13px; background: #f8f6ff; color: var(--app-accent); display: grid; grid-template-columns: 30px 1fr 22px; align-items: center; gap: 10px; text-align: left; }
+.admin-gate-note > svg:first-child { width: 29px; height: 29px; padding: 6px; border-radius: 9px; background: #ebe6ff; }
+.admin-gate-note > svg:last-child { width: 20px; height: 20px; }
+.admin-gate-note > span { display: grid; gap: 3px; }
+.admin-gate-note strong { color: var(--app-text); font-size: 11px; }
+.admin-gate-note small { color: var(--app-muted); font-size: 9px; }
+.response-lock-gate form.admin-setup-form { grid-template-columns: 1fr 1fr; }
+.response-lock-gate form.admin-setup-form button { grid-column: 1 / -1; }
+.admin-gate-error { margin: 13px 0 0; text-align: center; }
+.admin-session-copy { display: block; margin-top: 16px; color: var(--app-muted); font-size: 9px; }
 .locked-project-notice { margin-bottom: 16px; padding: 13px 15px; border: 1px solid #ddd7ef; border-radius: 12px; background: #f8f6ff; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; color: var(--app-accent); }
 .locked-project-notice > span { display: grid; gap: 3px; }
 .locked-project-notice strong { color: var(--app-text); font-size: 11px; }
@@ -773,7 +770,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .drawer-tabs { top: 64px; }
   .studio-drawer-docked .drawer-heading > small { display: none; }
   .mobile-drawer-close { display: grid !important; }
-  .response-export-actions .studio-secondary:first-child { display: none; }
+  .response-export-actions .studio-secondary[href] { display: none; }
   .response-export-actions button { min-width: 36px; padding-inline: 9px; font-size: 0; }
   .response-export-actions button svg { width: 17px; height: 17px; }
   .response-metrics { grid-template-columns: 1fr 1fr; }
@@ -784,6 +781,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .response-card summary .sheet-status { display: none; }
   .response-lock-gate { margin-top: 3vh; padding: 34px 22px; }
   .response-lock-gate form { grid-template-columns: 1fr; }
+  .response-lock-gate form.admin-setup-form { grid-template-columns: 1fr; }
+  .response-lock-gate form.admin-setup-form button { grid-column: 1; }
   .locked-project-notice { grid-template-columns: 28px 1fr; }
   .locked-project-notice a { grid-column: 2; width: max-content; }
 }

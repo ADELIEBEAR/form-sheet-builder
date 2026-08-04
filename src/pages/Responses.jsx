@@ -1,7 +1,8 @@
-import { ArrowClockwise, ArrowSquareOut, CaretDown, FileCsv, FileXls, Key, LockKey, MagnifyingGlass, SpinnerGap } from '@phosphor-icons/react'
+import { ArrowClockwise, ArrowSquareOut, CaretDown, FileCsv, FileXls, LockKey, MagnifyingGlass, SpinnerGap } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
+import ResponseAdminGate from '../components/ResponseAdminGate'
 import { api, downloadCsv } from '../lib/api'
 import { allFields, responseRows } from '../lib/maker'
 import { downloadXlsx } from '../lib/xlsx'
@@ -18,9 +19,7 @@ export default function Responses() {
   const [project, setProject] = useState(null)
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [locked, setLocked] = useState(false)
-  const [pin, setPin] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
+  const [adminReady, setAdminReady] = useState(false)
   const [retrying, setRetrying] = useState('')
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
@@ -32,12 +31,7 @@ export default function Responses() {
 
   useEffect(() => {
     api(`/maker/projects/${projectId}`)
-      .then(async (data) => {
-        setProject(data.project)
-        const needsUnlock = data.project.responseLockEnabled && window.sessionStorage.getItem(`form-maker-unlocked:${projectId}`) !== '1'
-        setLocked(needsUnlock)
-        if (!needsUnlock) await loadSubmissions()
-      })
+      .then((data) => setProject(data.project))
       .catch((caught) => setError(caught.message))
       .finally(() => setLoading(false))
   }, [projectId])
@@ -53,23 +47,24 @@ export default function Responses() {
   }, [submissions])
   const failed = submissions.filter((submission) => submission.sheetSyncStatus === 'failed').length
 
-  async function unlock(event) {
-    event.preventDefault()
-    setUnlocking(true)
+  async function openAdminResponses() {
+    setAdminReady(true)
+    setLoading(true)
     setError('')
     try {
-      await api(`/maker/projects/${projectId}/response-unlock`, { method: 'POST', body: JSON.stringify({ pin }) })
-      window.sessionStorage.setItem(`form-maker-unlocked:${projectId}`, '1')
-      setLocked(false)
-      setPin('')
-      setLoading(true)
       await loadSubmissions()
     } catch (caught) {
       setError(caught.message)
+      setAdminReady(false)
     } finally {
-      setUnlocking(false)
       setLoading(false)
     }
+  }
+
+  async function lockAdminResponses() {
+    await api('/maker/admin/lock', { method: 'POST' }).catch(() => {})
+    setAdminReady(false)
+    setSubmissions([])
   }
 
   async function retry(submissionId) {
@@ -81,7 +76,7 @@ export default function Responses() {
   }
 
   const rows = project ? responseRows(project, submissions) : []
-  const actions = project && !locked ? <div className="response-export-actions">{project.sheetUrl ? <a className="studio-secondary" href={project.sheetUrl} target="_blank" rel="noreferrer">시트 열기 <ArrowSquareOut /></a> : null}<button className="studio-secondary" type="button" onClick={() => downloadCsv(`${project.title}-응답.csv`, rows)}><FileCsv /> CSV</button><button className="studio-primary" type="button" onClick={() => downloadXlsx(`${project.title}-응답.xlsx`, rows)}><FileXls /> Excel</button></div> : null
+  const actions = project && adminReady ? <div className="response-export-actions"><button className="studio-secondary response-admin-lock" type="button" onClick={lockAdminResponses}><LockKey /> 관리자 잠그기</button>{project.sheetUrl ? <a className="studio-secondary" href={project.sheetUrl} target="_blank" rel="noreferrer">시트 열기 <ArrowSquareOut /></a> : null}<button className="studio-secondary" type="button" onClick={() => downloadCsv(`${project.title}-응답.csv`, rows)}><FileCsv /> CSV</button><button className="studio-primary" type="button" onClick={() => downloadXlsx(`${project.title}-응답.xlsx`, rows)}><FileXls /> Excel</button></div> : null
 
   return (
     <AppFrame backTo={`/studio/${projectId}`} center={project ? <strong className="response-header-title">{project.title}</strong> : null} actions={actions}>
@@ -89,14 +84,10 @@ export default function Responses() {
         {loading ? <div className="responses-loading"><div /><div /><div /></div> : null}
         {error ? <div className="inline-alert">{error}</div> : null}
 
-        {!loading && locked ? <section className="response-lock-gate">
-          <div className="lock-gate-icon"><LockKey weight="fill" /></div>
-          <span>관리자 보안</span><h1>응답이 잠겨 있습니다</h1><p>폼 소유자 로그인은 확인되었습니다. 설정한 숫자 PIN을 입력하면 이 브라우저를 닫기 전까지 응답을 볼 수 있습니다.</p>
-          <form onSubmit={unlock}><label><Key /><input inputMode="numeric" type="password" autoFocus autoComplete="current-password" maxLength="8" value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))} placeholder="PIN 4~8자리" /></label><button type="submit" disabled={unlocking || pin.length < 4}>{unlocking ? <SpinnerGap className="spin" /> : <LockKey />} 잠금 해제</button></form>
-        </section> : null}
+        {!loading && project && !adminReady ? <ResponseAdminGate onUnlocked={openAdminResponses} /> : null}
 
-        {!loading && project && !locked ? <>
-          <div className="responses-heading response-reader-heading"><div><span className="page-eyebrow">관리자 전용 · 로그인 보호</span><h1>응답</h1><p>답변을 한 명씩 펼쳐 읽고, 필요한 파일 형식으로 저장하세요.</p></div>{project.responseLockEnabled ? <span className="response-security-chip"><LockKey weight="fill" />PIN 잠금 사용 중</span> : null}</div>
+        {!loading && project && adminReady ? <>
+          <div className="responses-heading response-reader-heading"><div><span className="page-eyebrow">응답 관리자 전용</span><h1>응답</h1><p>답변을 한 명씩 펼쳐 읽고, 필요한 파일 형식으로 저장하세요.</p></div><span className="response-security-chip"><LockKey weight="fill" />관리자 인증됨</span></div>
           <section className="response-metrics" aria-label="응답 요약"><article><span>전체 응답</span><strong>{submissions.length.toLocaleString()}</strong></article><article><span>오늘 들어옴</span><strong>{today.toLocaleString()}</strong></article><article className={failed ? 'warning' : ''}><span>전송 확인 필요</span><strong>{failed.toLocaleString()}</strong></article></section>
           {submissions.length ? <div className="response-reader-tools"><label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="답변 내용 검색" /></label><span>{visible.length.toLocaleString()}개 표시</span></div> : null}
           {submissions.length === 0 ? <section className="response-empty"><h2>아직 들어온 응답이 없습니다</h2><p>공개 링크를 공유하면 제출된 응답이 여기에 표시됩니다.</p></section> : null}

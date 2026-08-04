@@ -1,4 +1,5 @@
 import { ASSET_BUCKET, supabase } from './supabase'
+import { listResponseAdminSubmissions, lockResponseAdmin, responseAdminRequest } from './admin'
 import { normalizeMemoColor } from './maker'
 import { sanitizeProject, validateAnswers, ValidationError } from './validation'
 
@@ -89,18 +90,8 @@ function serializeSubmission(row) {
 }
 
 async function listSubmissions(projectId = '') {
-  const submissions = []
-  const pageSize = 1000
-  const maximum = 20000
-  for (let from = 0; from < maximum; from += pageSize) {
-    let query = supabase.from('form_maker_submissions').select('*').order('submitted_at', { ascending: false }).range(from, from + pageSize - 1)
-    if (projectId) query = query.eq('project_id', projectId)
-    const { data, error } = await query
-    if (error) fail(error)
-    submissions.push(...(data || []).map(serializeSubmission))
-    if (!data || data.length < pageSize) break
-  }
-  return submissions
+  const rows = await listResponseAdminSubmissions(projectId)
+  return rows.map(serializeSubmission)
 }
 
 async function requireUser() {
@@ -207,7 +198,7 @@ export async function api(path, options = {}) {
   try {
     if (path === '/maker/projects' && method === 'GET') {
       const user = await requireUser()
-      const { data, error } = await supabase.from('form_maker_projects').select('*, form_maker_submissions(count)').eq('owner_id', user.id).order('updated_at', { ascending: false })
+      const { data, error } = await supabase.from('form_maker_projects').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false })
       if (error) fail(error)
       const meta = await projectMetaMap((data || []).map((project) => project.id))
       return { projects: (data || []).map((project) => serializeProject(project, meta.get(project.id))) }
@@ -226,6 +217,27 @@ export async function api(path, options = {}) {
     if (path === '/maker/submissions' && method === 'GET') {
       await requireUser()
       return { submissions: await listSubmissions() }
+    }
+
+    if (path === '/maker/admin/status' && method === 'GET') {
+      await requireUser()
+      return responseAdminRequest('status')
+    }
+
+    if (path === '/maker/admin/setup' && method === 'POST') {
+      await requireUser()
+      return responseAdminRequest('setup', { pin: String(body?.pin || '') })
+    }
+
+    if (path === '/maker/admin/unlock' && method === 'POST') {
+      await requireUser()
+      return responseAdminRequest('unlock', { pin: String(body?.pin || '') })
+    }
+
+    if (path === '/maker/admin/lock' && method === 'POST') {
+      await requireUser()
+      await lockResponseAdmin()
+      return { ok: true }
     }
 
     const publicMatch = path.match(/^\/maker\/public\/([^/]+)$/)
@@ -268,42 +280,17 @@ export async function api(path, options = {}) {
     const retryMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions\/([^/]+)\/sync$/)
     if (retryMatch && method === 'POST') {
       await ownedProject(retryMatch[1])
+      const access = await responseAdminRequest('status')
+      if (!access.unlocked) throw new ApiError('응답 관리자 로그인이 필요합니다.', 403)
       await invokeSheetSync(retryMatch[1], retryMatch[2])
-      const { data, error } = await supabase.from('form_maker_submissions').select('*').eq('id', retryMatch[2]).single()
-      if (error) fail(error)
-      return { submission: serializeSubmission(data) }
+      const submissions = await listSubmissions(retryMatch[1])
+      const submission = submissions.find((item) => item.id === retryMatch[2])
+      if (!submission) throw new ApiError('응답을 찾을 수 없습니다.', 404)
+      return { submission }
     }
 
     const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)
     if (sheetMatch && method === 'POST') return connectSheet(sheetMatch[1], body || {})
-
-    const responseLockMatch = path.match(/^\/maker\/projects\/([^/]+)\/response-lock$/)
-    if (responseLockMatch && method === 'POST') {
-      await ownedProject(responseLockMatch[1])
-      const enabled = Boolean(body?.enabled)
-      const pin = body?.pin == null || body.pin === '' ? null : String(body.pin)
-      const { error } = await supabase.rpc('set_form_maker_response_lock', {
-        target_project_id: responseLockMatch[1],
-        new_enabled: enabled,
-        new_pin: pin,
-      })
-      if (error?.message?.includes('pin_must_be_4_to_8_digits')) throw new ApiError('PIN은 숫자 4~8자리로 입력해 주세요.', 400, error)
-      if (error?.message?.includes('pin_required')) throw new ApiError('잠금에 사용할 PIN을 입력해 주세요.', 400, error)
-      if (error) fail(error, '응답 잠금을 변경하지 못했습니다.')
-      return { enabled }
-    }
-
-    const responseUnlockMatch = path.match(/^\/maker\/projects\/([^/]+)\/response-unlock$/)
-    if (responseUnlockMatch && method === 'POST') {
-      await ownedProject(responseUnlockMatch[1])
-      const { data, error } = await supabase.rpc('verify_form_maker_response_lock', {
-        target_project_id: responseUnlockMatch[1],
-        candidate_pin: String(body?.pin || ''),
-      })
-      if (error) fail(error, '응답 잠금을 확인하지 못했습니다.')
-      if (!data) throw new ApiError('PIN이 맞지 않습니다.', 403)
-      return { ok: true }
-    }
 
     const duplicateMatch = path.match(/^\/maker\/projects\/([^/]+)\/duplicate$/)
     if (duplicateMatch && method === 'POST') {

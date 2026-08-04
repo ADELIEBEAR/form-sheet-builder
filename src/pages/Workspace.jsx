@@ -112,7 +112,7 @@ export default function Workspace() {
   }
 
   return (
-    <AppFrame sidebar={<WorkspaceSidebar active="forms" />} actions={<Link className="studio-primary header-new" to="/studio/new"><Plus weight="bold" /> 새 폼</Link>}>
+    <AppFrame sidebar={<WorkspaceSidebar active="forms" />} actions={<><Link className="studio-secondary header-responses" to="/responses"><LockKey weight="fill" /> 응답 관리자</Link><Link className="studio-primary header-new" to="/studio/new"><Plus weight="bold" /> 새 폼</Link></>}>
       <main className="workspace-main">
         <div className="workspace-heading"><div><h1>내 폼</h1><p>만들고 있는 폼과 들어온 응답을 한곳에서 확인하세요.</p></div><label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="폼 검색" /></label></div>
         {projects.length ? <nav className="folder-filter" aria-label="폼 폴더">
@@ -127,7 +127,7 @@ export default function Workspace() {
             <button className="project-open" type="button" onClick={() => navigate(`/studio/${project.id}`)}>
               <span className={project.theme?.coverUrl ? 'project-thumb has-cover' : 'project-thumb'} style={project.theme?.coverUrl ? { backgroundImage: `url("${project.theme.coverUrl}")` } : { '--thumb-bg': project.theme?.background, '--thumb-accent': project.theme?.accent }}><i /><i /><b /></span>
               <span className="project-copy">
-                <span className="project-card-meta">{project.responseLockEnabled ? <b className="secure"><LockKey weight="fill" />응답 잠금</b> : <b>{project.status === 'published' ? '게시 중' : '초안'}</b>}</span>
+                <span className="project-card-meta"><b>{project.status === 'published' ? '게시 중' : '초안'}</b></span>
                 <strong>{project.title}</strong>
                 <small>/s/{project.slug}</small>
               </span>

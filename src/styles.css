@@ -455,6 +455,8 @@ input[type="radio"] + .choice-indicator { border-radius: 50%; }
   .maker-header-actions { gap: 4px; }
   .account-menu { display: none; }
   .header-publish { min-height: 35px; padding: 0 10px; font-size: 12px; }
+  .header-responses { width: 36px; min-width: 36px; padding: 0; font-size: 0; }
+  .header-responses svg { width: 17px; height: 17px; }
   .studio-name input { width: 40vw; }
   .landing-cta { width: 100%; }
   .landing-checks { display: grid; }

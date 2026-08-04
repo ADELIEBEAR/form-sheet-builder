@@ -65,6 +65,7 @@ export function AuthProvider({ children }) {
     },
     logout: async () => {
       await supabase.auth.signOut()
+      window.sessionStorage.removeItem('form-maker-response-admin-token')
       window.localStorage.removeItem('form_maker_google_provider_token')
       window.localStorage.removeItem('form_maker_google_provider_refresh_token')
       window.location.href = '/'

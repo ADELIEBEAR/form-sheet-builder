@@ -20,7 +20,6 @@ import AppFrame from '../components/AppFrame'
 import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
 import IntegrationPanel from '../components/IntegrationPanel'
-import ResponseLockSettings from '../components/ResponseLockSettings'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
@@ -525,7 +524,6 @@ export default function Studio() {
                       </div>
                     ) : null}
                   </div>
-                  <ResponseLockSettings projectId={projectId} enabled={project.responseLockEnabled} onChange={(responseLockEnabled) => changeProject({ ...project, responseLockEnabled })} />
                   <IntegrationPanel projectId={projectId} project={project} onConnected={changeProject} />
                 </div>
               ) : null}

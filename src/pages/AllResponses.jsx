@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle, Clock, FileCsv, FileXls, LockKey, MagnifyingGlass, WarningCircle } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import AppFrame from '../components/AppFrame'
+import ResponseAdminGate from '../components/ResponseAdminGate'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api, downloadCsv } from '../lib/api'
 import { Link } from '../lib/router'
@@ -17,27 +18,23 @@ export default function AllResponses() {
   const [projects, setProjects] = useState([])
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [adminReady, setAdminReady] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [projectFilter, setProjectFilter] = useState('all')
   const [page, setPage] = useState(1)
 
   useEffect(() => {
-    Promise.all([api('/maker/projects'), api('/maker/submissions')])
-      .then(([projectData, submissionData]) => {
+    api('/maker/projects')
+      .then((projectData) => {
         setProjects(projectData.projects)
-        setSubmissions(submissionData.submissions)
       })
       .catch((caught) => setError(caught.message))
       .finally(() => setLoading(false))
   }, [])
 
   const projectMap = useMemo(() => Object.fromEntries(projects.map((project) => [project.id, project])), [projects])
-  const accessibleSubmissions = useMemo(() => submissions.filter((submission) => {
-    const project = projectMap[submission.projectId]
-    return !project?.responseLockEnabled || window.sessionStorage.getItem(`form-maker-unlocked:${submission.projectId}`) === '1'
-  }), [projectMap, submissions])
-  const lockedProjects = projects.filter((project) => project.responseLockEnabled && window.sessionStorage.getItem(`form-maker-unlocked:${project.id}`) !== '1')
+  const accessibleSubmissions = submissions
   const filtered = useMemo(() => accessibleSubmissions.filter((submission) => {
     const project = projectMap[submission.projectId]
     const matchesProject = projectFilter === 'all' || submission.projectId === projectFilter
@@ -52,9 +49,30 @@ export default function AllResponses() {
 
   useEffect(() => { setPage(1) }, [projectFilter, query])
 
+  async function openAdminResponses() {
+    setAdminReady(true)
+    setLoading(true)
+    setError('')
+    try {
+      const data = await api('/maker/submissions')
+      setSubmissions(data.submissions)
+    } catch (caught) {
+      setError(caught.message)
+      setAdminReady(false)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function lockAdminResponses() {
+    await api('/maker/admin/lock', { method: 'POST' }).catch(() => {})
+    setAdminReady(false)
+    setSubmissions([])
+  }
+
   const exportRows = [['제출 시각', '폼', '응답 미리보기', '시트 상태'], ...filtered.map((submission) => [new Date(submission.submittedAt).toLocaleString('ko-KR'), projectMap[submission.projectId]?.title || '삭제된 폼', answerPreview(submission.answers), statusLabel[submission.sheetSyncStatus] || submission.sheetSyncStatus])]
 
-  const actions = filtered.length ? <div className="response-export-actions"><button className="studio-secondary" type="button" onClick={() => downloadCsv('전체-응답.csv', exportRows)}><FileCsv /> CSV</button><button className="studio-primary" type="button" onClick={() => downloadXlsx('전체-응답.xlsx', exportRows)}><FileXls /> Excel</button></div> : null
+  const actions = adminReady ? <div className="response-export-actions"><button className="studio-secondary response-admin-lock" type="button" onClick={lockAdminResponses}><LockKey /> 관리자 잠그기</button>{filtered.length ? <><button className="studio-secondary" type="button" onClick={() => downloadCsv('전체-응답.csv', exportRows)}><FileCsv /> CSV</button><button className="studio-primary" type="button" onClick={() => downloadXlsx('전체-응답.xlsx', exportRows)}><FileXls /> Excel</button></> : null}</div> : null
 
   return (
     <AppFrame sidebar={<WorkspaceSidebar active="responses" />} actions={actions}>
@@ -62,13 +80,13 @@ export default function AllResponses() {
         <div className="workspace-heading"><div><span className="page-eyebrow">관리자 전용 · 로그인 보호</span><h1>전체 응답</h1><p>모든 폼에 들어온 답변과 Google Sheets 전송 상태를 함께 확인하세요.</p></div></div>
         {error ? <div className="inline-alert">{error}</div> : null}
         {loading ? <div className="response-overview-loading"><i /><i /><i /></div> : null}
-        {!loading ? <>
+        {!loading && !adminReady ? <ResponseAdminGate onUnlocked={openAdminResponses} /> : null}
+        {!loading && adminReady ? <>
           <section className="response-overview" aria-label="응답 요약">
             <article><span>확인 가능한 응답</span><strong>{accessibleSubmissions.length.toLocaleString()}</strong><small>{projects.length.toLocaleString()}개 폼에서 수집</small></article>
             <article><span>전송 대기</span><strong>{pending.toLocaleString()}</strong><small><Clock /> Google Sheets로 이동 중</small></article>
             <article className={failed ? 'has-warning' : ''}><span>확인 필요</span><strong>{failed.toLocaleString()}</strong><small>{failed ? <WarningCircle /> : <CheckCircle />} {failed ? '재전송이 필요한 응답' : '모두 정상 처리됨'}</small></article>
           </section>
-          {lockedProjects.length ? <div className="locked-project-notice"><LockKey weight="fill" /><span><strong>{lockedProjects.length}개 폼의 응답은 PIN으로 잠겨 있습니다.</strong><small>각 폼의 응답 화면에서 한 번 잠금을 해제하면 이 목록에도 표시됩니다.</small></span><Link to={`/responses/${lockedProjects[0].id}`}>잠금 해제</Link></div> : null}
           <section className="all-response-panel">
             <header className="all-response-tools">
               <label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="폼 이름이나 답변 검색" /></label>

@@ -1,7 +1,8 @@
-import { ChartBar, Check, Copy, DotsThree, Eye, FilePlus, Files, FolderOpen, LinkSimple, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react'
+import { Check, Copy, DotsThree, Eye, FilePlus, LinkSimple, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
+import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
 
 export default function Workspace() {
@@ -46,10 +47,8 @@ export default function Workspace() {
     }
   }
 
-  const sidebar = <aside className="workspace-sidebar"><nav><Link className="active" to="/workspace"><FolderOpen weight="fill" /> 내 폼</Link><span><Files /> 템플릿</span><span><ChartBar /> 전체 응답</span></nav><div className="workspace-note"><strong>응답 저장 원칙</strong><p>제출된 내용은 시트보다 먼저 안전하게 보관됩니다.</p></div></aside>
-
   return (
-    <AppFrame sidebar={sidebar} actions={<Link className="studio-primary header-new" to="/studio/new"><Plus weight="bold" /> 새 폼</Link>}>
+    <AppFrame sidebar={<WorkspaceSidebar active="forms" />} actions={<Link className="studio-primary header-new" to="/studio/new"><Plus weight="bold" /> 새 폼</Link>}>
       <main className="workspace-main">
         <div className="workspace-heading"><div><h1>내 폼</h1><p>만들고 있는 폼과 들어온 응답을 한곳에서 확인하세요.</p></div><label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="폼 검색" /></label></div>
         {error ? <div className="inline-alert">{error}</div> : null}

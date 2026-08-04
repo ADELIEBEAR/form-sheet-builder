@@ -53,6 +53,21 @@ function serializeSubmission(row) {
   }
 }
 
+async function listSubmissions(projectId = '') {
+  const submissions = []
+  const pageSize = 1000
+  const maximum = 20000
+  for (let from = 0; from < maximum; from += pageSize) {
+    let query = supabase.from('form_maker_submissions').select('*').order('submitted_at', { ascending: false }).range(from, from + pageSize - 1)
+    if (projectId) query = query.eq('project_id', projectId)
+    const { data, error } = await query
+    if (error) fail(error)
+    submissions.push(...(data || []).map(serializeSubmission))
+    if (!data || data.length < pageSize) break
+  }
+  return submissions
+}
+
 async function requireUser() {
   const { data, error } = await supabase.auth.getUser()
   if (error || !data.user) throw new ApiError('로그인이 필요합니다.', 401, error)
@@ -164,6 +179,11 @@ export async function api(path, options = {}) {
       return { project: serializeProject(data) }
     }
 
+    if (path === '/maker/submissions' && method === 'GET') {
+      await requireUser()
+      return { submissions: await listSubmissions() }
+    }
+
     const publicMatch = path.match(/^\/maker\/public\/([^/]+)$/)
     if (publicMatch && method === 'GET') {
       const { data, error } = await supabase.from('form_maker_projects').select('*').eq('slug', decodeURIComponent(publicMatch[1])).eq('status', 'published').single()
@@ -191,9 +211,7 @@ export async function api(path, options = {}) {
     const submissionsMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions$/)
     if (submissionsMatch && method === 'GET') {
       await ownedProject(submissionsMatch[1])
-      const { data, error } = await supabase.from('form_maker_submissions').select('*').eq('project_id', submissionsMatch[1]).order('submitted_at', { ascending: false }).limit(5000)
-      if (error) fail(error)
-      return { submissions: (data || []).map(serializeSubmission) }
+      return { submissions: await listSubmissions(submissionsMatch[1]) }
     }
 
     const retryMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions\/([^/]+)\/sync$/)

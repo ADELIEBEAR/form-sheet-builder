@@ -33,6 +33,14 @@ describe('form maker validation', () => {
     expect(project.theme.font).toBe('pretendard')
   })
 
+  it('stores a valid Korean font and clamps typography sizes', () => {
+    const project = sanitizeProject({ title: '글자 설정 폼', pages: page([]), theme: { font: 'jua', titleSize: 200, questionSize: 10, bodySize: 50 } })
+    expect(project.theme.font).toBe('jua')
+    expect(project.theme.titleSize).toBe(72)
+    expect(project.theme.questionSize).toBe(20)
+    expect(project.theme.bodySize).toBe(22)
+  })
+
   it('rejects a missing required response across pages', () => {
     expect(() => validateAnswers(page([{ id: 'q1', type: 'short', label: '이름', required: true }]), {})).toThrow('필수 질문')
   })

@@ -24,6 +24,11 @@ function safeColor(value, fallback) {
   return /^#[0-9a-f]{6}$/i.test(value || '') ? value : fallback
 }
 
+function safeSize(value, fallback, min, max) {
+  const size = Number(value)
+  return Math.min(max, Math.max(min, Number.isFinite(size) ? size : fallback))
+}
+
 function sanitizeField(field) {
   const type = allowedTypes.has(field?.type) ? field.type : 'short'
   const label = String(field?.label || '').trim().slice(0, 300)
@@ -79,6 +84,9 @@ export function sanitizeProject(input) {
       showProgress: input?.theme?.showProgress !== false,
       layout: input?.theme?.layout === 'card' ? 'card' : 'focus',
       font: allowedFonts.has(input?.theme?.font) ? input.theme.font : 'pretendard',
+      titleSize: safeSize(input?.theme?.titleSize, 56, 28, 72),
+      questionSize: safeSize(input?.theme?.questionSize, 32, 20, 48),
+      bodySize: safeSize(input?.theme?.bodySize, 16, 12, 22),
     },
     settings: {
       successTitle: String(input?.settings?.successTitle || '응답이 접수되었습니다').slice(0, 200),

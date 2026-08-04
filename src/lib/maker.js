@@ -25,14 +25,20 @@ export const ACCENT_PRESETS = ['#7156d9', '#3157e8', '#13866f', '#d8436b', '#cc5
 
 export const FONT_PRESETS = [
   ['pretendard', '깔끔한 고딕'],
-  ['rounded', '부드러운 고딕'],
+  ['noto-sans', '단정한 고딕'],
+  ['gowun', '부드러운 고딕'],
   ['serif', '감성적인 명조'],
+  ['jua', '통통한 제목체'],
+  ['gaegu', '편안한 손글씨'],
 ]
 
 export const FONT_STACKS = {
   pretendard: '"Pretendard Variable", Pretendard, "Noto Sans KR", sans-serif',
-  rounded: '"Arial Rounded MT Bold", "Pretendard Variable", Pretendard, "Noto Sans KR", sans-serif',
+  'noto-sans': '"Noto Sans KR", "Pretendard Variable", Pretendard, sans-serif',
+  gowun: '"Gowun Dodum", "Pretendard Variable", Pretendard, sans-serif',
   serif: '"Noto Serif KR", "Nanum Myeongjo", Georgia, serif',
+  jua: 'Jua, "Pretendard Variable", Pretendard, sans-serif',
+  gaegu: 'Gaegu, "Pretendard Variable", Pretendard, cursive',
 }
 
 export function makeField(type = 'short') {
@@ -87,6 +93,9 @@ export function emptyProject() {
       showProgress: true,
       layout: 'focus',
       font: 'pretendard',
+      titleSize: 56,
+      questionSize: 32,
+      bodySize: 16,
     },
     settings: {
       successTitle: '응답이 접수되었습니다',

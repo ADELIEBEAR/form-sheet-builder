@@ -70,8 +70,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 .focus-kicker { margin-bottom: 22px; color: var(--preview-accent); font-size: 11px; font-weight: 850; letter-spacing: .16em; }
-.focus-cover-card h1 { max-width: 560px; margin: 0; font-size: clamp(42px, 6vw, 66px); line-height: 1.03; letter-spacing: -.066em; text-wrap: balance; word-break: keep-all; }
-.focus-cover-card > p { max-width: 540px; margin: 19px 0 31px; color: color-mix(in srgb, var(--preview-text) 64%, transparent); font-size: 16px; line-height: 1.72; white-space: pre-line; text-wrap: pretty; }
+.focus-cover-card h1 { max-width: 560px; margin: 0; font-size: var(--preview-title-size); line-height: 1.06; letter-spacing: -.058em; text-wrap: balance; word-break: keep-all; overflow-wrap: break-word; }
+.focus-cover-card > p { max-width: 540px; margin: 19px 0 31px; color: color-mix(in srgb, var(--preview-text) 64%, transparent); font-size: var(--preview-body-size); line-height: 1.72; white-space: pre-line; text-wrap: pretty; }
 .focus-primary,
 .focus-back { min-height: 48px; border-radius: calc(var(--preview-radius) * .48); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .focus-primary { width: max-content; min-width: 128px; padding: 0 19px; border: 0; background: var(--preview-accent); color: #fff; gap: 9px; font-weight: 780; box-shadow: 0 12px 26px color-mix(in srgb, var(--preview-accent) 26%, transparent); }
@@ -83,16 +83,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .focus-question-meta { min-height: 27px; margin-bottom: 20px; display: flex; align-items: center; gap: 9px; color: color-mix(in srgb, var(--preview-text) 54%, transparent); font-size: 10px; font-weight: 780; }
 .focus-question-meta small { padding: 4px 7px; border-radius: 6px; background: color-mix(in srgb, var(--preview-accent) 10%, transparent); color: var(--preview-accent); font-size: 9px; }
 .focus-question-card .render-field { padding: 0; border: 0; }
-.focus-question-card .render-field legend { font-size: clamp(25px, 4vw, 34px); line-height: 1.28; letter-spacing: -.045em; text-wrap: balance; word-break: keep-all; }
+.focus-question-card .render-field legend { font-size: var(--preview-question-size); line-height: 1.28; letter-spacing: -.045em; text-wrap: balance; word-break: keep-all; overflow-wrap: break-word; }
 .focus-question-card .render-field legend > span { display: none; }
-.focus-question-card .render-help { margin-top: 11px; font-size: 13px; line-height: 1.65; }
+.focus-question-card .render-help { margin-top: 11px; font-size: var(--preview-body-size); line-height: 1.65; }
 .focus-question-card .render-field > input,
 .focus-question-card .render-field > textarea,
-.focus-question-card .render-field > select { min-height: 56px; margin-top: 28px; padding: 13px 16px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); border-radius: calc(var(--preview-radius) * .52); background: color-mix(in srgb, var(--preview-bg) 42%, var(--preview-card)); font-size: 15px; }
+.focus-question-card .render-field > select { min-height: 56px; margin-top: 28px; padding: 13px 16px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); border-radius: calc(var(--preview-radius) * .52); background: color-mix(in srgb, var(--preview-bg) 42%, var(--preview-card)); font-size: var(--preview-body-size); }
 .focus-question-card .render-field > textarea { min-height: 132px; }
 .focus-question-card .choice-stack { margin-top: 27px; gap: 10px; }
 .focus-question-card .choice-stack label,
-.focus-question-card .consent-row { min-height: 54px; padding: 13px 15px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); background: color-mix(in srgb, var(--preview-bg) 30%, var(--preview-card)); font-size: 14px; }
+.focus-question-card .consent-row { min-height: 54px; padding: 13px 15px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); background: color-mix(in srgb, var(--preview-bg) 30%, var(--preview-card)); font-size: var(--preview-body-size); }
 .focus-question-card .rating-row { margin-top: 27px; }
 .focus-question-card .rating-row button { width: 48px; height: 48px; border-radius: 13px; }
 .focus-question-card .render-heading { padding: 4px 0; }
@@ -102,9 +102,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .focus-success-canvas { min-height: 700px; padding: 74px 24px; }
 .focus-success-card { position: relative; z-index: 1; align-items: center; text-align: center; }
-.focus-success-card h1 { margin: 0; font-size: clamp(34px, 5vw, 48px); letter-spacing: -.055em; }
+.focus-success-card h1 { margin: 0; font-size: min(var(--preview-title-size), 48px); letter-spacing: -.055em; }
 .focus-success-card p { max-width: 470px; margin: 14px 0 0; color: color-mix(in srgb, var(--preview-text) 62%, transparent); line-height: 1.7; }
 .form-canvas { font-family: var(--preview-font); }
+.form-canvas .canvas-intro h1 { font-size: min(var(--preview-title-size), 52px); }
+.form-canvas .render-field legend { font-size: min(var(--preview-question-size), 28px); }
+.form-canvas .canvas-intro > p,
+.form-canvas .page-copy p,
+.form-canvas .render-help { font-size: var(--preview-body-size); }
 
 /* Builder shell and focused editor */
 .studio-layout { grid-template-columns: 248px minmax(0, 1fr); background: #ecebf1; }
@@ -150,9 +155,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   background: transparent;
   color: var(--preview-text);
 }
-.focus-editor-title { min-height: 1.08em; font-size: clamp(42px, 6vw, 64px); line-height: 1.04; letter-spacing: -.065em; font-weight: 820; }
-.focus-editor-description { min-height: 1.6em; margin: 18px 0 30px; color: color-mix(in srgb, var(--preview-text) 63%, transparent); font-size: 16px; line-height: 1.72; }
-.focus-editor-success-title { min-height: 1.2em; text-align: center; font-size: clamp(34px, 5vw, 48px); line-height: 1.16; letter-spacing: -.055em; font-weight: 820; }
+.focus-editor-title { min-height: 1.08em; font-size: var(--preview-title-size); line-height: 1.06; letter-spacing: -.058em; font-weight: 820; word-break: keep-all; overflow-wrap: break-word; }
+.focus-editor-description { min-height: 1.6em; margin: 18px 0 30px; color: color-mix(in srgb, var(--preview-text) 63%, transparent); font-size: var(--preview-body-size); line-height: 1.72; }
+.focus-editor-success-title { min-height: 1.2em; text-align: center; font-size: min(var(--preview-title-size), 48px); line-height: 1.16; letter-spacing: -.055em; font-weight: 820; }
 .focus-editor-title:hover,
 .focus-editor-title:focus,
 .focus-editor-description:hover,
@@ -167,9 +172,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .studio-page-meta input { color: var(--preview-text); font-size: 13px; font-weight: 760; }
 .studio-question-editor { justify-content: flex-start; }
 .studio-question-editor .inline-field-editor { margin: 0; padding: 6px 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.studio-question-editor .inline-question-input { font-size: clamp(26px, 4vw, 35px); line-height: 1.3; letter-spacing: -.045em; }
-.studio-question-editor .heading-block .inline-question-input { font-size: clamp(32px, 4vw, 43px); }
-.studio-question-editor .inline-description-input { margin-top: 9px; font-size: 13px; }
+.studio-question-editor .inline-question-input { font-size: var(--preview-question-size); line-height: 1.3; letter-spacing: -.045em; }
+.studio-question-editor .heading-block .inline-question-input { font-size: min(var(--preview-question-size), 44px); }
+.studio-question-editor .inline-description-input { margin-top: 9px; font-size: var(--preview-body-size); }
 .studio-question-editor .inline-response-preview .render-field { padding-top: 22px; }
 .studio-question-editor .inline-response-preview .render-field > input,
 .studio-question-editor .inline-response-preview .render-field > textarea,
@@ -188,6 +193,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .layout-picker strong { font-size: 12px; }
 .layout-picker small { color: var(--app-muted); font-size: 9px; line-height: 1.4; }
 .theme-grid { grid-template-columns: repeat(3, 1fr); }
+.typography-settings { padding: 13px; border: 1px solid var(--app-line); border-radius: 12px; background: #faf9fc; }
+.typography-settings > .studio-control { margin-top: 11px; }
+.font-size-control { display: grid; grid-template-columns: 66px 1fr 38px; align-items: center; gap: 8px; }
+.font-size-control > span { margin: 0; }
+.font-size-control input { min-width: 0; }
+.font-size-control small { text-align: right; font-variant-numeric: tabular-nums; }
+.control-note { margin: 10px 0 0; color: var(--app-muted); font-size: 9px; line-height: 1.55; }
+
+/* The studio's mobile preview is a narrow container inside a desktop viewport. */
+.preview-frame.mobile .focus-shell { padding: 20px 16px 34px; }
+.preview-frame.mobile .focus-content-card { min-height: 470px; margin-top: 24px; padding: 32px 22px; }
+.preview-frame.mobile .focus-cover-card h1,
+.preview-frame.mobile .focus-editor-title { font-size: min(var(--preview-title-size), 39px); line-height: 1.1; letter-spacing: -.045em; }
+.preview-frame.mobile .focus-question-card .render-field legend,
+.preview-frame.mobile .studio-question-editor .inline-question-input { font-size: min(var(--preview-question-size), 28px); }
+.preview-frame.mobile .focus-cover-card > p,
+.preview-frame.mobile .focus-editor-description { font-size: min(var(--preview-body-size), 15px); }
 
 /* Workspace */
 .workspace-main { width: min(1180px, calc(100% - 56px)); }
@@ -308,9 +330,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .smore-editor-canvas { min-height: 650px; border-radius: 16px; }
   .focus-shell { padding: 18px 16px 32px; }
   .focus-content-card { min-height: 470px; margin-top: 22px; padding: 34px 25px; }
-  .focus-cover-card h1 { font-size: clamp(40px, 12vw, 56px); }
-  .focus-question-card .render-field legend { font-size: 27px; }
-  .studio-question-editor .inline-question-input { font-size: 28px; }
+  .focus-cover-card h1,
+  .focus-editor-title { font-size: min(var(--preview-title-size), 10vw); line-height: 1.1; letter-spacing: -.045em; }
+  .focus-question-card .render-field legend,
+  .studio-question-editor .inline-question-input { font-size: min(var(--preview-question-size), 7.2vw); }
   .inline-add-menu { grid-template-columns: 1fr 1fr; }
   .workspace-main { width: min(100% - 28px, 680px); }
   .workspace-heading h1 { font-size: 35px; }

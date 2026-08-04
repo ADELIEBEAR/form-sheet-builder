@@ -22,6 +22,9 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
     '--preview-text': project.theme?.text || '#222131',
     '--preview-radius': `${project.theme?.radius ?? 24}px`,
     '--preview-font': FONT_STACKS[project.theme?.font] || FONT_STACKS.pretendard,
+    '--preview-title-size': `${project.theme?.titleSize ?? 56}px`,
+    '--preview-question-size': `${project.theme?.questionSize ?? 32}px`,
+    '--preview-body-size': `${project.theme?.bodySize ?? 16}px`,
   }
   const add = (type) => {
     onFieldAdd(type)

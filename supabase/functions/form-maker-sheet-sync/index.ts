@@ -10,6 +10,42 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'content-type': 'application/json; charset=utf-8' } })
 }
 
+type GoogleTokenRow = { access_token: string; refresh_token?: string | null }
+
+async function refreshGoogleAccessToken(admin: any, userId: string, refreshToken?: string | null) {
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID') || ''
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') || ''
+  if (!refreshToken || !clientId || !clientSecret) return ''
+
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  })
+  const tokenData = await tokenResponse.json().catch(() => ({}))
+  if (!tokenResponse.ok || typeof tokenData?.access_token !== 'string') return ''
+
+  await admin.from('form_maker_google_tokens').update({ access_token: tokenData.access_token, updated_at: new Date().toISOString() }).eq('user_id', userId)
+  return tokenData.access_token
+}
+
+async function googleRequest(admin: any, userId: string, tokenRow: GoogleTokenRow, url: string, init: RequestInit) {
+  const request = (accessToken: string) => fetch(url, {
+    ...init,
+    headers: { ...init.headers, authorization: `Bearer ${accessToken}` },
+  })
+  const firstResponse = await request(tokenRow.access_token)
+  if (firstResponse.status !== 401) return firstResponse
+
+  const refreshedToken = await refreshGoogleAccessToken(admin, userId, tokenRow.refresh_token)
+  return refreshedToken ? request(refreshedToken) : firstResponse
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -47,7 +83,7 @@ Deno.serve(async (request) => {
     }
     if (submission.sheet_sync_status === 'synced') return json({ ok: true, status: 'synced' })
 
-    const { data: tokenRow } = await admin.from('form_maker_google_tokens').select('access_token').eq('user_id', project.owner_id).maybeSingle()
+    const { data: tokenRow } = await admin.from('form_maker_google_tokens').select('access_token,refresh_token').eq('user_id', project.owner_id).maybeSingle()
     if (!tokenRow?.access_token) {
       await admin.from('form_maker_submissions').update({ sheet_sync_status: 'failed', sheet_sync_error: 'Google Sheets 권한이 없습니다. 폼 소유자가 다시 로그인해야 합니다.' }).eq('id', submission.id)
       return json({ error: 'Google Sheets permission is missing.' }, 409)
@@ -66,15 +102,15 @@ Deno.serve(async (request) => {
     ]
     const sheetName = project.sheet_name || '응답'
     const range = encodeURIComponent(`${sheetName}!A:ZZ`)
-    const sheetResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(project.sheet_id)}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+    const sheetResponse = await googleRequest(admin, project.owner_id, tokenRow, `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(project.sheet_id)}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${tokenRow.access_token}`, 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ range: `${sheetName}!A:ZZ`, majorDimension: 'ROWS', values: [values] }),
     })
 
     if (!sheetResponse.ok) {
       const googleError = await sheetResponse.text()
-      const message = sheetResponse.status === 401 ? 'Google Sheets 권한이 만료되었습니다. 폼 소유자가 다시 로그인해야 합니다.' : `Google Sheets 오류 (${sheetResponse.status})`
+      const message = sheetResponse.status === 401 ? 'Google Sheets 권한 갱신이 필요합니다. 폼 설정에서 Google 권한을 다시 연결해 주세요.' : `Google Sheets 오류 (${sheetResponse.status})`
       await admin.from('form_maker_submissions').update({ sheet_sync_status: 'failed', sheet_sync_error: `${message}: ${googleError}`.slice(0, 1000) }).eq('id', submission.id)
       return json({ error: message }, 502)
     }

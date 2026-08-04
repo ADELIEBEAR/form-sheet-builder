@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
         options: {
           redirectTo,
           scopes: 'openid email profile https://www.googleapis.com/auth/spreadsheets',
-          queryParams: { access_type: 'offline', prompt: 'consent' },
+          queryParams: { access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true' },
         },
       })
       if (error) throw error

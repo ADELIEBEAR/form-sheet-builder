@@ -92,7 +92,12 @@ async function googleFetch(path, options = {}) {
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(options.headers || {}) },
   })
   const result = await response.json().catch(() => ({}))
-  if (!response.ok) throw new ApiError(result?.error?.message || 'Google Sheets 요청에 실패했습니다.', response.status, result)
+  if (!response.ok) {
+    const message = response.status === 401
+      ? 'Google Sheets 권한이 만료되었습니다. Google 권한을 다시 연결해 주세요.'
+      : result?.error?.message || 'Google Sheets 요청에 실패했습니다.'
+    throw new ApiError(message, response.status, result)
+  }
   return result
 }
 

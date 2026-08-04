@@ -138,21 +138,27 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, errors, pr
 }
 
 export default function FormCanvas(props) {
-  const focus = (props.project.theme?.layout || 'focus') === 'focus'
+  const safeProps = {
+    ...props,
+    pageIndex: props.pageIndex ?? 0,
+    answers: props.answers || {},
+    errors: props.errors || {},
+  }
+  const focus = (safeProps.project.theme?.layout || 'focus') === 'focus'
   if (focus) {
     return (
       <FocusCanvas
-        project={props.project}
-        stepIndex={props.pageIndex}
-        answers={props.answers}
-        onAnswers={props.onAnswers}
-        onStep={props.onPage}
-        errors={props.errors}
-        preview={props.preview}
-        submitted={props.submitted}
-        submitting={props.submitting}
+        project={safeProps.project}
+        stepIndex={safeProps.pageIndex}
+        answers={safeProps.answers}
+        onAnswers={safeProps.onAnswers}
+        onStep={safeProps.onPage}
+        errors={safeProps.errors}
+        preview={safeProps.preview}
+        submitted={safeProps.submitted}
+        submitting={safeProps.submitting}
       />
     )
   }
-  return <CardCanvas {...props} />
+  return <CardCanvas {...safeProps} />
 }

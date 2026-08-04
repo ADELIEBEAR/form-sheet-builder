@@ -187,44 +187,6 @@ Deno.serve(async (request) => {
       return reply({ submissions: submissions || [], hasMore: (submissions || []).length === limit });
     }
 
-    if (action === "quality") {
-      if (!await hasAdminSession(admin, user.id, body?.token)) throw new HttpError("응답 관리자 로그인이 필요합니다.", 403);
-      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      const projectId = String(body?.projectId || "");
-      const submissionId = String(body?.submissionId || "");
-      const status = String(body?.status || "");
-      if (!uuid.test(projectId) || !uuid.test(submissionId) || !["normal", "duplicate", "invalid"].includes(status)) {
-        throw new HttpError("판정 변경 요청을 확인해 주세요.", 400);
-      }
-      const { data: project, error: projectError } = await admin
-        .from("form_maker_projects")
-        .select("id")
-        .eq("id", projectId)
-        .eq("owner_id", user.id)
-        .maybeSingle();
-      if (projectError) throw projectError;
-      if (!project) throw new HttpError("폼을 찾을 수 없습니다.", 404);
-      const reasons = status === "normal"
-        ? []
-        : [status === "duplicate" ? "관리자가 중복 DB로 표시" : "관리자가 불량 DB로 표시"];
-      const { data: submission, error: updateError } = await admin
-        .from("form_maker_submissions")
-        .update({
-          quality_status: status,
-          quality_reasons: reasons,
-          quality_source: "manual",
-          quality_reviewed_at: new Date().toISOString(),
-          duplicate_of: null,
-        })
-        .eq("id", submissionId)
-        .eq("project_id", projectId)
-        .select("id,project_id,answers,sheet_sync_status,sheet_sync_error,quality_status,quality_reasons,quality_source,duplicate_of,quality_reviewed_at,submitted_at")
-        .maybeSingle();
-      if (updateError) throw updateError;
-      if (!submission) throw new HttpError("응답을 찾을 수 없습니다.", 404);
-      return reply({ submission });
-    }
-
     throw new HttpError("지원하지 않는 관리자 요청입니다.", 400);
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 500;

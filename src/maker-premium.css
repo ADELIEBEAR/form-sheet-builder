@@ -1038,15 +1038,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .quality-explanation.duplicate strong { color: #9b6417; }
 .quality-explanation.invalid { background: #fff0f3; }
 .quality-explanation.invalid strong { color: #ad3d56; }
-.response-card-footer { padding: 0 16px 15px 71px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.quality-review-controls { display: flex; align-items: center; gap: 5px; }
-.quality-review-controls > span { margin-right: 3px; color: var(--app-muted); font-size: 8px; font-weight: 720; }
-.quality-review-controls button { min-height: 29px; padding: 0 8px; border: 1px solid var(--app-line); border-radius: 7px; background: #fff; color: #77717e; display: inline-flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 760; cursor: pointer; }
-.quality-review-controls button:hover:not(:disabled) { border-color: #cfc7e2; color: var(--app-text); }
-.quality-review-controls button.active.normal { border-color: #bcdccc; background: #eef8f3; color: #28745d; }
-.quality-review-controls button.active.duplicate { border-color: #ead4aa; background: #fff6e4; color: #9b6417; }
-.quality-review-controls button.active.invalid { border-color: #e7bcc6; background: #fff0f3; color: #ad3d56; }
-.quality-review-controls button:disabled { cursor: default; opacity: .72; }
 
 @media (max-width: 720px) {
   .response-overview,
@@ -1060,10 +1051,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .response-card summary { grid-template-columns: 34px minmax(0, 1fr) auto 20px; }
   .quality-explanation { margin: 0 10px 8px; padding: 10px; grid-template-columns: auto minmax(0, 1fr); }
   .quality-explanation small { grid-column: 2; }
-  .response-card-footer { padding: 0 10px 12px; align-items: stretch; flex-direction: column; }
-  .quality-review-controls { min-width: 0; display: grid; grid-template-columns: auto repeat(3, 1fr); }
-  .quality-review-controls button { justify-content: center; }
-  .response-card-footer .retry-sync { width: 100%; justify-content: center; }
 }
 
 /* Page-scoped type controls */

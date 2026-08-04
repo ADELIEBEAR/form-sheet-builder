@@ -259,17 +259,6 @@ export async function api(path, options = {}) {
       return { submission }
     }
 
-    const qualityMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions\/([^/]+)\/quality$/)
-    if (qualityMatch && method === 'PATCH') {
-      await ownedProject(qualityMatch[1])
-      const data = await responseAdminRequest('quality', {
-        projectId: qualityMatch[1],
-        submissionId: qualityMatch[2],
-        status: String(body?.status || ''),
-      })
-      return { submission: serializeSubmission(data.submission) }
-    }
-
     const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)
     if (sheetMatch && method === 'POST') return ensureBackupSheet(sheetMatch[1])
 

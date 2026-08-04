@@ -1,4 +1,4 @@
-import { CaretDown, FileCsv, FileXls, ListBullets, LockKey, MagnifyingGlass, PencilSimple, SpinnerGap } from '@phosphor-icons/react'
+import { CaretDown, FileCsv, FileXls, ListBullets, LockKey, MagnifyingGlass, PencilSimple } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
@@ -21,7 +21,6 @@ export default function Responses() {
   const [adminReady, setAdminReady] = useState(false)
   const [query, setQuery] = useState('')
   const [qualityFilter, setQualityFilter] = useState('all')
-  const [updatingQuality, setUpdatingQuality] = useState('')
   const [error, setError] = useState('')
 
   async function loadSubmissions() {
@@ -68,15 +67,6 @@ export default function Responses() {
     setSubmissions([])
   }
 
-  async function setQuality(submissionId, status) {
-    setUpdatingQuality(submissionId)
-    setError('')
-    try {
-      const data = await api(`/maker/projects/${projectId}/submissions/${submissionId}/quality`, { method: 'PATCH', body: { status } })
-      setSubmissions((current) => current.map((submission) => submission.id === submissionId ? data.submission : submission))
-    } catch (caught) { setError(caught.message) } finally { setUpdatingQuality('') }
-  }
-
   const rows = project ? responseRows(project, submissions) : []
   const actions = project && adminReady ? <div className="response-export-actions"><button className="studio-secondary response-admin-lock" type="button" onClick={lockAdminResponses}><LockKey /> 관리자 잠그기</button><button className="studio-secondary" type="button" onClick={() => downloadCsv(`${project.title}-응답.csv`, rows)}><FileCsv /> CSV</button><button className="studio-primary" type="button" onClick={() => downloadXlsx(`${project.title}-응답.xlsx`, rows)}><FileXls /> Excel</button></div> : null
 
@@ -99,9 +89,8 @@ export default function Responses() {
             const preview = fields.map((field) => answerText(submission.answers[field.id])).filter(Boolean).slice(0, 2).join(' · ') || '응답 내용 없음'
             return <details className="response-card" key={submission.id} open={index === 0}>
               <summary><span className="response-sequence">{String(index + 1).padStart(3, '0')}</span><span className="response-card-copy"><strong>{preview}</strong><small>{new Date(submission.submittedAt).toLocaleString('ko-KR')}</small></span><span className={`quality-badge ${submission.qualityStatus}`}>{qualityLabel(submission.qualityStatus)}</span><CaretDown className="response-card-caret" /></summary>
-              <div className={`quality-explanation ${submission.qualityStatus}`}><strong>{qualityLabel(submission.qualityStatus)}</strong><span>{qualityReasonText(submission.qualityReasons)}</span>{submission.qualitySource === 'manual' ? <small>관리자 확인</small> : <small>자동 판정</small>}</div>
+              <div className={`quality-explanation ${submission.qualityStatus}`}><strong>{qualityLabel(submission.qualityStatus)}</strong><span>{qualityReasonText(submission.qualityReasons)}</span><small>자동 판정</small></div>
               <div className="response-answer-grid">{fields.map((field) => { const value = answerText(submission.answers[field.id]); return <article key={field.id}><span>{field.label}</span><p>{value || <em>응답 없음</em>}</p></article> })}</div>
-              <footer className="response-card-footer"><div className="quality-review-controls"><span>관리자 판정</span>{QUALITY_OPTIONS.slice(1).map((option) => <button className={`${option.value}${submission.qualityStatus === option.value ? ' active' : ''}`} type="button" key={option.value} onClick={() => setQuality(submission.id, option.value)} disabled={updatingQuality === submission.id || submission.qualityStatus === option.value}>{updatingQuality === submission.id ? <SpinnerGap className="spin" /> : null}{option.label}</button>)}</div></footer>
             </details>
           })}</section> : null}
         </> : null}

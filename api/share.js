@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://ncvjuwkfjcqktcwyphew.supabase.co'
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_bW7m17SD5qnFvgW1dbisUQ_iWONmlaB'
 
@@ -73,15 +76,22 @@ async function loadPublishedProject(slug) {
   return Array.isArray(rows) ? rows[0] || null : null
 }
 
+async function loadAppShell() {
+  const candidates = [join(process.cwd(), 'dist', 'index.html'), join(process.cwd(), 'index.html')]
+  for (const path of candidates) {
+    try {
+      const html = await readFile(path, 'utf8')
+      if (html.includes('id="root"') && html.includes('<script')) return html
+    } catch { /* try the next bundled location */ }
+  }
+  throw new Error('App shell unavailable')
+}
+
 export default async function handler(request, response) {
   const rawSlug = Array.isArray(request.query?.slug) ? request.query.slug[0] : request.query?.slug
   const slug = String(rawSlug || '').normalize('NFKC').slice(0, 64)
-  const appOrigin = process.env.FORM_MAKER_SITE_URL || 'https://form-maker-next.vercel.app'
-
   try {
-    const indexResponse = await fetch(`${appOrigin}/index.html`, { headers: { accept: 'text/html' } })
-    if (!indexResponse.ok) throw new Error('App shell unavailable')
-    const indexHtml = await indexResponse.text()
+    const indexHtml = await loadAppShell()
     if (!/^[\p{L}\p{N}-]{1,64}$/u.test(slug)) {
       response.setHeader('content-type', 'text/html; charset=utf-8')
       return response.status(200).send(indexHtml)

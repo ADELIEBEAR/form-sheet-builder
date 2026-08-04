@@ -498,9 +498,9 @@ export default function Studio() {
               {drawer === 'settings' ? (
                 <div className="settings-stack">
                   <div className="inspector-panel">
-                    <div className="panel-heading"><span>관리 정보</span><strong>폴더와 메모</strong><p>관리자 화면에서만 보이며 공개 폼에는 표시되지 않습니다.</p></div>
-                    <label className="studio-control"><span>폴더</span><input value={project.folder || ''} maxLength="80" onChange={(event) => changeProject({ ...project, folder: event.target.value })} placeholder="예: 2026 고객 신청" /></label>
-                    <label className="studio-control"><span>내 메모</span><textarea rows="4" maxLength="2000" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="마감일, 담당자, 수정할 내용 등을 적어두세요." /></label>
+                    <div className="panel-heading"><span>관리 정보</span><strong>목록에서 알아보기</strong><p>폼 목록에만 보이며 신청자에게는 표시되지 않습니다.</p></div>
+                    <label className="studio-control"><span>분류</span><input value={project.folder || ''} maxLength="80" onChange={(event) => changeProject({ ...project, folder: event.target.value })} placeholder="예: 주식 신청" /></label>
+                    <label className="studio-control"><span>한 줄 설명</span><input maxLength="160" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="이 폼이 어떤 용도인지 간단히 적어주세요." /></label>
                   </div>
                   <FormCopyPanel project={project} onChange={changeProject} />
                   <div className="inspector-panel">

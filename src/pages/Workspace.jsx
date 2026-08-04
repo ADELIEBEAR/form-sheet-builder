@@ -4,7 +4,6 @@ import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
-import { MEMO_COLOR_PRESETS } from '../lib/maker'
 
 export default function Workspace() {
   const navigate = useNavigate()
@@ -123,7 +122,7 @@ export default function Workspace() {
     if (metaStatus[projectId] === 'saving') return '저장 중…'
     if (metaStatus[projectId] === 'saved') return '저장됨'
     if (metaStatus[projectId] === 'error') return '저장 실패'
-    return '자동 저장'
+    return ''
   }
 
   return (
@@ -148,11 +147,10 @@ export default function Workspace() {
                 <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')} 수정</time>
               </span>
             </button>
-            <section className={`project-inline-meta memo-tone-${project.memoColor || 'lemon'}`} aria-label={`${project.title} 폴더와 메모`}>
-              <header><span><NotePencil weight="fill" /> 폴더 · 메모</span><small className={metaStatus[project.id] || ''}>{metaStatusLabel(project.id)}</small></header>
-              <label className="inline-folder-field"><span><Folder weight="fill" /> 폴더</span><input list={`folder-list-${project.id}`} maxLength="80" value={project.folder || ''} onChange={(event) => updateLocalMeta(project.id, { folder: event.target.value })} onBlur={(event) => persistMeta(project.id, { folder: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="미분류" aria-label={`${project.title} 폴더`} /><datalist id={`folder-list-${project.id}`}>{folders.map((item) => <option value={item} key={item} />)}</datalist></label>
-              <label className="inline-memo-field"><span>내 메모 <small>{(project.memo || '').length.toLocaleString()} / 2,000</small></span><textarea rows="3" maxLength="2000" value={project.memo || ''} onChange={(event) => updateLocalMeta(project.id, { memo: event.target.value })} onBlur={(event) => persistMeta(project.id, { memo: event.target.value })} onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="마감일, 담당자, 수정할 내용 등을 적어두세요." aria-label={`${project.title} 내 메모`} /></label>
-              <fieldset className="inline-memo-colors"><legend>메모 색상</legend><div>{MEMO_COLOR_PRESETS.map(([value, label]) => <button className={`memo-color-${value}${project.memoColor === value ? ' active' : ''}`} type="button" key={value} onClick={() => persistMeta(project.id, { memoColor: value })} aria-label={`${label} 메모 색상`} title={label}>{project.memoColor === value ? <Check weight="bold" /> : null}</button>)}</div></fieldset>
+            <section className="project-inline-meta" aria-label={`${project.title} 분류와 한 줄 설명`}>
+              <label className="inline-folder-field" title="분류"><Folder weight="fill" /><input list={`folder-list-${project.id}`} maxLength="80" value={project.folder || ''} onChange={(event) => updateLocalMeta(project.id, { folder: event.target.value })} onBlur={(event) => persistMeta(project.id, { folder: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="분류 없음" aria-label={`${project.title} 분류`} /><datalist id={`folder-list-${project.id}`}>{folders.map((item) => <option value={item} key={item} />)}</datalist></label>
+              <label className="inline-memo-field" title="한 줄 설명"><NotePencil weight="fill" /><input maxLength="160" value={project.memo || ''} onChange={(event) => updateLocalMeta(project.id, { memo: event.target.value })} onBlur={(event) => persistMeta(project.id, { memo: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="어떤 폼인지 한 줄로 적어두세요" aria-label={`${project.title} 한 줄 설명`} /></label>
+              <small className={`project-meta-status ${metaStatus[project.id] || ''}`} aria-live="polite">{metaStatusLabel(project.id)}</small>
             </section>
             <nav className="project-quick-actions" aria-label={`${project.title} 빠른 작업`}>
               <div className="project-main-actions">

@@ -260,9 +260,11 @@ export function formSteps(project) {
 export function responseRows(project, responses) {
   const fields = allFields(project)
   return [
-    ['제출 시각', ...fields.map((field) => field.label), 'Google Sheets'],
+    ['제출 시각', 'DB 판정', '판정 사유', ...fields.map((field) => field.label), 'Google Sheets'],
     ...responses.map((response) => [
       new Date(response.submittedAt).toLocaleString('ko-KR'),
+      response.qualityStatus === 'duplicate' ? '중복 DB' : response.qualityStatus === 'invalid' ? '불량 DB' : '정상',
+      Array.isArray(response.qualityReasons) ? response.qualityReasons.join(' · ') : '',
       ...fields.map((field) => {
         const value = response.answers[field.id]
         return Array.isArray(value) ? value.join(', ') : value ?? ''

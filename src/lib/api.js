@@ -85,6 +85,11 @@ function serializeSubmission(row) {
     answers: row.answers || {},
     sheetSyncStatus: row.sheet_sync_status || 'not_connected',
     sheetSyncError: row.sheet_sync_error || '',
+    qualityStatus: row.quality_status || 'normal',
+    qualityReasons: Array.isArray(row.quality_reasons) ? row.quality_reasons : [],
+    qualitySource: row.quality_source || 'auto',
+    duplicateOf: row.duplicate_of || '',
+    qualityReviewedAt: row.quality_reviewed_at || '',
     submittedAt: row.submitted_at,
   }
 }
@@ -129,7 +134,7 @@ async function googleFetch(path, options = {}) {
 }
 
 function sheetHeaders(project) {
-  return ['제출 시각', ...project.pages.flatMap((page) => page.fields || []).filter((field) => field.type !== 'heading').map((field) => field.label)]
+  return ['제출 시각', 'DB 판정', '판정 사유', ...project.pages.flatMap((page) => page.fields || []).filter((field) => field.type !== 'heading').map((field) => field.label)]
 }
 
 async function writeSheetHeader(project) {
@@ -287,6 +292,17 @@ export async function api(path, options = {}) {
       const submission = submissions.find((item) => item.id === retryMatch[2])
       if (!submission) throw new ApiError('응답을 찾을 수 없습니다.', 404)
       return { submission }
+    }
+
+    const qualityMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions\/([^/]+)\/quality$/)
+    if (qualityMatch && method === 'PATCH') {
+      await ownedProject(qualityMatch[1])
+      const data = await responseAdminRequest('quality', {
+        projectId: qualityMatch[1],
+        submissionId: qualityMatch[2],
+        status: String(body?.status || ''),
+      })
+      return { submission: serializeSubmission(data.submission) }
     }
 
     const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)

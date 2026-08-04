@@ -71,7 +71,7 @@ Deno.serve(async (request) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
     const [{ data: project, error: projectError }, { data: submission, error: submissionError }] = await Promise.all([
       admin.from('form_maker_projects').select('id,owner_id,status,pages,sheet_id,sheet_name').eq('id', projectId).single(),
-      admin.from('form_maker_submissions').select('id,project_id,answers,sync_key,sheet_sync_status,submitted_at').eq('id', submissionId).eq('project_id', projectId).single(),
+      admin.from('form_maker_submissions').select('id,project_id,answers,sync_key,sheet_sync_status,quality_status,quality_reasons,submitted_at').eq('id', submissionId).eq('project_id', projectId).single(),
     ])
     if (projectError || submissionError || !project || !submission) return json({ error: 'Project or submission not found.' }, 404)
     const ownerRequest = Boolean(userId) && project.owner_id === userId
@@ -95,6 +95,8 @@ Deno.serve(async (request) => {
     const answers = submission.answers && typeof submission.answers === 'object' ? submission.answers : {}
     const values = [
       new Date(submission.submitted_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+      submission.quality_status === 'duplicate' ? '중복 DB' : submission.quality_status === 'invalid' ? '불량 DB' : '정상',
+      Array.isArray(submission.quality_reasons) ? submission.quality_reasons.join(' · ') : '',
       ...fields.map((field: any) => {
         const value = answers[field.id]
         return Array.isArray(value) ? value.join(', ') : value ?? ''

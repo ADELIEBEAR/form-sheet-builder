@@ -1,4 +1,5 @@
 import { ASSET_BUCKET, supabase } from './supabase'
+import { normalizeMemoColor } from './maker'
 import { sanitizeProject, validateAnswers, ValidationError } from './validation'
 
 export class ApiError extends Error {
@@ -39,6 +40,7 @@ function serializeProject(row, meta = null) {
     responseCount,
     folder: meta?.folder || '',
     memo: meta?.memo || '',
+    memoColor: normalizeMemoColor(meta?.memo_color || meta?.memoColor),
     responseLockEnabled: Boolean(meta?.response_lock_enabled),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -49,6 +51,7 @@ function cleanProjectMeta(input) {
   return {
     folder: String(input?.folder || '').trim().slice(0, 80),
     memo: String(input?.memo || '').slice(0, 2000),
+    memoColor: normalizeMemoColor(input?.memoColor || input?.memo_color),
   }
 }
 
@@ -56,7 +59,7 @@ async function projectMetaMap(projectIds) {
   if (!projectIds.length) return new Map()
   const { data, error } = await supabase
     .from('form_maker_project_meta')
-    .select('project_id,folder,memo,response_lock_enabled')
+    .select('project_id,folder,memo,memo_color,response_lock_enabled')
     .in('project_id', projectIds)
   if (error) fail(error)
   return new Map((data || []).map((item) => [item.project_id, item]))
@@ -64,10 +67,11 @@ async function projectMetaMap(projectIds) {
 
 async function saveProjectMeta(projectId, input) {
   const meta = cleanProjectMeta(input)
-  const { error } = await supabase.rpc('set_form_maker_project_meta', {
+  const { error } = await supabase.rpc('set_form_maker_project_meta_v2', {
     target_project_id: projectId,
     new_folder: meta.folder,
     new_memo: meta.memo,
+    new_memo_color: meta.memoColor,
   })
   if (error) fail(error, '폴더와 메모를 저장하지 못했습니다.')
   return meta
@@ -248,6 +252,13 @@ export async function api(path, options = {}) {
 
     if (path === '/maker/assets' && method === 'POST') return uploadAsset(body)
 
+    const metaMatch = path.match(/^\/maker\/projects\/([^/]+)\/meta$/)
+    if (metaMatch && method === 'PATCH') {
+      await ownedProject(metaMatch[1])
+      const meta = await saveProjectMeta(metaMatch[1], body)
+      return { meta }
+    }
+
     const submissionsMatch = path.match(/^\/maker\/projects\/([^/]+)\/submissions$/)
     if (submissionsMatch && method === 'GET') {
       await ownedProject(submissionsMatch[1])
@@ -312,7 +323,7 @@ export async function api(path, options = {}) {
       if (error) fail(error)
       const currentMeta = await projectMetaMap([current.id])
       const copiedMeta = currentMeta.get(current.id)
-      const meta = await saveProjectMeta(data.id, { folder: copiedMeta?.folder || '', memo: copiedMeta?.memo || '' })
+      const meta = await saveProjectMeta(data.id, { folder: copiedMeta?.folder || '', memo: copiedMeta?.memo || '', memoColor: copiedMeta?.memo_color || 'lemon' })
       return { project: serializeProject(data, meta) }
     }
 

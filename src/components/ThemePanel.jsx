@@ -21,7 +21,7 @@ export default function ThemePanel({ project, projectId, onChange }) {
             const active = theme.accent === preset.theme.accent && theme.background === preset.theme.background && theme.card === preset.theme.card
             return (
               <button className={active ? 'theme-preset active' : 'theme-preset'} type="button" key={preset.id} onClick={() => applyTheme(preset)}>
-                <span className="theme-preset-art" style={{ '--preset-bg': preset.theme.background, '--preset-card': preset.theme.card, '--preset-accent': preset.theme.accent }}><i /><b /><em /></span>
+                <span className={`theme-preset-art theme-preset-art-${preset.art || 'form'}`} style={{ '--preset-bg': preset.theme.background, '--preset-card': preset.theme.card, '--preset-accent': preset.theme.accent }}><i /><b /><em /></span>
                 <span><strong>{preset.name}</strong><small>{preset.tag}</small></span>
                 {active ? <Check weight="bold" /> : null}
               </button>

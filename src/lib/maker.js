@@ -106,6 +106,23 @@ export const TRANSITION_PRESETS = [
   ['none', '전환 없음'],
 ]
 
+export const MEMO_COLOR_PRESETS = [
+  ['lemon', '레몬'],
+  ['lavender', '라벤더'],
+  ['mint', '민트'],
+  ['sky', '스카이'],
+  ['rose', '로즈'],
+  ['sand', '샌드'],
+  ['slate', '슬레이트'],
+]
+
+const memoColorIds = new Set(MEMO_COLOR_PRESETS.map(([value]) => value))
+
+export function normalizeMemoColor(value) {
+  const requested = String(value || 'lemon').trim().toLowerCase()
+  return memoColorIds.has(requested) ? requested : 'lemon'
+}
+
 export const THEME_PRESETS = [
   { id: 'lavender-soft', name: '라벤더 소프트', tag: '차분함', theme: { accent: '#7156d9', background: '#eeeafb', card: '#ffffff', text: '#29243f', radius: 26, font: 'pretendard', effect: 'aurora', motion: 'soft' } },
   { id: 'peach-sorbet', name: '피치 소르베', tag: '따뜻함', theme: { accent: '#ed6f54', background: '#fff0e9', card: '#fffaf7', text: '#3e2926', radius: 30, font: 'gowun', effect: 'liquid', motion: 'soft' } },
@@ -117,6 +134,8 @@ export const THEME_PRESETS = [
   { id: 'forest-calm', name: '포레스트 캄', tag: '신뢰감', theme: { accent: '#2f7658', background: '#dfeadf', card: '#f8fbf6', text: '#223129', radius: 20, font: 'gowun', effect: 'aurora', motion: 'calm' } },
   { id: 'ocean-glass', name: '오션 글라스', tag: '시원함', theme: { accent: '#157caa', background: '#ddecf2', card: '#f8fdff', text: '#173440', radius: 24, font: 'pretendard', effect: 'ripple', motion: 'soft' } },
   { id: 'mono-ink', name: '모노 잉크', tag: '미니멀', theme: { accent: '#1e1e1e', background: '#ededeb', card: '#ffffff', text: '#171717', radius: 8, font: 'pretendard', effect: 'grid', motion: 'none' } },
+  { id: 'stock-market', name: '주식 마켓', tag: '데이터 집중', art: 'stock', theme: { accent: '#e3504f', background: '#111821', card: '#1d2732', text: '#f4f1e9', radius: 10, font: 'pretendard', effect: 'grid', motion: 'calm', transition: 'slide', transitionSpeed: 360 } },
+  { id: 'crypto-neon', name: '코인 네온', tag: '디지털 자산', art: 'coin', theme: { accent: '#e99a32', background: '#121018', card: '#201b2b', text: '#fbf5e8', radius: 22, font: 'pretendard', effect: 'prism', motion: 'cinematic', transition: 'zoom', transitionSpeed: 420 } },
   { id: 'night-velvet', name: '나이트 벨벳', tag: '프리미엄', theme: { accent: '#7456d6', background: '#161323', card: '#252036', text: '#f5f1ff', radius: 24, font: 'hahmlet', effect: 'prism', motion: 'soft' } },
   { id: 'candy-pop', name: '캔디 팝', tag: '발랄함', theme: { accent: '#7a4ff2', background: '#f7dfef', card: '#fff9fc', text: '#35223a', radius: 32, font: 'jua', effect: 'liquid', motion: 'playful' } },
   { id: 'pearl-light', name: '펄 라이트', tag: '깨끗함', theme: { accent: '#5e63c8', background: '#f0f1f8', card: '#ffffff', text: '#292c42', radius: 22, font: 'pretendard', effect: 'spotlight', motion: 'calm' } },
@@ -217,6 +236,7 @@ export function emptyProject() {
     status: 'draft',
     folder: '',
     memo: '',
+    memoColor: 'lemon',
     responseLockEnabled: false,
   }
 }

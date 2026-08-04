@@ -1,9 +1,10 @@
-import { Check, Copy, DotsThree, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, Plus, Trash } from '@phosphor-icons/react'
+import { Check, Copy, DotsThree, Eye, FilePlus, FloppyDisk, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, Plus, Trash, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
+import { MEMO_COLOR_PRESETS } from '../lib/maker'
 
 export default function Workspace() {
   const navigate = useNavigate()
@@ -14,6 +15,9 @@ export default function Workspace() {
   const [menu, setMenu] = useState('')
   const [copied, setCopied] = useState('')
   const [folder, setFolder] = useState('전체')
+  const [editingMeta, setEditingMeta] = useState('')
+  const [metaDraft, setMetaDraft] = useState({ folder: '', memo: '', memoColor: 'lemon' })
+  const [metaSaving, setMetaSaving] = useState(false)
 
   useEffect(() => {
     api('/maker/projects').then((data) => setProjects(data.projects)).catch((caught) => setError(caught.message)).finally(() => setLoading(false))
@@ -53,6 +57,38 @@ export default function Workspace() {
     }
   }
 
+  function openMetaEditor(project) {
+    if (editingMeta === project.id) {
+      setEditingMeta('')
+      return
+    }
+    setMetaDraft({ folder: project.folder || '', memo: project.memo || '', memoColor: project.memoColor || 'lemon' })
+    setEditingMeta(project.id)
+    setMenu('')
+    setError('')
+  }
+
+  async function saveMeta(event, project) {
+    event.preventDefault()
+    if (metaSaving) return
+    setMetaSaving(true)
+    setError('')
+    try {
+      const data = await api(`/maker/projects/${project.id}/meta`, { method: 'PATCH', body: metaDraft })
+      setProjects((current) => current.map((item) => item.id === project.id ? { ...item, ...data.meta } : item))
+      setEditingMeta('')
+    } catch (caught) {
+      setError(caught.message)
+    } finally {
+      setMetaSaving(false)
+    }
+  }
+
+  function metaEditorKeyDown(event, project) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') saveMeta(event, project)
+    if (event.key === 'Escape' && !metaSaving) setEditingMeta('')
+  }
+
   return (
     <AppFrame sidebar={<WorkspaceSidebar active="forms" />} actions={<Link className="studio-primary header-new" to="/studio/new"><Plus weight="bold" /> 새 폼</Link>}>
       <main className="workspace-main">
@@ -65,14 +101,32 @@ export default function Workspace() {
         {!loading && projects.length === 0 ? <section className="workspace-empty"><div className="empty-art"><span /><span /><FilePlus /></div><h2>첫 폼을 만들어 볼까요?</h2><p>질문을 구성하고 공개 링크를 만드는 데 몇 분이면 충분합니다.</p><Link className="studio-primary" to="/studio/new"><Plus weight="bold" /> 빈 폼에서 시작</Link></section> : null}
         {!loading && projects.length > 0 ? <div className="project-list">
           <div className="project-list-head"><span>{visible.length}개의 폼</span><span>최근 수정</span><span>응답</span><span /></div>
-          {visible.map((project) => <article className="project-row" key={project.id}>
+          {visible.map((project) => <article className={editingMeta === project.id ? 'project-row editing-meta' : 'project-row'} key={project.id}>
             <button className="project-open" type="button" onClick={() => navigate(`/studio/${project.id}`)}>
               <span className={project.theme?.coverUrl ? 'project-thumb has-cover' : 'project-thumb'} style={project.theme?.coverUrl ? { backgroundImage: `url("${project.theme.coverUrl}")` } : { '--thumb-bg': project.theme?.background, '--thumb-accent': project.theme?.accent }}><i /><i /><b /></span>
-              <span className="project-copy"><span className="project-card-meta">{project.folder ? <b><Folder weight="fill" />{project.folder}</b> : <b className="muted"><Folder />미분류</b>}{project.responseLockEnabled ? <b className="secure"><LockKey weight="fill" />응답 잠금</b> : null}</span><strong>{project.title}</strong><small>{project.status === 'published' ? '게시 중' : '초안'} · /s/{project.slug}</small>{project.memo ? <em><NotePencil />{project.memo}</em> : null}</span>
+              <span className="project-copy">
+                <span className="project-card-meta">{project.folder ? <b><Folder weight="fill" />{project.folder}</b> : <b className="muted"><Folder />미분류</b>}{project.responseLockEnabled ? <b className="secure"><LockKey weight="fill" />응답 잠금</b> : null}</span>
+                <strong>{project.title}</strong>
+                <small>{project.status === 'published' ? '게시 중' : '초안'} · /s/{project.slug}</small>
+                {project.memo ? <em className={`project-memo-preview memo-tone-${project.memoColor || 'lemon'}`}><NotePencil /><span>{project.memo}</span></em> : null}
+              </span>
             </button>
             <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')}</time>
             <Link className="response-count" to={`/responses/${project.id}`}>{project.responseCount.toLocaleString()}개</Link>
-            <div className="row-menu-wrap"><button className="row-menu-button" type="button" onClick={() => setMenu(menu === project.id ? '' : project.id)} aria-label="폼 메뉴"><DotsThree /></button>{menu === project.id ? <div className="row-menu">{project.status === 'published' ? <><a href={`/s/${project.slug}`} target="_blank" rel="noreferrer"><Eye /> 공개 폼 보기</a><button type="button" onClick={() => copyLink(project)}>{copied === project.id ? <Check /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button></> : null}<button type="button" onClick={() => duplicate(project.id)}><Copy /> 복제</button><button className="danger" type="button" onClick={() => remove(project.id)}><Trash /> 삭제</button></div> : null}</div>
+            <div className="project-row-actions">
+              <button className={editingMeta === project.id ? 'project-meta-toggle active' : 'project-meta-toggle'} type="button" onClick={() => openMetaEditor(project)} aria-expanded={editingMeta === project.id}><NotePencil /> 정리</button>
+              <div className="row-menu-wrap"><button className="row-menu-button" type="button" onClick={() => setMenu(menu === project.id ? '' : project.id)} aria-label="폼 메뉴"><DotsThree /></button>{menu === project.id ? <div className="row-menu">{project.status === 'published' ? <><a href={`/s/${project.slug}`} target="_blank" rel="noreferrer"><Eye /> 공개 폼 보기</a><button type="button" onClick={() => copyLink(project)}>{copied === project.id ? <Check /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button></> : null}<button type="button" onClick={() => duplicate(project.id)}><Copy /> 복제</button><button className="danger" type="button" onClick={() => remove(project.id)}><Trash /> 삭제</button></div> : null}</div>
+            </div>
+
+            {editingMeta === project.id ? <form className={`project-meta-editor memo-tone-${metaDraft.memoColor}`} onSubmit={(event) => saveMeta(event, project)} onKeyDown={(event) => metaEditorKeyDown(event, project)}>
+              <header><span className="project-meta-icon"><NotePencil weight="fill" /></span><span><strong>폴더와 메모</strong><small>공개 폼에는 보이지 않는 나만의 정리 공간</small></span><button type="button" onClick={() => setEditingMeta('')} aria-label="편집 닫기" disabled={metaSaving}><X /></button></header>
+              <div className="project-meta-fields">
+                <label className="project-folder-field"><span>폴더</span><input list={`folder-list-${project.id}`} maxLength="80" value={metaDraft.folder} onChange={(event) => setMetaDraft({ ...metaDraft, folder: event.target.value })} placeholder="예: 2026 고객 신청" /><datalist id={`folder-list-${project.id}`}>{folders.map((item) => <option value={item} key={item} />)}</datalist></label>
+                <label className="project-memo-field"><span>내 메모 <small>{metaDraft.memo.length.toLocaleString()} / 2,000</small></span><textarea rows="6" maxLength="2000" value={metaDraft.memo} onChange={(event) => setMetaDraft({ ...metaDraft, memo: event.target.value })} placeholder="마감일, 담당자, 수정할 내용 등을 넉넉하게 적어두세요." /></label>
+                <fieldset className="memo-color-picker"><legend>메모 색상</legend><div>{MEMO_COLOR_PRESETS.map(([value, label]) => <button className={`memo-color-${value}${metaDraft.memoColor === value ? ' active' : ''}`} type="button" key={value} onClick={() => setMetaDraft({ ...metaDraft, memoColor: value })} aria-label={`${label} 메모 색상`} title={label}>{metaDraft.memoColor === value ? <Check weight="bold" /> : null}</button>)}</div></fieldset>
+              </div>
+              <footer><span>Ctrl + Enter로 바로 저장</span><div><button type="button" onClick={() => setEditingMeta('')} disabled={metaSaving}>취소</button><button className="project-meta-save" type="submit" disabled={metaSaving}><FloppyDisk />{metaSaving ? '저장 중' : '저장'}</button></div></footer>
+            </form> : null}
           </article>)}
           {visible.length === 0 ? <div className="no-search-result">검색 결과가 없습니다.</div> : null}
         </div> : null}

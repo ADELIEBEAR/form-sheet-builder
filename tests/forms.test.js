@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moveItem } from '../src/lib/maker'
+import { moveItem, normalizeMemoColor, THEME_PRESETS } from '../src/lib/maker'
 import { normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
@@ -10,6 +10,20 @@ describe('form maker validation', () => {
     expect(moveItem(original, 0, 2)).toEqual(['둘째', '셋째', '첫째'])
     expect(moveItem(original, 2, 0)).toEqual(['셋째', '첫째', '둘째'])
     expect(original).toEqual(['첫째', '둘째', '셋째'])
+  })
+
+  it('keeps supported memo colors and falls back safely', () => {
+    expect(normalizeMemoColor('mint')).toBe('mint')
+    expect(normalizeMemoColor('unknown-color')).toBe('lemon')
+  })
+
+  it('includes editable stock and crypto themes', () => {
+    const stock = THEME_PRESETS.find((preset) => preset.id === 'stock-market')
+    const crypto = THEME_PRESETS.find((preset) => preset.id === 'crypto-neon')
+    expect(stock).toMatchObject({ name: '주식 마켓', art: 'stock' })
+    expect(crypto).toMatchObject({ name: '코인 네온', art: 'coin' })
+    expect(sanitizeProject({ title: '금융 폼', pages: page([]), theme: stock.theme }).theme).toMatchObject(stock.theme)
+    expect(sanitizeProject({ title: '금융 폼', pages: page([]), theme: crypto.theme }).theme).toMatchObject(crypto.theme)
   })
 
   it('normalizes a readable Korean slug', () => {

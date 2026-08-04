@@ -22,4 +22,22 @@ describe('focused form canvas', () => {
     expect(steps[2].pageIndex).toBe(1)
     expect(steps[2].field.id).toBe(secondPage.fields[0].id)
   })
+
+  it('renders customized copy, image placement, and transition choices', () => {
+    const project = emptyProject()
+    project.settings.coverKicker = 'HELLO'
+    project.settings.startStatusLabel = '준비'
+    project.settings.startLabel = '바로 참여'
+    project.theme.coverUrl = 'https://example.com/cover.webp'
+    project.theme.imageMode = 'banner'
+    project.theme.transition = 'slide'
+
+    const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={0} preview />)
+
+    expect(html).toContain('HELLO')
+    expect(html).toContain('준비')
+    expect(html).toContain('바로 참여')
+    expect(html).toContain('form-media-banner')
+    expect(html).toContain('transition-slide')
+  })
 })

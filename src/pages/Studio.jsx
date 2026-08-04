@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
+import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
 import IntegrationPanel from '../components/IntegrationPanel'
 import ResponseLockSettings from '../components/ResponseLockSettings'
@@ -324,8 +325,9 @@ export default function Studio() {
                     <label className="studio-control"><span>폴더</span><input value={project.folder || ''} maxLength="80" onChange={(event) => changeProject({ ...project, folder: event.target.value })} placeholder="예: 2026 고객 신청" /></label>
                     <label className="studio-control"><span>내 메모</span><textarea rows="4" maxLength="2000" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="마감일, 담당자, 수정할 내용 등을 적어두세요." /></label>
                   </div>
+                  <FormCopyPanel project={project} onChange={changeProject} />
                   <div className="inspector-panel">
-                    <div className="panel-heading"><span>공개 설정</span><strong>주소와 완료 화면</strong></div>
+                    <div className="panel-heading"><span>공개 설정</span><strong>공개 주소</strong></div>
                     <label className="studio-control">
                       <span>공개 주소</span>
                       <div className="slug-input">
@@ -336,18 +338,6 @@ export default function Studio() {
                           placeholder="my-form"
                         />
                       </div>
-                    </label>
-                    <label className="studio-control">
-                      <span>버튼 문구</span>
-                      <input value={project.settings.submitLabel} onChange={(event) => changeProject({ ...project, settings: { ...project.settings, submitLabel: event.target.value } })} />
-                    </label>
-                    <label className="studio-control">
-                      <span>제출 완료 제목</span>
-                      <input value={project.settings.successTitle} onChange={(event) => changeProject({ ...project, settings: { ...project.settings, successTitle: event.target.value } })} />
-                    </label>
-                    <label className="studio-control">
-                      <span>제출 완료 안내</span>
-                      <textarea rows="3" value={project.settings.successMessage} onChange={(event) => changeProject({ ...project, settings: { ...project.settings, successMessage: event.target.value } })} />
                     </label>
                     {project.status === 'published' ? (
                       <div className="published-link-actions">

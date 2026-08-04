@@ -50,6 +50,47 @@ describe('form maker validation', () => {
     expect(fallback.theme.motion).toBe('soft')
   })
 
+  it('stores image placement and screen transition controls within safe ranges', () => {
+    const project = sanitizeProject({
+      title: '미디어 폼',
+      pages: page([]),
+      theme: {
+        imageMode: 'card',
+        imageFit: 'contain',
+        imagePositionX: -20,
+        imagePositionY: 120,
+        imageScale: 999,
+        imageHeight: 40,
+        imageOpacity: 2,
+        imageBrightness: 200,
+        imageOverlay: 90,
+        transition: 'flip',
+        transitionSpeed: 1200,
+      },
+    })
+
+    expect(project.theme).toMatchObject({
+      imageMode: 'card',
+      imageFit: 'contain',
+      imagePositionX: 0,
+      imagePositionY: 100,
+      imageScale: 180,
+      imageHeight: 120,
+      imageOpacity: 20,
+      imageBrightness: 140,
+      imageOverlay: 70,
+      transition: 'flip',
+      transitionSpeed: 900,
+    })
+  })
+
+  it('keeps intentionally blank form copy while filling missing copy defaults', () => {
+    const project = sanitizeProject({ title: '문구 폼', pages: page([]), settings: { coverKicker: '', nextLabel: '계속' } })
+    expect(project.settings.coverKicker).toBe('')
+    expect(project.settings.nextLabel).toBe('계속')
+    expect(project.settings.startLabel).toBe('시작하기')
+  })
+
   it('rejects a missing required response across pages', () => {
     expect(() => validateAnswers(page([{ id: 'q1', type: 'short', label: '이름', required: true }]), {})).toThrow('필수 질문')
   })

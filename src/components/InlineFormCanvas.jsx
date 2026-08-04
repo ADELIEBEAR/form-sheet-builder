@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, CheckCircle, Plus, X } from '@phosphor-icons/rea
 import { useState } from 'react'
 import { FIELD_GROUPS, FONT_STACKS, TYPE_LABEL, formSteps } from '../lib/maker'
 import FocusEffects from './FocusEffects'
+import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
 import InlineFieldEditor from './InlineFieldEditor'
 
 export const COVER_VIEW = '__cover__'
@@ -17,6 +18,9 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
   const isCover = selectedFieldId === COVER_VIEW
   const isSuccess = selectedFieldId === SUCCESS_VIEW
   const steps = formSteps(project)
+  const copy = project.settings || {}
+  const transition = transitionClass(project.theme)
+  const hasBanner = Boolean(project.theme?.coverUrl && mediaMode(project.theme) === 'banner')
   const globalIndex = steps.findIndex(({ field }) => field.id === selectedFieldId)
   const navigateToStep = (nextIndex) => {
     if (nextIndex < 0) {
@@ -40,6 +44,8 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
     '--preview-title-size': `${project.theme?.titleSize ?? 56}px`,
     '--preview-question-size': `${project.theme?.questionSize ?? 32}px`,
     '--preview-body-size': `${project.theme?.bodySize ?? 16}px`,
+    '--form-transition-duration': `${project.theme?.transitionSpeed ?? 440}ms`,
+    ...mediaVariables(project.theme),
   }
   const add = (type) => {
     onFieldAdd(type)
@@ -48,38 +54,42 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
 
   return (
     <div className="inline-form-canvas maker-editor-canvas" style={style}>
-      {project.theme?.coverUrl ? <div className="focus-image" style={{ backgroundImage: `url("${project.theme.coverUrl}")` }} /> : null}
+      <FormMedia theme={project.theme} placement="background" />
       <div className="focus-tint" />
       <FocusEffects theme={project.theme} />
-      <div className="focus-shell studio-focus-shell">
+      <div className={`focus-shell studio-focus-shell ${hasBanner ? 'has-banner' : ''}`}>
         <header className="focus-topbar">
           <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onNavigate?.(0, COVER_VIEW)} aria-label="시작 화면으로"><i /><i /><i /></button>
           {project.theme?.showProgress !== false ? <div className="focus-progress"><span style={{ width: isCover ? '0%' : isSuccess ? '100%' : `${((globalIndex + 1) / Math.max(steps.length, 1)) * 100}%` }} /></div> : <span />}
-          <small>{isCover ? '시작' : isSuccess ? '완료' : `${globalIndex + 1} / ${steps.length}`}</small>
+          <small>{isCover ? (copy.startStatusLabel ?? '시작') : isSuccess ? (copy.completeStatusLabel ?? '완료') : `${globalIndex + 1} / ${steps.length}`}</small>
         </header>
 
+        <FormMedia theme={project.theme} placement="banner" className="focus-banner-media" />
+
         {isCover ? (
-          <main className="focus-content-card focus-cover-card studio-cover-editor focus-card-enter" key="studio-cover">
-            <span className="focus-kicker">WELCOME</span>
+          <main className={`focus-content-card focus-cover-card studio-cover-editor ${transition}`} key="studio-cover">
+            <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
+            <input className="focus-editor-kicker" value={copy.coverKicker ?? 'WELCOME'} onChange={(event) => onProjectChange({ ...project, settings: { ...copy, coverKicker: event.target.value } })} aria-label="시작 화면 작은 문구" placeholder="작은 문구" />
             <textarea className="focus-editor-title" rows="1" value={project.title} onChange={(event) => onProjectChange({ ...project, title: event.target.value })} aria-label="폼 제목" placeholder="폼 제목을 입력하세요" />
             <textarea className="focus-editor-description" rows="2" value={project.description || ''} onChange={(event) => onProjectChange({ ...project, description: event.target.value })} aria-label="폼 설명" placeholder="응답자에게 보여줄 안내를 입력하세요" />
-            <button className="focus-primary" type="button" onClick={() => navigateToStep(0)} disabled={!steps.length}>시작하기 <ArrowRight /></button>
+            <button className="focus-primary" type="button" onClick={() => navigateToStep(0)} disabled={!steps.length} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button>
           </main>
         ) : null}
 
         {isSuccess ? (
-          <main className="focus-content-card focus-success-card studio-success-editor focus-card-enter" key="studio-success">
+          <main className={`focus-content-card focus-success-card studio-success-editor ${transition}`} key="studio-success">
+            <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
             <div className="success-symbol"><CheckCircle weight="fill" /></div>
             <textarea className="focus-editor-success-title" rows="1" value={project.settings.successTitle} onChange={(event) => onProjectChange({ ...project, settings: { ...project.settings, successTitle: event.target.value } })} aria-label="제출 완료 제목" />
             <textarea className="focus-editor-description" rows="2" value={project.settings.successMessage} onChange={(event) => onProjectChange({ ...project, settings: { ...project.settings, successMessage: event.target.value } })} aria-label="제출 완료 안내" />
-            <button className="focus-restart" type="button" onClick={() => onNavigate?.(0, COVER_VIEW)}>처음부터 보기</button>
+            <button className="focus-restart" type="button" onClick={() => onNavigate?.(0, COVER_VIEW)} aria-label={copy.restartLabel || '처음부터 보기'}>{copy.restartLabel ?? '처음부터 보기'}</button>
           </main>
         ) : null}
 
         {!isCover && !isSuccess ? (
-          <main className="focus-content-card studio-question-editor focus-card-enter" key={selectedFieldId}>
+          <main className={`focus-content-card studio-question-editor ${transition}`} key={selectedFieldId}>
             <div className="studio-page-meta">
-              <span>PAGE {pageIndex + 1}</span>
+              <span>{copy.pageLabel ?? 'PAGE'} {pageIndex + 1}</span>
               <input value={page.title || ''} onChange={(event) => onPageChange({ ...page, title: event.target.value })} aria-label="페이지 제목" placeholder={`페이지 ${pageIndex + 1}`} />
               <textarea rows="1" value={page.description || ''} onChange={(event) => onPageChange({ ...page, description: event.target.value })} aria-label="페이지 설명" placeholder="페이지 안내는 선택 사항입니다" />
             </div>
@@ -90,6 +100,10 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
                 total={page.fields.length}
                 selected
                 accent={project.theme?.accent}
+                requiredLabel={copy.requiredLabel ?? '필수'}
+                answerPlaceholder={copy.answerPlaceholder ?? '답변을 입력해 주세요'}
+                selectPlaceholder={copy.selectPlaceholder ?? '선택해 주세요'}
+                consentLabel={copy.consentLabel ?? '내용을 확인했으며 동의합니다.'}
                 onSelect={() => onFieldSelect(selectedField.id)}
                 onChange={(next) => onFieldChange(selectedField.id, next)}
                 onDuplicate={() => onFieldDuplicate(selectedField.id)}
@@ -98,8 +112,8 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
               />
             ) : <div className="studio-no-question"><strong>이 페이지가 비어 있습니다</strong><p>아래에서 첫 질문을 추가하세요.</p></div>}
             {selectedField ? <footer className="focus-actions studio-flow-actions">
-              <button className="focus-back" type="button" onClick={() => navigateToStep(globalIndex - 1)} aria-label="이전"><ArrowLeft /></button>
-              <button className="focus-primary" type="button" onClick={() => navigateToStep(globalIndex + 1)}>{globalIndex < steps.length - 1 ? <>다음 <ArrowRight /></> : project.settings?.submitLabel || '제출하기'}</button>
+              <button className="focus-back" type="button" onClick={() => navigateToStep(globalIndex - 1)} aria-label={copy.previousLabel || '이전'}><ArrowLeft /></button>
+              <button className="focus-primary" type="button" onClick={() => navigateToStep(globalIndex + 1)} aria-label={globalIndex < steps.length - 1 ? (copy.nextLabel || '다음') : (copy.submitLabel || '제출하기')}>{globalIndex < steps.length - 1 ? <>{copy.nextLabel ?? '다음'} <ArrowRight /></> : (copy.submitLabel ?? '제출하기')}</button>
             </footer> : null}
             <div className={`inline-add-field ${adding ? 'open' : ''}`}>
               <button className="inline-add-trigger" type="button" onClick={() => setAdding((current) => !current)}>{adding ? <X /> : <Plus />}{adding ? '닫기' : '질문 추가'}</button>

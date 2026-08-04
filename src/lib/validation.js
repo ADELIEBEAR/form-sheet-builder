@@ -1,9 +1,12 @@
-import { EFFECT_PRESETS, FIELD_TYPES, FONT_PRESETS, MOTION_PRESETS } from './maker'
+import { EFFECT_PRESETS, FIELD_TYPES, FONT_PRESETS, MOTION_PRESETS, TRANSITION_PRESETS } from './maker'
 
 const allowedTypes = new Set(FIELD_TYPES.map(([type]) => type))
 const allowedFonts = new Set(FONT_PRESETS.map(([font]) => font))
 const allowedEffects = new Set(EFFECT_PRESETS.map(([effect]) => effect))
 const allowedMotions = new Set(MOTION_PRESETS.map(([motion]) => motion))
+const allowedTransitions = new Set(TRANSITION_PRESETS.map(([transition]) => transition))
+const allowedImageModes = new Set(['background', 'banner', 'card'])
+const allowedImageFits = new Set(['cover', 'contain'])
 
 export class ValidationError extends Error {
   name = 'ValidationError'
@@ -29,6 +32,10 @@ function safeColor(value, fallback) {
 function safeSize(value, fallback, min, max) {
   const size = Number(value)
   return Math.min(max, Math.max(min, Number.isFinite(size) ? size : fallback))
+}
+
+function safeText(value, fallback, maxLength) {
+  return String(value == null ? fallback : value).slice(0, maxLength)
 }
 
 function sanitizeField(field) {
@@ -70,6 +77,10 @@ export function sanitizeProject(input) {
   const coverUrl = String(input?.theme?.coverUrl || '')
   const requestedRadius = input?.theme?.radius
   const radius = requestedRadius === '' || requestedRadius == null ? 24 : Number(requestedRadius)
+  const layout = input?.theme?.layout === 'card' ? 'card' : 'focus'
+  const imageMode = allowedImageModes.has(input?.theme?.imageMode)
+    ? input.theme.imageMode
+    : layout === 'card' ? 'banner' : 'background'
   if (coverUrl.startsWith('data:')) throw new ValidationError('이미지는 DB에 직접 저장할 수 없습니다. 업로드 기능을 이용해 주세요.')
   return {
     title,
@@ -84,18 +95,42 @@ export function sanitizeProject(input) {
       radius: Math.min(32, Math.max(0, Number.isFinite(radius) ? radius : 24)),
       coverUrl: coverUrl.slice(0, 1000),
       showProgress: input?.theme?.showProgress !== false,
-      layout: input?.theme?.layout === 'card' ? 'card' : 'focus',
+      layout,
       font: allowedFonts.has(input?.theme?.font) ? input.theme.font : 'pretendard',
       titleSize: safeSize(input?.theme?.titleSize, 56, 28, 72),
       questionSize: safeSize(input?.theme?.questionSize, 32, 20, 48),
       bodySize: safeSize(input?.theme?.bodySize, 16, 12, 22),
       effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
       motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',
+      transition: allowedTransitions.has(input?.theme?.transition) ? input.theme.transition : 'rise',
+      transitionSpeed: safeSize(input?.theme?.transitionSpeed, 440, 180, 900),
+      imageMode,
+      imageFit: allowedImageFits.has(input?.theme?.imageFit) ? input.theme.imageFit : 'cover',
+      imagePositionX: safeSize(input?.theme?.imagePositionX, 50, 0, 100),
+      imagePositionY: safeSize(input?.theme?.imagePositionY, 50, 0, 100),
+      imageScale: safeSize(input?.theme?.imageScale, 100, 100, 180),
+      imageHeight: safeSize(input?.theme?.imageHeight, 220, 120, 420),
+      imageOpacity: safeSize(input?.theme?.imageOpacity, 100, 20, 100),
+      imageBrightness: safeSize(input?.theme?.imageBrightness, 100, 40, 140),
+      imageOverlay: safeSize(input?.theme?.imageOverlay, 28, 0, 70),
     },
     settings: {
-      successTitle: String(input?.settings?.successTitle || '응답이 접수되었습니다').slice(0, 200),
-      successMessage: String(input?.settings?.successMessage || '참여해 주셔서 감사합니다.').slice(0, 1000),
-      submitLabel: String(input?.settings?.submitLabel || '제출하기').slice(0, 80),
+      successTitle: safeText(input?.settings?.successTitle, '응답이 접수되었습니다', 200),
+      successMessage: safeText(input?.settings?.successMessage, '참여해 주셔서 감사합니다.', 1000),
+      submitLabel: safeText(input?.settings?.submitLabel, '제출하기', 80),
+      coverKicker: safeText(input?.settings?.coverKicker, 'WELCOME', 80),
+      startStatusLabel: safeText(input?.settings?.startStatusLabel, '시작', 40),
+      completeStatusLabel: safeText(input?.settings?.completeStatusLabel, '완료', 40),
+      startLabel: safeText(input?.settings?.startLabel, '시작하기', 80),
+      pageLabel: safeText(input?.settings?.pageLabel, 'PAGE', 40),
+      requiredLabel: safeText(input?.settings?.requiredLabel, '필수', 40),
+      previousLabel: safeText(input?.settings?.previousLabel, '이전', 60),
+      nextLabel: safeText(input?.settings?.nextLabel, '다음', 60),
+      submitPendingLabel: safeText(input?.settings?.submitPendingLabel, '저장 중', 60),
+      restartLabel: safeText(input?.settings?.restartLabel, '처음부터 보기', 80),
+      answerPlaceholder: safeText(input?.settings?.answerPlaceholder, '답변을 입력해 주세요', 120),
+      selectPlaceholder: safeText(input?.settings?.selectPlaceholder, '선택해 주세요', 120),
+      consentLabel: safeText(input?.settings?.consentLabel, '내용을 확인했으며 동의합니다.', 300),
     },
     status: input?.status === 'published' ? 'published' : 'draft',
     updated_at: new Date().toISOString(),

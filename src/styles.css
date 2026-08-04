@@ -257,6 +257,11 @@ button:active, a:active { transform: translateY(1px); }
 .sheet-connected strong { font-size: 12px; }
 .sheet-connected small { color: var(--app-muted); font-size: 9px; }
 .sheet-connected > a { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; }
+.sheet-auto-status { min-height: 70px; padding: 14px; border: 1px solid #ddd5f4; border-radius: 10px; background: #f7f4ff; display: flex; align-items: center; gap: 12px; color: #6b50c7; }
+.sheet-auto-status > svg { width: 22px; height: 22px; flex: 0 0 auto; }
+.sheet-auto-status > div { display: grid; gap: 4px; }
+.sheet-auto-status strong { color: var(--app-text); font-size: 12px; }
+.sheet-auto-status small { color: var(--app-muted); font-size: 9px; line-height: 1.5; }
 .sheet-connect-actions { display: grid; gap: 11px; }
 .or-line { position: relative; text-align: center; color: var(--app-muted); font-size: 9px; }
 .or-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--app-line); }
@@ -382,6 +387,7 @@ input[type="radio"] + .choice-indicator { border-radius: 50%; }
   .workspace-empty, .public-error { background: var(--app-surface); }
   .empty-art span { background: #202530; border-color: #414958; }
   .sheet-connected { border-color: #315a4c; background: #1c332b; }
+  .sheet-auto-status { border-color: #463a68; background: #28213c; }
   .or-line span { background: var(--app-surface); }
   .public-brand { color: rgb(235 239 246 / .58); }
 }

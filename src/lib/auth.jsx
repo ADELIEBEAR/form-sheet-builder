@@ -2,6 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 
 const AuthContext = createContext(null)
+const PRODUCTION_ORIGIN = 'https://form-maker-next.vercel.app'
+
+function authReturnUrl(returnTo) {
+  const localHost = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  const origin = localHost ? window.location.origin : PRODUCTION_ORIGIN
+  const path = String(returnTo || '/workspace').startsWith('/') ? String(returnTo || '/workspace') : '/workspace'
+  return `${origin}${path}`
+}
 
 function mapUser(user) {
   if (!user) return null
@@ -52,11 +60,10 @@ export function AuthProvider({ children }) {
     loading,
     login: async (returnTo = '/workspace') => {
       window.localStorage.setItem('form_maker_return_to', returnTo)
-      const redirectTo = `${window.location.origin}${returnTo}`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
+          redirectTo: authReturnUrl(returnTo),
           scopes: 'openid email profile https://www.googleapis.com/auth/spreadsheets',
           queryParams: { access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true' },
         },

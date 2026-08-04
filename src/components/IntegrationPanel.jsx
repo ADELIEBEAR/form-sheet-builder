@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowSquareOut, Check, GoogleLogo, LinkSimple, SpinnerGap } from '@phosphor-icons/react'
+import { ArrowClockwise, ArrowSquareOut, Check, GoogleLogo, SpinnerGap } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -7,44 +7,34 @@ const PENDING_CONNECTION_KEY = 'form_maker_pending_sheet_connection'
 
 export default function IntegrationPanel({ projectId, project, onConnected }) {
   const { login } = useAuth()
-  const [sheetId, setSheetId] = useState(project.sheetId || '')
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [needsGoogleAuth, setNeedsGoogleAuth] = useState(false)
-  const [pendingConnection, setPendingConnection] = useState(null)
 
-  useEffect(() => {
-    if (!projectId || project.sheetId) return
-    try {
-      const pending = JSON.parse(window.localStorage.getItem(PENDING_CONNECTION_KEY) || 'null')
-      if (pending?.projectId !== projectId || !['create', 'link'].includes(pending?.action)) return
-      window.localStorage.removeItem(PENDING_CONNECTION_KEY)
-      connect(pending.action, pending.sheetId || '')
-    } catch {
-      window.localStorage.removeItem(PENDING_CONNECTION_KEY)
-    }
-  }, [projectId])
-
-  async function connect(action, requestedSheetId = sheetId) {
-    setBusy(action)
+  async function connectAutomatically() {
+    if (!projectId) return
+    setBusy('auto')
     setError('')
     setNeedsGoogleAuth(false)
     try {
-      const data = await api(`/maker/projects/${projectId}/sheet`, { method: 'POST', body: JSON.stringify({ action, sheetId: action === 'link' ? requestedSheetId.trim() : undefined }) })
-      setPendingConnection(null)
+      const data = await api(`/maker/projects/${projectId}/sheet`, { method: 'POST', body: JSON.stringify({ action: 'auto' }) })
+      window.localStorage.removeItem(PENDING_CONNECTION_KEY)
       onConnected(data.project)
     } catch (caught) {
       setError(caught.message)
       setNeedsGoogleAuth(caught.status === 401)
-      if (caught.status === 401) setPendingConnection({ action, sheetId: requestedSheetId.trim() })
     } finally {
       setBusy('')
     }
   }
 
+  useEffect(() => {
+    if (!projectId || project.sheetId) return
+    connectAutomatically()
+  }, [projectId, project.sheetId])
+
   async function reconnectGoogle() {
-    const connection = pendingConnection || { action: sheetId.trim() ? 'link' : 'create', sheetId: sheetId.trim() }
-    window.localStorage.setItem(PENDING_CONNECTION_KEY, JSON.stringify({ projectId, ...connection }))
+    window.localStorage.setItem(PENDING_CONNECTION_KEY, JSON.stringify({ projectId, action: 'auto' }))
     setBusy('auth')
     setError('')
     try {
@@ -58,11 +48,12 @@ export default function IntegrationPanel({ projectId, project, onConnected }) {
 
   return (
     <div className="inspector-panel">
-      <div className="panel-heading"><span>Google Sheets</span><strong>응답 자동 기록</strong><p>새 응답은 Supabase에 먼저 저장한 후 시트에 기록됩니다.</p></div>
-      {!projectId ? <div className="info-box">폼을 먼저 저장하면 Google Sheet를 연결할 수 있습니다.</div> : null}
-      {projectId && project.sheetId ? <div className="sheet-connected"><div className="sheet-icon"><GoogleLogo weight="bold" /></div><div><span><Check weight="bold" /> 연결됨</span><strong>{project.sheetName || '응답'}</strong><small>새 질문을 저장하면 첫 행 제목도 갱신됩니다.</small></div><a href={project.sheetUrl} target="_blank" rel="noreferrer" aria-label="연결된 시트 열기"><ArrowSquareOut /></a></div> : null}
-      {projectId && !project.sheetId ? <div className="sheet-connect-actions"><button className="studio-primary full" type="button" onClick={() => connect('create')} disabled={Boolean(busy)}>{busy === 'create' ? <SpinnerGap className="spin" /> : <GoogleLogo weight="bold" />} 새 시트 만들어 연결</button><div className="or-line"><span>또는</span></div><label className="studio-control"><span>기존 Google Sheet</span><input value={sheetId} onChange={(event) => setSheetId(event.target.value)} placeholder="시트 주소 또는 ID" /></label><button className="studio-secondary full" type="button" onClick={() => connect('link')} disabled={!sheetId.trim() || Boolean(busy)}>{busy === 'link' ? <SpinnerGap className="spin" /> : <LinkSimple />} 기존 시트 연결</button></div> : null}
-      {error ? <div className="inline-alert sheet-auth-alert"><span>{error}</span>{needsGoogleAuth ? <button type="button" onClick={reconnectGoogle} disabled={busy === 'auth'}>{busy === 'auth' ? <SpinnerGap className="spin" /> : <ArrowClockwise />} Google 권한 다시 연결</button> : null}</div> : null}
+      <div className="panel-heading"><span>자동 백업</span><strong>Google Sheets 자동 기록</strong><p>별도 연결 없이 모든 폼 응답을 내 백업시트에 자동으로 정리합니다.</p></div>
+      {!projectId ? <div className="info-box">폼을 처음 저장하면 백업시트와 폼 전용 탭이 자동으로 만들어집니다.</div> : null}
+      {projectId && busy === 'auto' ? <div className="sheet-auto-status"><SpinnerGap className="spin" /><div><strong>백업시트 준비 중</strong><small>처음 한 번만 자동으로 만들고 있습니다.</small></div></div> : null}
+      {projectId && project.sheetId ? <div className="sheet-connected"><div className="sheet-icon"><GoogleLogo weight="bold" /></div><div><span><Check weight="bold" /> 자동 백업 중</span><strong>폼메이커 응답 백업</strong><small>이 폼의 탭 · {project.sheetName || '응답'}</small></div><a href={project.sheetUrl} target="_blank" rel="noreferrer" aria-label="자동 백업시트 열기"><ArrowSquareOut /></a></div> : null}
+      {projectId && !project.sheetId && !busy && !error ? <button className="studio-secondary full" type="button" onClick={connectAutomatically}><ArrowClockwise /> 자동 백업 다시 확인</button> : null}
+      {error ? <div className="inline-alert sheet-auth-alert"><span>{error}</span><button type="button" onClick={needsGoogleAuth ? reconnectGoogle : connectAutomatically} disabled={Boolean(busy)}>{busy ? <SpinnerGap className="spin" /> : <ArrowClockwise />} {needsGoogleAuth ? 'Google 권한 한 번 승인' : '다시 시도'}</button></div> : null}
     </div>
   )
 }

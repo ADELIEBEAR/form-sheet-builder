@@ -112,62 +112,27 @@ async function ownedProject(id) {
   return data
 }
 
-function providerToken() {
-  return window.localStorage.getItem('form_maker_google_provider_token') || ''
+async function edgeFunctionError(error, fallback) {
+  let message = error?.message || fallback
+  const status = Number(error?.context?.status || 500)
+  try {
+    const payload = await error?.context?.json()
+    if (payload?.error) message = payload.error
+  } catch { /* the Edge Function response may already be consumed */ }
+  return new ApiError(message, status, error)
 }
 
-async function googleFetch(path, options = {}) {
-  const token = providerToken()
-  if (!token) throw new ApiError('Google Sheets 권한이 없습니다. Google로 다시 로그인해 주세요.', 401)
-  const response = await fetch(`https://sheets.googleapis.com/v4/${path}`, {
-    ...options,
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(options.headers || {}) },
+async function ensureBackupSheet(projectId) {
+  await ownedProject(projectId)
+  const providerToken = window.localStorage.getItem('form_maker_google_provider_token') || ''
+  const providerRefreshToken = window.localStorage.getItem('form_maker_google_provider_refresh_token') || ''
+  const { data, error } = await supabase.functions.invoke('form-maker-sheet-sync', {
+    body: { action: 'ensure', projectId, providerToken, providerRefreshToken },
   })
-  const result = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    const message = response.status === 401
-      ? 'Google Sheets 권한이 만료되었습니다. Google 권한을 다시 연결해 주세요.'
-      : result?.error?.message || 'Google Sheets 요청에 실패했습니다.'
-    throw new ApiError(message, response.status, result)
-  }
-  return result
-}
-
-function sheetHeaders(project) {
-  return ['제출 시각', 'DB 판정', '판정 사유', ...project.pages.flatMap((page) => page.fields || []).filter((field) => field.type !== 'heading').map((field) => field.label)]
-}
-
-async function writeSheetHeader(project) {
-  if (!project.sheetId) return
-  const range = `${project.sheetName || '응답'}!A1`
-  await googleFetch(`spreadsheets/${encodeURIComponent(project.sheetId)}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
-    method: 'PUT',
-    body: JSON.stringify({ range, majorDimension: 'ROWS', values: [sheetHeaders(project)] }),
-  })
-}
-
-async function connectSheet(projectId, input) {
-  const row = await ownedProject(projectId)
-  let sheet
-  if (input.action === 'create') {
-    const created = await googleFetch('spreadsheets', {
-      method: 'POST',
-      body: JSON.stringify({ properties: { title: `${row.title} 응답` }, sheets: [{ properties: { title: '응답' } }] }),
-    })
-    sheet = { id: created.spreadsheetId, url: created.spreadsheetUrl, name: created.sheets?.[0]?.properties?.title || '응답' }
-  } else {
-    const raw = String(input.sheetId || '').trim()
-    const id = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1] || raw
-    if (!/^[a-zA-Z0-9-_]{20,}$/.test(id)) throw new ApiError('Google Sheet 주소 또는 ID를 확인해 주세요.', 400)
-    const found = await googleFetch(`spreadsheets/${encodeURIComponent(id)}?fields=spreadsheetId,spreadsheetUrl,sheets.properties.title`)
-    sheet = { id: found.spreadsheetId, url: found.spreadsheetUrl, name: found.sheets?.[0]?.properties?.title || '응답' }
-  }
-  const { data, error } = await supabase.from('form_maker_projects').update({ sheet_id: sheet.id, sheet_url: sheet.url, sheet_name: sheet.name }).eq('id', projectId).select().single()
-  if (error) fail(error)
+  if (error) throw await edgeFunctionError(error, '자동 백업시트를 준비하지 못했습니다.')
+  if (!data?.ok || !data?.project) throw new ApiError(data?.error || '자동 백업시트를 준비하지 못했습니다.', 500, data)
   const meta = await projectMetaMap([projectId])
-  const project = serializeProject(data, meta.get(projectId))
-  await writeSheetHeader(project)
-  return { project }
+  return { project: serializeProject(data.project, meta.get(projectId)) }
 }
 
 function assetPath(url) {
@@ -192,7 +157,7 @@ async function uploadAsset(formData) {
 
 async function invokeSheetSync(projectId, submissionId, syncKey) {
   const { data, error } = await supabase.functions.invoke('form-maker-sheet-sync', { body: { projectId, submissionId, syncKey } })
-  if (error) throw new ApiError(error.message || 'Google Sheets 동기화에 실패했습니다.', 500, error)
+  if (error) throw await edgeFunctionError(error, 'Google Sheets 동기화에 실패했습니다.')
   if (!data?.ok) throw new ApiError(data?.error || 'Google Sheets 동기화에 실패했습니다.', 500, data)
   return data
 }
@@ -261,9 +226,9 @@ export async function api(path, options = {}) {
       const answers = validateAnswers(row.pages || [], body?.answers)
       const submissionId = crypto.randomUUID()
       const syncKey = crypto.randomUUID()
-      const { error } = await supabase.from('form_maker_submissions').insert({ id: submissionId, project_id: row.id, answers, sync_key: syncKey, sheet_sync_status: row.sheet_id ? 'pending' : 'not_connected' })
+      const { error } = await supabase.from('form_maker_submissions').insert({ id: submissionId, project_id: row.id, answers, sync_key: syncKey, sheet_sync_status: 'pending' })
       if (error) fail(error, '응답을 저장하지 못했습니다.')
-      if (row.sheet_id) invokeSheetSync(row.id, submissionId, syncKey).catch(() => {})
+      await invokeSheetSync(row.id, submissionId, syncKey).catch(() => {})
       return { ok: true, id: submissionId }
     }
 
@@ -306,7 +271,7 @@ export async function api(path, options = {}) {
     }
 
     const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)
-    if (sheetMatch && method === 'POST') return connectSheet(sheetMatch[1], body || {})
+    if (sheetMatch && method === 'POST') return ensureBackupSheet(sheetMatch[1])
 
     const duplicateMatch = path.match(/^\/maker\/projects\/([^/]+)\/duplicate$/)
     if (duplicateMatch && method === 'POST') {
@@ -344,7 +309,7 @@ export async function api(path, options = {}) {
       const meta = await saveProjectMeta(data.id, body)
       const latestMeta = await projectMetaMap([data.id])
       const project = serializeProject(data, { ...latestMeta.get(data.id), ...meta })
-      if (project.sheetId) writeSheetHeader(project).catch(() => {})
+      if (project.sheetId) ensureBackupSheet(project.id).catch(() => {})
       return { project }
     }
     if (projectMatch && method === 'DELETE') {

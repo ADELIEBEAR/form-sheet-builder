@@ -11,6 +11,7 @@ import {
   Plus,
   SpinnerGap,
   Trash,
+  X,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from '../lib/router'
@@ -29,6 +30,7 @@ export default function Studio() {
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedFieldId, setSelectedFieldId] = useState(COVER_VIEW)
   const [drawer, setDrawer] = useState('design')
+  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
   const [device, setDevice] = useState('desktop')
   const [loading, setLoading] = useState(Boolean(projectId))
   const [saving, setSaving] = useState(false)
@@ -278,8 +280,8 @@ export default function Studio() {
                 <button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => setDevice('desktop')} aria-label="데스크톱 보기"><Desktop /></button>
                 <button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => setDevice('mobile')} aria-label="모바일 보기"><DeviceMobile /></button>
               </div>
-              <button className={drawer === 'design' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => setDrawer('design')}><PaintBrush /> 디자인</button>
-              <button className={drawer === 'settings' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => setDrawer('settings')}><Gear /> 설정</button>
+              <button className={drawer === 'design' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => { setDrawer('design'); setMobileInspectorOpen(true) }}><PaintBrush /> 디자인</button>
+              <button className={drawer === 'settings' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => { setDrawer('settings'); setMobileInspectorOpen(true) }}><Gear /> 설정</button>
             </div>
           </div>
 
@@ -301,10 +303,11 @@ export default function Studio() {
           </div>
         </section>
 
-        <aside className="studio-drawer studio-drawer-docked" aria-label={drawer === 'design' ? '디자인 설정' : '폼 설정'}>
+        <aside className={`studio-drawer studio-drawer-docked ${mobileInspectorOpen ? 'mobile-open' : ''}`} aria-label={drawer === 'design' ? '디자인 설정' : '폼 설정'}>
               <div className="drawer-heading">
                 <div><span>{drawer === 'design' ? 'FORM STYLE' : 'FORM SETTINGS'}</span><strong>{drawer === 'design' ? '디자인' : '설정 및 연동'}</strong></div>
                 <small>항상 열림</small>
+                <button className="mobile-drawer-close" type="button" onClick={() => setMobileInspectorOpen(false)} aria-label="설정 닫기"><X /></button>
               </div>
 
               <div className="drawer-tabs" role="tablist" aria-label="편집 도구">

@@ -27,8 +27,14 @@ export default function PublicForm() {
     })
     setErrors(next)
     if (Object.keys(next).length) {
-      const invalidPage = project.pages.findIndex((page) => page.fields.some((field) => next[field.id]))
-      if (invalidPage >= 0) setPageIndex(invalidPage)
+      if ((project.theme?.layout || 'focus') === 'focus') {
+        const fields = project.pages.flatMap((page) => page.fields || [])
+        const invalidField = fields.findIndex((field) => next[field.id])
+        if (invalidField >= 0) setPageIndex(invalidField + 1)
+      } else {
+        const invalidPage = project.pages.findIndex((page) => page.fields.some((field) => next[field.id]))
+        if (invalidPage >= 0) setPageIndex(invalidPage)
+      }
     }
     return Object.keys(next).length === 0
   }
@@ -51,7 +57,7 @@ export default function PublicForm() {
   if (status === 'error') return <main className="public-error"><WarningCircle /><h1>폼을 열 수 없습니다</h1><p>{message}</p></main>
 
   return (
-    <main className="public-page" style={{ background: project.theme?.background || '#efede7' }}>
+    <main className="public-page" style={{ background: project.theme?.background || '#f0edfb' }}>
       <form className="public-form-wrap" onSubmit={submit} noValidate>
         <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={setAnswers} onPage={setPageIndex} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
         <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>

@@ -15,7 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
-import InlineFormCanvas from '../components/InlineFormCanvas'
+import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
 import IntegrationPanel from '../components/IntegrationPanel'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
@@ -26,7 +26,7 @@ export default function Studio() {
   const navigate = useNavigate()
   const [project, setProject] = useState(emptyProject)
   const [pageIndex, setPageIndex] = useState(0)
-  const [selectedFieldId, setSelectedFieldId] = useState('')
+  const [selectedFieldId, setSelectedFieldId] = useState(COVER_VIEW)
   const [drawer, setDrawer] = useState('')
   const [device, setDevice] = useState('desktop')
   const [loading, setLoading] = useState(Boolean(projectId))
@@ -37,14 +37,14 @@ export default function Studio() {
 
   useEffect(() => {
     if (!projectId) {
-      setSelectedFieldId(project.pages[0]?.fields[0]?.id || '')
+      setSelectedFieldId(COVER_VIEW)
       return
     }
 
     api(`/maker/projects/${projectId}`)
       .then((data) => {
         setProject(data.project)
-        setSelectedFieldId(data.project.pages?.[0]?.fields?.[0]?.id || '')
+        setSelectedFieldId(COVER_VIEW)
       })
       .catch((caught) => setError(caught.message))
       .finally(() => setLoading(false))
@@ -111,12 +111,12 @@ export default function Studio() {
     const next = makePage(project.pages.length)
     changeProject({ ...project, pages: [...project.pages, next] })
     setPageIndex(project.pages.length)
-    setSelectedFieldId(next.fields[0]?.id || '')
+    setSelectedFieldId(next.fields[0]?.id || COVER_VIEW)
   }
 
   function selectPage(index) {
     setPageIndex(index)
-    setSelectedFieldId(project.pages[index]?.fields[0]?.id || '')
+    setSelectedFieldId(project.pages[index]?.fields[0]?.id || COVER_VIEW)
   }
 
   function selectField(fieldId, scrollToField = false) {
@@ -137,7 +137,7 @@ export default function Studio() {
     changeProject({ ...project, pages: nextPages })
     const nextIndex = Math.max(0, Math.min(index, nextPages.length - 1))
     setPageIndex(nextIndex)
-    setSelectedFieldId(nextPages[nextIndex]?.fields[0]?.id || '')
+    setSelectedFieldId(nextPages[nextIndex]?.fields[0]?.id || COVER_VIEW)
   }
 
   function updateField(fieldId, nextField) {
@@ -153,7 +153,7 @@ export default function Studio() {
 
     const next = page.fields.filter((field) => field.id !== fieldId)
     updatePage({ ...page, fields: next })
-    setSelectedFieldId(next[Math.min(fieldIndex, next.length - 1)]?.id || '')
+    setSelectedFieldId(next[Math.min(fieldIndex, next.length - 1)]?.id || COVER_VIEW)
   }
 
   function duplicateField(fieldId) {
@@ -220,9 +220,11 @@ export default function Studio() {
       <main className="studio-layout">
         <aside className="studio-outline">
           <div className="outline-heading">
-            <strong>페이지</strong>
+            <strong>콘텐츠</strong>
             <button type="button" onClick={addPage}><Plus /> 추가</button>
           </div>
+
+          <button className={selectedFieldId === COVER_VIEW ? 'outline-special active' : 'outline-special'} type="button" onClick={() => setSelectedFieldId(COVER_VIEW)}><span>01</span><div><strong>시작 화면</strong><small>제목과 소개</small></div></button>
 
           <div className="page-list">
             {project.pages.map((item, index) => (
@@ -255,6 +257,7 @@ export default function Studio() {
               ))}
             </div>
           </div>
+          <button className={selectedFieldId === SUCCESS_VIEW ? 'outline-special active success' : 'outline-special success'} type="button" onClick={() => setSelectedFieldId(SUCCESS_VIEW)}><span>✓</span><div><strong>완료 화면</strong><small>제출 후 안내</small></div></button>
         </aside>
 
         <section className="studio-stage">
@@ -262,8 +265,8 @@ export default function Studio() {
 
           <div className="stage-toolbar">
             <div className="studio-toolbar-copy">
-              <strong>직접 편집</strong>
-              <span>내용을 누르면 바로 수정할 수 있어요</span>
+              <strong>한 화면에 한 질문</strong>
+              <span>응답자가 보는 화면을 직접 눌러 편집하세요</span>
             </div>
             <div className="studio-toolbar-actions">
               <div className="device-switch" aria-label="미리보기 화면 크기">

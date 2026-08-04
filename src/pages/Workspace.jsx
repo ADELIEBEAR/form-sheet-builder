@@ -1,4 +1,4 @@
-import { ChartBar, Copy, DotsThree, FilePlus, Files, FolderOpen, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react'
+import { ChartBar, Check, Copy, DotsThree, Eye, FilePlus, Files, FolderOpen, LinkSimple, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
@@ -11,6 +11,7 @@ export default function Workspace() {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [menu, setMenu] = useState('')
+  const [copied, setCopied] = useState('')
 
   useEffect(() => {
     api('/maker/projects').then((data) => setProjects(data.projects)).catch((caught) => setError(caught.message)).finally(() => setLoading(false))
@@ -35,6 +36,16 @@ export default function Workspace() {
     } catch (caught) { setError(caught.message) }
   }
 
+  async function copyLink(project) {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/s/${project.slug}`)
+      setCopied(project.id)
+      window.setTimeout(() => setCopied(''), 1500)
+    } catch {
+      setError('링크를 복사하지 못했습니다. 공개 폼을 열고 주소를 복사해 주세요.')
+    }
+  }
+
   const sidebar = <aside className="workspace-sidebar"><nav><Link className="active" to="/workspace"><FolderOpen weight="fill" /> 내 폼</Link><span><Files /> 템플릿</span><span><ChartBar /> 전체 응답</span></nav><div className="workspace-note"><strong>응답 저장 원칙</strong><p>제출된 내용은 시트보다 먼저 안전하게 보관됩니다.</p></div></aside>
 
   return (
@@ -48,12 +59,12 @@ export default function Workspace() {
           <div className="project-list-head"><span>{visible.length}개의 폼</span><span>최근 수정</span><span>응답</span><span /></div>
           {visible.map((project) => <article className="project-row" key={project.id}>
             <button className="project-open" type="button" onClick={() => navigate(`/studio/${project.id}`)}>
-              <span className="project-thumb" style={{ '--thumb-bg': project.theme?.background, '--thumb-accent': project.theme?.accent }}><i /><i /><b /></span>
+              <span className={project.theme?.coverUrl ? 'project-thumb has-cover' : 'project-thumb'} style={project.theme?.coverUrl ? { backgroundImage: `url("${project.theme.coverUrl}")` } : { '--thumb-bg': project.theme?.background, '--thumb-accent': project.theme?.accent }}><i /><i /><b /></span>
               <span><strong>{project.title}</strong><small>{project.status === 'published' ? '게시 중' : '초안'} · /s/{project.slug}</small></span>
             </button>
             <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')}</time>
             <Link className="response-count" to={`/responses/${project.id}`}>{project.responseCount.toLocaleString()}개</Link>
-            <div className="row-menu-wrap"><button className="row-menu-button" type="button" onClick={() => setMenu(menu === project.id ? '' : project.id)} aria-label="폼 메뉴"><DotsThree /></button>{menu === project.id ? <div className="row-menu"><button type="button" onClick={() => duplicate(project.id)}><Copy /> 복제</button><button className="danger" type="button" onClick={() => remove(project.id)}><Trash /> 삭제</button></div> : null}</div>
+            <div className="row-menu-wrap"><button className="row-menu-button" type="button" onClick={() => setMenu(menu === project.id ? '' : project.id)} aria-label="폼 메뉴"><DotsThree /></button>{menu === project.id ? <div className="row-menu">{project.status === 'published' ? <><a href={`/s/${project.slug}`} target="_blank" rel="noreferrer"><Eye /> 공개 폼 보기</a><button type="button" onClick={() => copyLink(project)}>{copied === project.id ? <Check /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button></> : null}<button type="button" onClick={() => duplicate(project.id)}><Copy /> 복제</button><button className="danger" type="button" onClick={() => remove(project.id)}><Trash /> 삭제</button></div> : null}</div>
           </article>)}
           {visible.length === 0 ? <div className="no-search-result">검색 결과가 없습니다.</div> : null}
         </div> : null}

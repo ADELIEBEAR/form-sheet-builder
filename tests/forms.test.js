@@ -27,6 +27,12 @@ describe('form maker validation', () => {
     expect(project.theme.radius).toBe(0)
   })
 
+  it('uses the focused question layout and rejects unknown fonts', () => {
+    const project = sanitizeProject({ title: '집중형 폼', pages: page([]), theme: { layout: 'focus', font: 'unknown' } })
+    expect(project.theme.layout).toBe('focus')
+    expect(project.theme.font).toBe('pretendard')
+  })
+
   it('rejects a missing required response across pages', () => {
     expect(() => validateAnswers(page([{ id: 'q1', type: 'short', label: '이름', required: true }]), {})).toThrow('필수 질문')
   })

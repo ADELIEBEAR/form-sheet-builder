@@ -10,7 +10,7 @@ const previewProject = {
     { id: 'sample-name', type: 'short', label: '이름을 알려주세요', required: true, placeholder: '홍길동' },
     { id: 'sample-type', type: 'single', label: '어떤 작업이 필요한가요?', required: true, options: ['브랜드 디자인', '웹사이트', '기타'] },
   ] }],
-  theme: { accent: '#2f6757', background: '#efede7', card: '#fffdfa', text: '#232724', radius: 14, showProgress: false },
+  theme: { accent: '#7156d9', background: '#f0edfb', card: '#ffffff', text: '#222131', radius: 24, showProgress: true, layout: 'focus', font: 'pretendard' },
   settings: { submitLabel: '신청서 보내기' },
 }
 
@@ -31,7 +31,7 @@ export default function Landing() {
           <button className="landing-cta" type="button" onClick={() => login('/workspace')}><GoogleLogo weight="bold" /> Google로 시작하기 <ArrowRight weight="bold" /></button>
           <div className="landing-checks"><span><Check weight="bold" /> 응답 먼저 안전하게 저장</span><span><Check weight="bold" /> 이미지는 DB와 분리</span></div>
         </div>
-        <div className="landing-demo" aria-label="새 폼메이커 실제 폼 미리보기"><div className="demo-browser"><span /><span /><span /><small>formmaker.app/s/project</small></div><FormCanvas project={previewProject} preview selectedFieldId="sample-type" /></div>
+        <div className="landing-demo" aria-label="새 폼메이커 실제 폼 미리보기"><div className="demo-browser"><span /><span /><span /><small>formmaker.app/s/project</small></div><FormCanvas project={previewProject} pageIndex={2} preview selectedFieldId="sample-type" /></div>
       </section>
       <section className="landing-story">
         <strong>작성 화면은 단순하게</strong>

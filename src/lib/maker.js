@@ -21,7 +21,19 @@ export const FIELD_GROUPS = [
 
 export const TYPE_LABEL = Object.fromEntries(FIELD_TYPES)
 
-export const ACCENT_PRESETS = ['#2f6757', '#3157e8', '#6d4aff', '#d8436b', '#cc5b24', '#27313d']
+export const ACCENT_PRESETS = ['#7156d9', '#3157e8', '#13866f', '#d8436b', '#cc5b24', '#27313d']
+
+export const FONT_PRESETS = [
+  ['pretendard', '깔끔한 고딕'],
+  ['rounded', '부드러운 고딕'],
+  ['serif', '감성적인 명조'],
+]
+
+export const FONT_STACKS = {
+  pretendard: '"Pretendard Variable", Pretendard, "Noto Sans KR", sans-serif',
+  rounded: '"Arial Rounded MT Bold", "Pretendard Variable", Pretendard, "Noto Sans KR", sans-serif',
+  serif: '"Noto Serif KR", "Nanum Myeongjo", Georgia, serif',
+}
 
 export function makeField(type = 'short') {
   const labels = {
@@ -66,13 +78,15 @@ export function emptyProject() {
     description: '간단한 안내 문구를 적어주세요.',
     pages: [makePage(0)],
     theme: {
-      accent: '#2f6757',
-      background: '#efede7',
-      card: '#fffdfa',
-      text: '#232724',
-      radius: 14,
+      accent: '#7156d9',
+      background: '#f0edfb',
+      card: '#ffffff',
+      text: '#222131',
+      radius: 24,
       coverUrl: '',
       showProgress: true,
+      layout: 'focus',
+      font: 'pretendard',
     },
     settings: {
       successTitle: '응답이 접수되었습니다',

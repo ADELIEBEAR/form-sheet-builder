@@ -1,6 +1,7 @@
-import { FIELD_TYPES } from './maker'
+import { FIELD_TYPES, FONT_PRESETS } from './maker'
 
 const allowedTypes = new Set(FIELD_TYPES.map(([type]) => type))
+const allowedFonts = new Set(FONT_PRESETS.map(([font]) => font))
 
 export class ValidationError extends Error {
   name = 'ValidationError'
@@ -61,7 +62,7 @@ export function sanitizeProject(input) {
   if (fieldCount > 150) throw new ValidationError('질문은 최대 150개까지 만들 수 있습니다.')
   const coverUrl = String(input?.theme?.coverUrl || '')
   const requestedRadius = input?.theme?.radius
-  const radius = requestedRadius === '' || requestedRadius == null ? 14 : Number(requestedRadius)
+  const radius = requestedRadius === '' || requestedRadius == null ? 24 : Number(requestedRadius)
   if (coverUrl.startsWith('data:')) throw new ValidationError('이미지는 DB에 직접 저장할 수 없습니다. 업로드 기능을 이용해 주세요.')
   return {
     title,
@@ -69,13 +70,15 @@ export function sanitizeProject(input) {
     description: String(input?.description || '').slice(0, 3000),
     pages,
     theme: {
-      accent: safeColor(input?.theme?.accent, '#2f6757'),
-      background: safeColor(input?.theme?.background, '#efede7'),
-      card: safeColor(input?.theme?.card, '#fffdfa'),
-      text: safeColor(input?.theme?.text, '#232724'),
-      radius: Math.min(28, Math.max(0, Number.isFinite(radius) ? radius : 14)),
+      accent: safeColor(input?.theme?.accent, '#7156d9'),
+      background: safeColor(input?.theme?.background, '#f0edfb'),
+      card: safeColor(input?.theme?.card, '#ffffff'),
+      text: safeColor(input?.theme?.text, '#222131'),
+      radius: Math.min(32, Math.max(0, Number.isFinite(radius) ? radius : 24)),
       coverUrl: coverUrl.slice(0, 1000),
       showProgress: input?.theme?.showProgress !== false,
+      layout: input?.theme?.layout === 'card' ? 'card' : 'focus',
+      font: allowedFonts.has(input?.theme?.font) ? input.theme.font : 'pretendard',
     },
     settings: {
       successTitle: String(input?.settings?.successTitle || '응답이 접수되었습니다').slice(0, 200),

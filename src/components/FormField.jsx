@@ -1,6 +1,6 @@
 import { Check, Star } from '@phosphor-icons/react'
 
-export default function FormField({ field, value, onChange, error, preview = false, hidePrompt = false, accent = '#2f6757' }) {
+export default function FormField({ field, value, onChange, error, preview = false, hidePrompt = false, accent = '#7156d9' }) {
   const set = (next) => onChange?.(next)
   if (field.type === 'heading') return <div className="render-heading"><h3>{field.label}</h3>{field.description ? <p>{field.description}</p> : null}</div>
 

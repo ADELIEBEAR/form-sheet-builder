@@ -59,6 +59,9 @@ function sanitizeField(field) {
 export function sanitizeProject(input) {
   const title = String(input?.title || '').trim().slice(0, 120)
   if (!title) throw new ValidationError('폼 제목을 입력해 주세요.')
+  const defaultTitleSize = safeSize(input?.theme?.titleSize, 56, 28, 72)
+  const defaultQuestionSize = safeSize(input?.theme?.questionSize, 32, 20, 48)
+  const defaultBodySize = safeSize(input?.theme?.bodySize, 16, 12, 22)
   const sourcePages = Array.isArray(input?.pages) ? input.pages : []
   if (!sourcePages.length) throw new ValidationError('페이지가 하나 이상 필요합니다.')
   if (sourcePages.length > 20) throw new ValidationError('페이지는 최대 20개까지 만들 수 있습니다.')
@@ -70,6 +73,11 @@ export function sanitizeProject(input) {
       id: typeof page?.id === 'string' && page.id ? page.id.slice(0, 80) : crypto.randomUUID(),
       title: String(page?.title || `페이지 ${pageIndex + 1}`).trim().slice(0, 120),
       description: String(page?.description || '').slice(0, 1000),
+      typography: page?.typography && typeof page.typography === 'object' ? {
+        titleSize: safeSize(page.typography.titleSize, defaultTitleSize, 28, 72),
+        questionSize: safeSize(page.typography.questionSize, defaultQuestionSize, 20, 48),
+        bodySize: safeSize(page.typography.bodySize, defaultBodySize, 12, 22),
+      } : null,
       fields,
     }
   })
@@ -97,9 +105,9 @@ export function sanitizeProject(input) {
       showProgress: input?.theme?.showProgress !== false,
       layout,
       font: allowedFonts.has(input?.theme?.font) ? input.theme.font : 'pretendard',
-      titleSize: safeSize(input?.theme?.titleSize, 56, 28, 72),
-      questionSize: safeSize(input?.theme?.questionSize, 32, 20, 48),
-      bodySize: safeSize(input?.theme?.bodySize, 16, 12, 22),
+      titleSize: defaultTitleSize,
+      questionSize: defaultQuestionSize,
+      bodySize: defaultBodySize,
       effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
       motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',
       transition: allowedTransitions.has(input?.theme?.transition) ? input.theme.transition : 'rise',

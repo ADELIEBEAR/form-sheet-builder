@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, CheckCircle, Plus, X } from '@phosphor-icons/react'
 import { useState } from 'react'
-import { FIELD_GROUPS, FONT_STACKS, TYPE_LABEL, formSteps } from '../lib/maker'
+import { FIELD_GROUPS, FONT_STACKS, TYPE_LABEL, formSteps, resolvePageTypography } from '../lib/maker'
 import FocusEffects from './FocusEffects'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
 import InlineFieldEditor from './InlineFieldEditor'
@@ -17,6 +17,7 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
   const selectedField = selectedIndex >= 0 ? page.fields[selectedIndex] : null
   const isCover = selectedFieldId === COVER_VIEW
   const isSuccess = selectedFieldId === SUCCESS_VIEW
+  const typography = resolvePageTypography(project, isCover || isSuccess ? null : page)
   const steps = formSteps(project)
   const copy = project.settings || {}
   const transition = transitionClass(project.theme)
@@ -41,9 +42,9 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
     '--preview-text': project.theme?.text || '#222131',
     '--preview-radius': `${project.theme?.radius ?? 24}px`,
     '--preview-font': FONT_STACKS[project.theme?.font] || FONT_STACKS.pretendard,
-    '--preview-title-size': `${project.theme?.titleSize ?? 56}px`,
-    '--preview-question-size': `${project.theme?.questionSize ?? 32}px`,
-    '--preview-body-size': `${project.theme?.bodySize ?? 16}px`,
+    '--preview-title-size': `${typography.titleSize}px`,
+    '--preview-question-size': `${typography.questionSize}px`,
+    '--preview-body-size': `${typography.bodySize}px`,
     '--form-transition-duration': `${project.theme?.transitionSpeed ?? 440}ms`,
     ...mediaVariables(project.theme),
   }

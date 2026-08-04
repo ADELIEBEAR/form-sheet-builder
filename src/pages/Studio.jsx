@@ -494,7 +494,7 @@ export default function Studio() {
                 <button className={drawer === 'settings' ? 'active' : ''} type="button" onClick={() => setDrawer('settings')}><Gear /> 설정</button>
               </div>
 
-              {drawer === 'design' ? <ThemePanel project={project} projectId={projectId} onChange={changeProject} /> : null}
+              {drawer === 'design' ? <ThemePanel project={project} projectId={projectId} pageIndex={pageIndex} onChange={changeProject} /> : null}
 
               {drawer === 'settings' ? (
                 <div className="settings-stack">

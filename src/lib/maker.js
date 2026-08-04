@@ -178,7 +178,18 @@ export function makePage(index = 0) {
     id: crypto.randomUUID(),
     title: index === 0 ? '기본 정보' : `새 페이지 ${index + 1}`,
     description: '',
+    typography: null,
     fields: index === 0 ? [makeField('short'), makeField('email')] : [makeField('short')],
+  }
+}
+
+export function resolvePageTypography(project, page) {
+  const theme = project?.theme || {}
+  const typography = page?.typography || {}
+  return {
+    titleSize: typography.titleSize ?? theme.titleSize ?? 56,
+    questionSize: typography.questionSize ?? theme.questionSize ?? 32,
+    bodySize: typography.bodySize ?? theme.bodySize ?? 16,
   }
 }
 

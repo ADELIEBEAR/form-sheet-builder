@@ -1,10 +1,11 @@
 import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
-import { FONT_STACKS, formSteps } from '../lib/maker'
+import { FONT_STACKS, formSteps, resolvePageTypography } from '../lib/maker'
 import FocusEffects from './FocusEffects'
 import FormField from './FormField'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
 
-function canvasStyle(project) {
+function canvasStyle(project, page = null) {
+  const typography = resolvePageTypography(project, page)
   return {
     '--preview-accent': project.theme?.accent || '#7156d9',
     '--preview-bg': project.theme?.background || '#f0edfb',
@@ -12,9 +13,9 @@ function canvasStyle(project) {
     '--preview-text': project.theme?.text || '#222131',
     '--preview-radius': `${project.theme?.radius ?? 24}px`,
     '--preview-font': FONT_STACKS[project.theme?.font] || FONT_STACKS.pretendard,
-    '--preview-title-size': `${project.theme?.titleSize ?? 56}px`,
-    '--preview-question-size': `${project.theme?.questionSize ?? 32}px`,
-    '--preview-body-size': `${project.theme?.bodySize ?? 16}px`,
+    '--preview-title-size': `${typography.titleSize}px`,
+    '--preview-question-size': `${typography.questionSize}px`,
+    '--preview-body-size': `${typography.bodySize}px`,
     '--form-transition-duration': `${project.theme?.transitionSpeed ?? 440}ms`,
     ...mediaVariables(project.theme),
   }
@@ -48,12 +49,12 @@ function FocusBackdrop({ project }) {
 function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, errors, preview, submitted, submitting }) {
   const steps = formSteps(project)
   const total = steps.length
-  const style = canvasStyle(project)
-
-  if (submitted) return <SuccessScreen project={project} style={style} focus />
-
   const isCover = stepIndex === 0
   const current = isCover ? null : steps[Math.min(Math.max(stepIndex - 1, 0), Math.max(total - 1, 0))]
+  const style = canvasStyle(project, current?.page)
+
+  if (submitted) return <SuccessScreen project={project} style={canvasStyle(project)} focus />
+
   const currentNumber = current ? Math.min(stepIndex, total) : 0
   const canContinue = total > 0
   const copy = project.settings || {}
@@ -116,7 +117,7 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, errors, p
 function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, errors, preview, selectedFieldId, onSelectField, submitted, submitting }) {
   const page = project.pages?.[pageIndex]
   if (!page) return null
-  const style = canvasStyle(project)
+  const style = canvasStyle(project, page)
   const copy = project.settings || {}
   const transition = transitionClass(project.theme)
 

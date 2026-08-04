@@ -63,6 +63,16 @@ describe('form maker validation', () => {
     expect(project.theme.bodySize).toBe(22)
   })
 
+  it('stores page-specific typography without changing the form defaults', () => {
+    const project = sanitizeProject({
+      title: '페이지별 글자 폼',
+      pages: [{ ...page([])[0], typography: { titleSize: 34, questionSize: 99, bodySize: 8 } }],
+      theme: { titleSize: 60, questionSize: 30, bodySize: 17 },
+    })
+    expect(project.theme).toMatchObject({ titleSize: 60, questionSize: 30, bodySize: 17 })
+    expect(project.pages[0].typography).toEqual({ titleSize: 34, questionSize: 48, bodySize: 12 })
+  })
+
   it('stores supported visual effects and rejects unknown animation settings', () => {
     const supported = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'liquid', motion: 'playful' } })
     const fallback = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'webgl-magic', motion: 'fastest' } })

@@ -1,4 +1,4 @@
-import { Check, Copy, DotsThree, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { Check, Copy, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
@@ -12,10 +12,9 @@ export default function Workspace() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
-  const [menu, setMenu] = useState('')
   const [copied, setCopied] = useState('')
   const [folder, setFolder] = useState('전체')
-  const [mobileMeta, setMobileMeta] = useState('')
+  const [busyAction, setBusyAction] = useState('')
   const [metaStatus, setMetaStatus] = useState({})
   const projectsRef = useRef([])
   const saveVersionRef = useRef({})
@@ -40,20 +39,35 @@ export default function Workspace() {
   }), [folder, projects, query])
 
   async function duplicate(id) {
+    setBusyAction(`duplicate-${id}`)
     try {
       const data = await api(`/maker/projects/${id}/duplicate`, { method: 'POST' })
-      setProjects((current) => [data.project, ...current])
-      setMenu('')
-    } catch (caught) { setError(caught.message) }
+      const next = [data.project, ...projectsRef.current]
+      projectsRef.current = next
+      setProjects(next)
+    } catch (caught) { setError(caught.message) } finally { setBusyAction('') }
   }
 
   async function remove(id) {
     if (!window.confirm('이 폼과 응답을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.')) return
+    setBusyAction(`remove-${id}`)
     try {
       await api(`/maker/projects/${id}`, { method: 'DELETE' })
-      setProjects((current) => current.filter((project) => project.id !== id))
-      setMenu('')
-    } catch (caught) { setError(caught.message) }
+      const next = projectsRef.current.filter((project) => project.id !== id)
+      projectsRef.current = next
+      setProjects(next)
+    } catch (caught) { setError(caught.message) } finally { setBusyAction('') }
+  }
+
+  async function toggleStatus(project) {
+    setBusyAction(`status-${project.id}`)
+    setError('')
+    try {
+      const data = await api(`/maker/projects/${project.id}`, { method: 'PUT', body: { ...project, status: project.status === 'published' ? 'draft' : 'published' } })
+      const next = projectsRef.current.map((item) => item.id === project.id ? data.project : item)
+      projectsRef.current = next
+      setProjects(next)
+    } catch (caught) { setError(caught.message) } finally { setBusyAction('') }
   }
 
   async function copyLink(project) {
@@ -131,22 +145,28 @@ export default function Workspace() {
                 <span className="project-card-meta"><b>{project.status === 'published' ? '게시 중' : '초안'}</b></span>
                 <strong>{project.title}</strong>
                 <small>/s/{project.slug}</small>
+                <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')} 수정</time>
               </span>
             </button>
-            <section className={`project-inline-meta memo-tone-${project.memoColor || 'lemon'}${mobileMeta === project.id ? ' mobile-expanded' : ''}`} aria-label={`${project.title} 폴더와 메모`}>
+            <section className={`project-inline-meta memo-tone-${project.memoColor || 'lemon'}`} aria-label={`${project.title} 폴더와 메모`}>
               <header><span><NotePencil weight="fill" /> 폴더 · 메모</span><small className={metaStatus[project.id] || ''}>{metaStatusLabel(project.id)}</small></header>
               <label className="inline-folder-field"><span><Folder weight="fill" /> 폴더</span><input list={`folder-list-${project.id}`} maxLength="80" value={project.folder || ''} onChange={(event) => updateLocalMeta(project.id, { folder: event.target.value })} onBlur={(event) => persistMeta(project.id, { folder: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="미분류" aria-label={`${project.title} 폴더`} /><datalist id={`folder-list-${project.id}`}>{folders.map((item) => <option value={item} key={item} />)}</datalist></label>
               <label className="inline-memo-field"><span>내 메모 <small>{(project.memo || '').length.toLocaleString()} / 2,000</small></span><textarea rows="3" maxLength="2000" value={project.memo || ''} onChange={(event) => updateLocalMeta(project.id, { memo: event.target.value })} onBlur={(event) => persistMeta(project.id, { memo: event.target.value })} onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="마감일, 담당자, 수정할 내용 등을 적어두세요." aria-label={`${project.title} 내 메모`} /></label>
               <fieldset className="inline-memo-colors"><legend>메모 색상</legend><div>{MEMO_COLOR_PRESETS.map(([value, label]) => <button className={`memo-color-${value}${project.memoColor === value ? ' active' : ''}`} type="button" key={value} onClick={() => persistMeta(project.id, { memoColor: value })} aria-label={`${label} 메모 색상`} title={label}>{project.memoColor === value ? <Check weight="bold" /> : null}</button>)}</div></fieldset>
             </section>
-            <nav className="project-mobile-actions" aria-label={`${project.title} 빠른 작업`}>
-              <button type="button" onClick={() => navigate(`/studio/${project.id}`)}><PencilSimple weight="bold" /> 폼 열기</button>
-              <Link to={`/responses/${project.id}`}><LockKey weight="fill" /> 응답 {project.responseCount.toLocaleString()}</Link>
-              <button className={mobileMeta === project.id ? 'active' : ''} type="button" aria-expanded={mobileMeta === project.id} onClick={() => setMobileMeta((current) => current === project.id ? '' : project.id)}><NotePencil weight={mobileMeta === project.id ? 'fill' : 'regular'} /> 메모</button>
+            <nav className="project-quick-actions" aria-label={`${project.title} 빠른 작업`}>
+              <div className="project-main-actions">
+                <button type="button" onClick={() => navigate(`/studio/${project.id}`)}><PencilSimple weight="bold" /> 편집</button>
+                <Link to={`/responses/${project.id}`}><LockKey weight="fill" /> 응답 보기 <b>{project.responseCount.toLocaleString()}</b></Link>
+                <Link to="/responses"><Eye weight="fill" /> 전체 응답</Link>
+                <button className={project.status === 'published' ? 'published' : ''} type="button" disabled={busyAction === `status-${project.id}`} onClick={() => toggleStatus(project)} title={project.status === 'published' ? '눌러서 비공개로 전환' : '눌러서 공개'}><LockKey weight={project.status === 'published' ? 'regular' : 'fill'} /> {busyAction === `status-${project.id}` ? '변경 중' : project.status === 'published' ? '공개 중' : '비공개'}</button>
+              </div>
+              <div className="project-utility-actions">
+                <button type="button" disabled={project.status !== 'published'} onClick={() => copyLink(project)} title={project.status === 'published' ? '공개 링크 복사' : '폼을 공개하면 링크를 복사할 수 있습니다'}>{copied === project.id ? <Check weight="bold" /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button>
+                <button type="button" disabled={busyAction === `duplicate-${project.id}`} onClick={() => duplicate(project.id)}><Copy /> {busyAction === `duplicate-${project.id}` ? '복제 중' : '복제'}</button>
+                <button className="danger" type="button" disabled={busyAction === `remove-${project.id}`} onClick={() => remove(project.id)} aria-label={`${project.title} 삭제`} title="삭제"><Trash /></button>
+              </div>
             </nav>
-            <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')}</time>
-            <Link className="response-count" to={`/responses/${project.id}`}>{project.responseCount.toLocaleString()}개</Link>
-            <div className="row-menu-wrap"><button className="row-menu-button" type="button" onClick={() => setMenu(menu === project.id ? '' : project.id)} aria-label="폼 메뉴"><DotsThree /></button>{menu === project.id ? <div className="row-menu">{project.status === 'published' ? <><a href={`/s/${project.slug}`} target="_blank" rel="noreferrer"><Eye /> 공개 폼 보기</a><button type="button" onClick={() => copyLink(project)}>{copied === project.id ? <Check /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button></> : null}<button type="button" onClick={() => duplicate(project.id)}><Copy /> 복제</button><button className="danger" type="button" onClick={() => remove(project.id)}><Trash /> 삭제</button></div> : null}</div>
           </article>)}
           {visible.length === 0 ? <div className="no-search-result">검색 결과가 없습니다.</div> : null}
         </div> : null}

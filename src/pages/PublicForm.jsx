@@ -18,6 +18,19 @@ export default function PublicForm() {
     api(`/maker/public/${encodeURIComponent(slug)}`).then((data) => { setProject(data.project); setStatus('ready') }).catch((caught) => { setMessage(caught.message); setStatus('error') })
   }, [slug])
 
+  useEffect(() => {
+    if (!project) return undefined
+    const previousTitle = document.title
+    const descriptionMeta = document.querySelector('meta[name="description"]')
+    const previousDescription = descriptionMeta?.getAttribute('content') || ''
+    document.title = project.settings?.shareTitle || project.title || '폼메이커'
+    if (descriptionMeta) descriptionMeta.setAttribute('content', project.settings?.shareDescription ?? project.description ?? '')
+    return () => {
+      document.title = previousTitle
+      if (descriptionMeta) descriptionMeta.setAttribute('content', previousDescription)
+    }
+  }, [project])
+
   function answerError(field, value) {
     if (field.type === 'heading') return ''
     const empty = value == null || value === '' || (Array.isArray(value) && value.length === 0)

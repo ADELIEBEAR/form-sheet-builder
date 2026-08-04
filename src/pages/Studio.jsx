@@ -19,6 +19,7 @@ import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
+import SharePreviewPanel from '../components/SharePreviewPanel'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
@@ -502,6 +503,7 @@ export default function Studio() {
                     <label className="studio-control"><span>분류</span><input value={project.folder || ''} maxLength="80" onChange={(event) => changeProject({ ...project, folder: event.target.value })} placeholder="예: 주식 신청" /></label>
                     <label className="studio-control"><span>한 줄 설명</span><input maxLength="160" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="이 폼이 어떤 용도인지 간단히 적어주세요." /></label>
                   </div>
+                  <SharePreviewPanel project={project} onChange={changeProject} />
                   <FormCopyPanel project={project} onChange={changeProject} />
                   <div className="inspector-panel">
                     <div className="panel-heading"><span>공개 설정</span><strong>공개 주소</strong></div>

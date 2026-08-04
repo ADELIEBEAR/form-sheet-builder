@@ -1,4 +1,4 @@
-import { ArrowRight, Briefcase, CalendarCheck, ChatCircleDots, ClipboardText, EnvelopeOpen, GraduationCap, HandHeart, Hourglass, Plus, Receipt, ShoppingBag, Smiley, Star } from '@phosphor-icons/react'
+import { ArrowRight, Briefcase, CalendarCheck, ChartLineUp, ChatCircleDots, ClipboardText, CurrencyBtc, EnvelopeOpen, GraduationCap, HandHeart, Hourglass, Plus, Receipt, ShoppingBag, Smiley, Star } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
 import AppFrame from '../components/AppFrame'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
@@ -19,6 +19,8 @@ const icons = {
   rsvp: EnvelopeOpen,
   volunteer: HandHeart,
   checkin: Smiley,
+  'stock-application': ChartLineUp,
+  'crypto-application': CurrencyBtc,
 }
 
 const categories = ['전체', ...new Set(FORM_TEMPLATES.map((template) => template.category))]

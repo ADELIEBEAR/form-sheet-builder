@@ -47,7 +47,7 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
   }
 
   return (
-    <div className="inline-form-canvas smore-editor-canvas" style={style}>
+    <div className="inline-form-canvas maker-editor-canvas" style={style}>
       {project.theme?.coverUrl ? <div className="focus-image" style={{ backgroundImage: `url("${project.theme.coverUrl}")` }} /> : null}
       <div className="focus-tint" />
       <FocusEffects theme={project.theme} />

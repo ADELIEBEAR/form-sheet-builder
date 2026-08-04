@@ -10,13 +10,14 @@ import {
   PaintBrush,
   Plus,
   SpinnerGap,
-  X,
+  Trash,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
 import IntegrationPanel from '../components/IntegrationPanel'
+import ResponseLockSettings from '../components/ResponseLockSettings'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
@@ -27,7 +28,7 @@ export default function Studio() {
   const [project, setProject] = useState(emptyProject)
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedFieldId, setSelectedFieldId] = useState(COVER_VIEW)
-  const [drawer, setDrawer] = useState('')
+  const [drawer, setDrawer] = useState('design')
   const [device, setDevice] = useState('desktop')
   const [loading, setLoading] = useState(Boolean(projectId))
   const [saving, setSaving] = useState(false)
@@ -52,7 +53,6 @@ export default function Studio() {
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setDrawer('')
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         if (!saving) save()
@@ -240,7 +240,7 @@ export default function Studio() {
                   <small>{item.fields.length}개 항목</small>
                 </button>
                 {project.pages.length > 1 ? (
-                  <button className="page-remove" type="button" onClick={() => removePage(index)} aria-label="페이지 삭제"><X /></button>
+                  <button className="page-remove" type="button" onClick={() => removePage(index)} aria-label="페이지 삭제" title="페이지 삭제"><Trash /></button>
                 ) : null}
               </div>
             ))}
@@ -278,8 +278,8 @@ export default function Studio() {
                 <button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => setDevice('desktop')} aria-label="데스크톱 보기"><Desktop /></button>
                 <button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => setDevice('mobile')} aria-label="모바일 보기"><DeviceMobile /></button>
               </div>
-              <button className={drawer === 'design' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => setDrawer(drawer === 'design' ? '' : 'design')}><PaintBrush /> 디자인</button>
-              <button className={drawer === 'settings' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => setDrawer(drawer === 'settings' ? '' : 'settings')}><Gear /> 설정</button>
+              <button className={drawer === 'design' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => setDrawer('design')}><PaintBrush /> 디자인</button>
+              <button className={drawer === 'settings' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => setDrawer('settings')}><Gear /> 설정</button>
             </div>
           </div>
 
@@ -301,19 +301,26 @@ export default function Studio() {
           </div>
         </section>
 
-        {drawer ? (
-          <>
-            <button className="studio-drawer-backdrop" type="button" onClick={() => setDrawer('')} aria-label="설정 닫기" />
-            <aside className="studio-drawer" aria-label={drawer === 'design' ? '디자인 설정' : '폼 설정'}>
+        <aside className="studio-drawer studio-drawer-docked" aria-label={drawer === 'design' ? '디자인 설정' : '폼 설정'}>
               <div className="drawer-heading">
                 <div><span>{drawer === 'design' ? 'FORM STYLE' : 'FORM SETTINGS'}</span><strong>{drawer === 'design' ? '디자인' : '설정 및 연동'}</strong></div>
-                <button type="button" onClick={() => setDrawer('')} aria-label="닫기"><X /></button>
+                <small>항상 열림</small>
+              </div>
+
+              <div className="drawer-tabs" role="tablist" aria-label="편집 도구">
+                <button className={drawer === 'design' ? 'active' : ''} type="button" onClick={() => setDrawer('design')}><PaintBrush /> 디자인</button>
+                <button className={drawer === 'settings' ? 'active' : ''} type="button" onClick={() => setDrawer('settings')}><Gear /> 설정</button>
               </div>
 
               {drawer === 'design' ? <ThemePanel project={project} projectId={projectId} onChange={changeProject} /> : null}
 
               {drawer === 'settings' ? (
                 <div className="settings-stack">
+                  <div className="inspector-panel">
+                    <div className="panel-heading"><span>관리 정보</span><strong>폴더와 메모</strong><p>관리자 화면에서만 보이며 공개 폼에는 표시되지 않습니다.</p></div>
+                    <label className="studio-control"><span>폴더</span><input value={project.folder || ''} maxLength="80" onChange={(event) => changeProject({ ...project, folder: event.target.value })} placeholder="예: 2026 고객 신청" /></label>
+                    <label className="studio-control"><span>내 메모</span><textarea rows="4" maxLength="2000" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="마감일, 담당자, 수정할 내용 등을 적어두세요." /></label>
+                  </div>
                   <div className="inspector-panel">
                     <div className="panel-heading"><span>공개 설정</span><strong>주소와 완료 화면</strong></div>
                     <label className="studio-control">
@@ -346,12 +353,11 @@ export default function Studio() {
                       </div>
                     ) : null}
                   </div>
+                  <ResponseLockSettings projectId={projectId} enabled={project.responseLockEnabled} onChange={(responseLockEnabled) => changeProject({ ...project, responseLockEnabled })} />
                   <IntegrationPanel projectId={projectId} project={project} onConnected={changeProject} />
                 </div>
               ) : null}
-            </aside>
-          </>
-        ) : null}
+        </aside>
       </main>
     </AppFrame>
   )

@@ -79,6 +79,12 @@ export const EFFECT_PRESETS = [
   ['ripple', '물결', '잔잔하게 퍼지는 원'],
   ['grid', '소프트 그리드', '정돈된 종이 질감'],
   ['grain', '필름 그레인', '아날로그한 미세 질감'],
+  ['mesh', '메시 그라데이션', '여러 빛이 천천히 섞이는 배경'],
+  ['spotlight', '스포트라이트', '중심을 부드럽게 비추는 빛'],
+  ['waves', '실크 웨이브', '겹겹이 흐르는 유연한 곡선'],
+  ['bloom', '컬러 블룸', '꽃처럼 피어나는 색 번짐'],
+  ['starfield', '별빛', '잔잔하게 반짝이는 밤하늘'],
+  ['confetti', '컨페티', '가볍게 흩날리는 축하 조각'],
   ['none', '효과 없음', '단색으로 가장 가볍게'],
 ]
 
@@ -87,6 +93,8 @@ export const MOTION_PRESETS = [
   ['calm', '아주 잔잔'],
   ['soft', '부드럽게'],
   ['playful', '통통 튀게'],
+  ['cinematic', '시네마틱'],
+  ['bouncy', '말랑 통통'],
 ]
 
 export const THEME_PRESETS = [
@@ -102,6 +110,12 @@ export const THEME_PRESETS = [
   { id: 'mono-ink', name: '모노 잉크', tag: '미니멀', theme: { accent: '#1e1e1e', background: '#ededeb', card: '#ffffff', text: '#171717', radius: 8, font: 'pretendard', effect: 'grid', motion: 'none' } },
   { id: 'night-velvet', name: '나이트 벨벳', tag: '프리미엄', theme: { accent: '#7456d6', background: '#161323', card: '#252036', text: '#f5f1ff', radius: 24, font: 'hahmlet', effect: 'prism', motion: 'soft' } },
   { id: 'candy-pop', name: '캔디 팝', tag: '발랄함', theme: { accent: '#7a4ff2', background: '#f7dfef', card: '#fff9fc', text: '#35223a', radius: 32, font: 'jua', effect: 'liquid', motion: 'playful' } },
+  { id: 'pearl-light', name: '펄 라이트', tag: '깨끗함', theme: { accent: '#5e63c8', background: '#f0f1f8', card: '#ffffff', text: '#292c42', radius: 22, font: 'pretendard', effect: 'spotlight', motion: 'calm' } },
+  { id: 'sage-mesh', name: '세이지 메시', tag: '안정감', theme: { accent: '#38735d', background: '#e4ece5', card: '#fbfdf9', text: '#26352f', radius: 26, font: 'gowun', effect: 'mesh', motion: 'soft' } },
+  { id: 'sunset-wave', name: '선셋 웨이브', tag: '감성적', theme: { accent: '#d85f48', background: '#f9e4dc', card: '#fff9f5', text: '#412923', radius: 30, font: 'gowun-batang', effect: 'waves', motion: 'soft' } },
+  { id: 'midnight-star', name: '미드나잇 스타', tag: '몰입감', theme: { accent: '#8a77ef', background: '#101526', card: '#1c2338', text: '#f2f4ff', radius: 20, font: 'hahmlet', effect: 'starfield', motion: 'cinematic' } },
+  { id: 'lime-bloom', name: '라임 블룸', tag: '생동감', theme: { accent: '#668f24', background: '#eef5d9', card: '#fbfff1', text: '#2d361d', radius: 30, font: 'sunflower', effect: 'bloom', motion: 'bouncy' } },
+  { id: 'party-confetti', name: '파티 컨페티', tag: '축하', theme: { accent: '#e0547a', background: '#fff0f5', card: '#fffafd', text: '#422633', radius: 32, font: 'jua', effect: 'confetti', motion: 'playful' } },
 ]
 
 export function makeField(type = 'short') {
@@ -168,6 +182,9 @@ export function emptyProject() {
       submitLabel: '제출하기',
     },
     status: 'draft',
+    folder: '',
+    memo: '',
+    responseLockEnabled: false,
   }
 }
 

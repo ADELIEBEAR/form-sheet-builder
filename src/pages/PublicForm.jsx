@@ -102,7 +102,7 @@ export default function PublicForm() {
         <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
         {message ? <div className="public-submit-error"><WarningCircle /> {message}</div> : null}
       </form>
-      <footer className="public-brand"><span className="maker-glyph small"><i /><i /><i /></span> 폼메이커로 제작</footer>
+      <footer className="public-brand"><span className="maker-glyph small"><i /><i /><i /></span><span>폼메이커<small>정석제작</small></span></footer>
     </main>
   )
 }

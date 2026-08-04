@@ -20,7 +20,7 @@ function bodyOf(options) {
   try { return JSON.parse(options.body) } catch { return {} }
 }
 
-function serializeProject(row) {
+function serializeProject(row, meta = null) {
   const countRelation = row.form_maker_submissions
   const responseCount = Array.isArray(countRelation) ? Number(countRelation[0]?.count || 0) : Number(row.response_count || 0)
   return {
@@ -37,9 +37,40 @@ function serializeProject(row) {
     sheetUrl: row.sheet_url || '',
     sheetName: row.sheet_name || '응답',
     responseCount,
+    folder: meta?.folder || '',
+    memo: meta?.memo || '',
+    responseLockEnabled: Boolean(meta?.response_lock_enabled),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
+}
+
+function cleanProjectMeta(input) {
+  return {
+    folder: String(input?.folder || '').trim().slice(0, 80),
+    memo: String(input?.memo || '').slice(0, 2000),
+  }
+}
+
+async function projectMetaMap(projectIds) {
+  if (!projectIds.length) return new Map()
+  const { data, error } = await supabase
+    .from('form_maker_project_meta')
+    .select('project_id,folder,memo,response_lock_enabled')
+    .in('project_id', projectIds)
+  if (error) fail(error)
+  return new Map((data || []).map((item) => [item.project_id, item]))
+}
+
+async function saveProjectMeta(projectId, input) {
+  const meta = cleanProjectMeta(input)
+  const { error } = await supabase.rpc('set_form_maker_project_meta', {
+    target_project_id: projectId,
+    new_folder: meta.folder,
+    new_memo: meta.memo,
+  })
+  if (error) fail(error, '폴더와 메모를 저장하지 못했습니다.')
+  return meta
 }
 
 function serializeSubmission(row) {
@@ -75,7 +106,8 @@ async function requireUser() {
 }
 
 async function ownedProject(id) {
-  const { data, error } = await supabase.from('form_maker_projects').select('*').eq('id', id).single()
+  const user = await requireUser()
+  const { data, error } = await supabase.from('form_maker_projects').select('*').eq('id', id).eq('owner_id', user.id).single()
   if (error || !data) throw new ApiError('폼을 찾을 수 없습니다.', error?.code === 'PGRST116' ? 404 : 500, error)
   return data
 }
@@ -132,7 +164,8 @@ async function connectSheet(projectId, input) {
   }
   const { data, error } = await supabase.from('form_maker_projects').update({ sheet_id: sheet.id, sheet_url: sheet.url, sheet_name: sheet.name }).eq('id', projectId).select().single()
   if (error) fail(error)
-  const project = serializeProject(data)
+  const meta = await projectMetaMap([projectId])
+  const project = serializeProject(data, meta.get(projectId))
   await writeSheetHeader(project)
   return { project }
 }
@@ -169,10 +202,11 @@ export async function api(path, options = {}) {
   const body = bodyOf(options)
   try {
     if (path === '/maker/projects' && method === 'GET') {
-      await requireUser()
-      const { data, error } = await supabase.from('form_maker_projects').select('*, form_maker_submissions(count)').order('updated_at', { ascending: false })
+      const user = await requireUser()
+      const { data, error } = await supabase.from('form_maker_projects').select('*, form_maker_submissions(count)').eq('owner_id', user.id).order('updated_at', { ascending: false })
       if (error) fail(error)
-      return { projects: (data || []).map(serializeProject) }
+      const meta = await projectMetaMap((data || []).map((project) => project.id))
+      return { projects: (data || []).map((project) => serializeProject(project, meta.get(project.id))) }
     }
 
     if (path === '/maker/projects' && method === 'POST') {
@@ -181,7 +215,8 @@ export async function api(path, options = {}) {
       const { data, error } = await supabase.from('form_maker_projects').insert({ ...input, owner_id: user.id }).select().single()
       if (error?.code === '23505') throw new ApiError('이미 사용 중인 공개 주소입니다.', 409, error)
       if (error) fail(error)
-      return { project: serializeProject(data) }
+      const meta = await saveProjectMeta(data.id, body)
+      return { project: serializeProject(data, meta) }
     }
 
     if (path === '/maker/submissions' && method === 'GET') {
@@ -231,6 +266,34 @@ export async function api(path, options = {}) {
     const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)
     if (sheetMatch && method === 'POST') return connectSheet(sheetMatch[1], body || {})
 
+    const responseLockMatch = path.match(/^\/maker\/projects\/([^/]+)\/response-lock$/)
+    if (responseLockMatch && method === 'POST') {
+      await ownedProject(responseLockMatch[1])
+      const enabled = Boolean(body?.enabled)
+      const pin = body?.pin == null || body.pin === '' ? null : String(body.pin)
+      const { error } = await supabase.rpc('set_form_maker_response_lock', {
+        target_project_id: responseLockMatch[1],
+        new_enabled: enabled,
+        new_pin: pin,
+      })
+      if (error?.message?.includes('pin_must_be_4_to_8_digits')) throw new ApiError('PIN은 숫자 4~8자리로 입력해 주세요.', 400, error)
+      if (error?.message?.includes('pin_required')) throw new ApiError('잠금에 사용할 PIN을 입력해 주세요.', 400, error)
+      if (error) fail(error, '응답 잠금을 변경하지 못했습니다.')
+      return { enabled }
+    }
+
+    const responseUnlockMatch = path.match(/^\/maker\/projects\/([^/]+)\/response-unlock$/)
+    if (responseUnlockMatch && method === 'POST') {
+      await ownedProject(responseUnlockMatch[1])
+      const { data, error } = await supabase.rpc('verify_form_maker_response_lock', {
+        target_project_id: responseUnlockMatch[1],
+        candidate_pin: String(body?.pin || ''),
+      })
+      if (error) fail(error, '응답 잠금을 확인하지 못했습니다.')
+      if (!data) throw new ApiError('PIN이 맞지 않습니다.', 403)
+      return { ok: true }
+    }
+
     const duplicateMatch = path.match(/^\/maker\/projects\/([^/]+)\/duplicate$/)
     if (duplicateMatch && method === 'POST') {
       const user = await requireUser()
@@ -247,17 +310,26 @@ export async function api(path, options = {}) {
         status: 'draft',
       }).select().single()
       if (error) fail(error)
-      return { project: serializeProject(data) }
+      const currentMeta = await projectMetaMap([current.id])
+      const copiedMeta = currentMeta.get(current.id)
+      const meta = await saveProjectMeta(data.id, { folder: copiedMeta?.folder || '', memo: copiedMeta?.memo || '' })
+      return { project: serializeProject(data, meta) }
     }
 
     const projectMatch = path.match(/^\/maker\/projects\/([^/]+)$/)
-    if (projectMatch && method === 'GET') return { project: serializeProject(await ownedProject(projectMatch[1])) }
+    if (projectMatch && method === 'GET') {
+      const row = await ownedProject(projectMatch[1])
+      const meta = await projectMetaMap([row.id])
+      return { project: serializeProject(row, meta.get(row.id)) }
+    }
     if (projectMatch && method === 'PUT') {
       const input = sanitizeProject(body)
       const { data, error } = await supabase.from('form_maker_projects').update(input).eq('id', projectMatch[1]).select().single()
       if (error?.code === '23505') throw new ApiError('이미 사용 중인 공개 주소입니다.', 409, error)
       if (error) fail(error)
-      const project = serializeProject(data)
+      const meta = await saveProjectMeta(data.id, body)
+      const latestMeta = await projectMetaMap([data.id])
+      const project = serializeProject(data, { ...latestMeta.get(data.id), ...meta })
       if (project.sheetId) writeSheetHeader(project).catch(() => {})
       return { project }
     }

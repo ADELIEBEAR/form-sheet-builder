@@ -1,9 +1,9 @@
-import { FIELD_TYPES, FONT_PRESETS } from './maker'
+import { EFFECT_PRESETS, FIELD_TYPES, FONT_PRESETS, MOTION_PRESETS } from './maker'
 
 const allowedTypes = new Set(FIELD_TYPES.map(([type]) => type))
 const allowedFonts = new Set(FONT_PRESETS.map(([font]) => font))
-const allowedEffects = new Set(['aurora', 'liquid', 'clouds', 'prism', 'ripple', 'grid', 'grain', 'none'])
-const allowedMotions = new Set(['none', 'calm', 'soft', 'playful'])
+const allowedEffects = new Set(EFFECT_PRESETS.map(([effect]) => effect))
+const allowedMotions = new Set(MOTION_PRESETS.map(([motion]) => motion))
 
 export class ValidationError extends Error {
   name = 'ValidationError'

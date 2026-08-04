@@ -36,7 +36,7 @@ export default function Landing() {
       <section className="landing-story">
         <strong>작성 화면은 단순하게</strong>
         <p>폼 화면에서 제목과 질문을 바로 누르고 고칩니다. 설정창을 오갈 필요 없이 만드는 흐름에만 집중할 수 있어요.</p>
-        <div className="story-steps"><article><span>직접 편집</span><h2>보이는 화면에서<br />누르고 바로 수정하세요.</h2></article><article><span>간결한 설정</span><h2>디자인과 연동은<br />필요할 때만 열어보세요.</h2></article><article><span>응답 정리</span><h2>Supabase에 보관하고<br />Google Sheet로 옮기세요.</h2></article></div>
+        <div className="story-steps"><article><span>직접 편집</span><h2>보이는 화면에서<br />누르고 바로 수정하세요.</h2></article><article><span>고정 편집 도구</span><h2>디자인과 설정은<br />항상 옆에서 바꾸세요.</h2></article><article><span>응답 정리</span><h2>Supabase에 보관하고<br />Google Sheet로 옮기세요.</h2></article></div>
       </section>
     </main>
   )

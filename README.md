@@ -39,5 +39,6 @@ npm run build
 ## 배포 원칙
 
 - 운영 `main`은 새 제품 안정화 전까지 유지합니다.
-- 새 제품은 `form-maker-next` 브랜치의 Vercel Preview에서만 확인합니다.
-- 응답 제출, 권한, 이미지, Google Sheets, 모바일 검수가 끝난 뒤에만 운영 전환을 결정합니다.
+- 기존 폼빌더는 `form-sheet-builder.vercel.app`에서 그대로 운영합니다.
+- 새 제품은 `form-maker-next` 브랜치에서 `https://form-maker-next.vercel.app`로 별도 배포합니다.
+- 두 제품은 Vercel 프로젝트와 배포 브랜치가 분리되어 서로를 덮어쓰지 않습니다.

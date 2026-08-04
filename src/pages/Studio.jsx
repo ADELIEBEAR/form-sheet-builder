@@ -3,6 +3,7 @@ import {
   Check,
   DeviceMobile,
   Desktop,
+  DotsSixVertical,
   Eye,
   FloppyDisk,
   Gear,
@@ -13,7 +14,7 @@ import {
   Trash,
   X,
 } from '@phosphor-icons/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import FormCopyPanel from '../components/FormCopyPanel'
@@ -38,6 +39,9 @@ export default function Studio() {
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
+  const [dragState, setDragState] = useState(null)
+  const pointerSortRef = useRef(null)
+  const sortClickGuardRef = useRef(false)
 
   useEffect(() => {
     if (!projectId) {
@@ -181,6 +185,128 @@ export default function Studio() {
     updatePage({ ...page, fields: moveItem(page.fields, fieldIndex, fieldIndex + direction) })
   }
 
+  function reorderPages(fromIndex, toIndex) {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return
+    const selectedPageId = project.pages[pageIndex]?.id
+    const nextPages = moveItem(project.pages, fromIndex, toIndex)
+    changeProject({ ...project, pages: nextPages })
+    const nextPageIndex = nextPages.findIndex((item) => item.id === selectedPageId)
+    setPageIndex(Math.max(0, nextPageIndex))
+  }
+
+  function reorderFields(fromIndex, toIndex) {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return
+    updatePage({ ...page, fields: moveItem(page.fields, fromIndex, toIndex) })
+  }
+
+  function startSort(kind, index, event) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', `${kind}:${index}`)
+    setDragState({ kind, from: index, over: index })
+  }
+
+  function moveSortTarget(kind, index, event) {
+    if (dragState?.kind !== kind) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    if (dragState.over !== index) setDragState({ ...dragState, over: index })
+  }
+
+  function finishSort(kind, toIndex, event) {
+    event.preventDefault()
+    const [sourceKind, sourceIndex] = event.dataTransfer.getData('text/plain').split(':')
+    const fromIndex = Number(sourceIndex)
+    if (sourceKind === kind && Number.isInteger(fromIndex)) {
+      if (kind === 'page') reorderPages(fromIndex, toIndex)
+      if (kind === 'field') reorderFields(fromIndex, toIndex)
+    }
+    setDragState(null)
+  }
+
+  function startPointerSort(kind, index, event) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    pointerSortRef.current = {
+      kind,
+      from: index,
+      over: index,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      handle: event.currentTarget,
+      moved: false,
+    }
+  }
+
+  function movePointerSort(event) {
+    const active = pointerSortRef.current
+    if (!active || active.pointerId !== event.pointerId) return
+    const distance = Math.hypot(event.clientX - active.startX, event.clientY - active.startY)
+    if (!active.moved && distance < 5) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    active.moved = true
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(`[data-sort-kind="${active.kind}"]`)
+    const over = Number(target?.dataset.sortIndex)
+    if (Number.isInteger(over) && over !== active.over) active.over = over
+    setDragState({ kind: active.kind, from: active.from, over: active.over })
+  }
+
+  function endPointerSort(event) {
+    const active = pointerSortRef.current
+    if (!active || active.pointerId !== event.pointerId) return
+    active.handle?.releasePointerCapture?.(event.pointerId)
+    pointerSortRef.current = null
+
+    if (active.moved) {
+      event.preventDefault()
+      event.stopPropagation()
+      sortClickGuardRef.current = true
+      window.setTimeout(() => {
+        sortClickGuardRef.current = false
+      }, 0)
+      if (active.kind === 'page') reorderPages(active.from, active.over)
+      if (active.kind === 'field') reorderFields(active.from, active.over)
+    }
+    setDragState(null)
+  }
+
+  function cancelPointerSort(event) {
+    const active = pointerSortRef.current
+    if (!active || active.pointerId !== event.pointerId) return
+    active.handle?.releasePointerCapture?.(event.pointerId)
+    pointerSortRef.current = null
+    setDragState(null)
+  }
+
+  function consumeSortClick(event) {
+    if (!sortClickGuardRef.current) return false
+    event.preventDefault()
+    event.stopPropagation()
+    sortClickGuardRef.current = false
+    return true
+  }
+
+  function keyboardSort(kind, index, event) {
+    if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return
+    event.preventDefault()
+    const direction = event.key === 'ArrowUp' ? -1 : 1
+    if (kind === 'page') reorderPages(index, index + direction)
+    if (kind === 'field') reorderFields(index, index + direction)
+  }
+
+  function sortClass(base, kind, index) {
+    const classes = [base, 'sortable-row']
+    if (dragState?.kind === kind && dragState.from === index) classes.push('sorting')
+    if (dragState?.kind === kind && dragState.over === index && dragState.from !== index) {
+      classes.push(index < dragState.from ? 'sort-drop-before' : 'sort-drop-after')
+    }
+    return classes.filter(Boolean).join(' ')
+  }
+
   async function copyPublicLink() {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/s/${project.slug}`)
@@ -235,12 +361,40 @@ export default function Studio() {
           <button className={selectedFieldId === COVER_VIEW ? 'outline-special active' : 'outline-special'} type="button" onClick={() => setSelectedFieldId(COVER_VIEW)}><span>01</span><div><strong>시작 화면</strong><small>제목과 소개</small></div></button>
 
           <div className="page-list">
+            {project.pages.length > 1 ? <span className="sort-helper"><DotsSixVertical weight="bold" /> 페이지를 끌어 순서 변경</span> : null}
             {project.pages.map((item, index) => (
-              <div className={pageIndex === index ? 'page-item active' : 'page-item'} key={item.id}>
-                <button type="button" onClick={() => selectPage(index)}>
+              <div
+                className={sortClass(pageIndex === index ? 'page-item active' : 'page-item', 'page', index)}
+                key={item.id}
+                data-sort-kind="page"
+                data-sort-index={index}
+                onDragOver={(event) => moveSortTarget('page', index, event)}
+                onDrop={(event) => finishSort('page', index, event)}
+              >
+                <button
+                  type="button"
+                  draggable={project.pages.length > 1}
+                  onDragStart={(event) => startSort('page', index, event)}
+                  onDragEnd={() => setDragState(null)}
+                  onKeyDown={(event) => keyboardSort('page', index, event)}
+                  onClick={(event) => {
+                    if (!consumeSortClick(event)) selectPage(index)
+                  }}
+                  title={project.pages.length > 1 ? '끌어서 이동 · Alt + 방향키' : undefined}
+                >
                   <span>{index + 1}</span>
                   <strong>{item.title || `페이지 ${index + 1}`}</strong>
                   <small>{item.fields.length}개 항목</small>
+                  {project.pages.length > 1 ? (
+                    <span
+                      className="outline-drag-handle"
+                      onPointerDown={(event) => startPointerSort('page', index, event)}
+                      onPointerMove={movePointerSort}
+                      onPointerUp={endPointerSort}
+                      onPointerCancel={cancelPointerSort}
+                      title="잡고 위아래로 이동"
+                    ><DotsSixVertical weight="bold" /></span>
+                  ) : null}
                 </button>
                 {project.pages.length > 1 ? (
                   <button className="page-remove" type="button" onClick={() => removePage(index)} aria-label="페이지 삭제" title="페이지 삭제"><Trash /></button>
@@ -250,18 +404,43 @@ export default function Studio() {
           </div>
 
           <div className="outline-fields">
-            <span>이 페이지의 질문</span>
+            <div className="outline-fields-label"><span>이 페이지의 질문</span>{page.fields.length > 1 ? <small><DotsSixVertical weight="bold" /> 끌어서 정렬</small> : null}</div>
             <div className="outline-field-list">
               {page.fields.map((field, index) => (
-                <button
-                  className={selectedFieldId === field.id ? 'active' : ''}
-                  type="button"
+                <div
+                  className={sortClass('outline-field-item', 'field', index)}
                   key={field.id}
-                  onClick={() => selectField(field.id, true)}
+                  data-sort-kind="field"
+                  data-sort-index={index}
+                  onDragOver={(event) => moveSortTarget('field', index, event)}
+                  onDrop={(event) => finishSort('field', index, event)}
                 >
-                  <i>{index + 1}</i>
-                  <span><strong>{field.label || '제목 없는 항목'}</strong><small>{TYPE_LABEL[field.type]}</small></span>
-                </button>
+                  <button
+                    className={selectedFieldId === field.id ? 'outline-field-button active' : 'outline-field-button'}
+                    type="button"
+                    draggable={page.fields.length > 1}
+                    onDragStart={(event) => startSort('field', index, event)}
+                    onDragEnd={() => setDragState(null)}
+                    onKeyDown={(event) => keyboardSort('field', index, event)}
+                    onClick={(event) => {
+                      if (!consumeSortClick(event)) selectField(field.id, true)
+                    }}
+                    title={page.fields.length > 1 ? '끌어서 이동 · Alt + 방향키' : undefined}
+                  >
+                    <i>{index + 1}</i>
+                    <span><strong>{field.label || '제목 없는 항목'}</strong><small>{TYPE_LABEL[field.type]}</small></span>
+                    {page.fields.length > 1 ? (
+                      <span
+                        className="outline-drag-handle"
+                        onPointerDown={(event) => startPointerSort('field', index, event)}
+                        onPointerMove={movePointerSort}
+                        onPointerUp={endPointerSort}
+                        onPointerCancel={cancelPointerSort}
+                        title="잡고 위아래로 이동"
+                      ><DotsSixVertical weight="bold" /></span>
+                    ) : null}
+                  </button>
+                </div>
               ))}
             </div>
           </div>

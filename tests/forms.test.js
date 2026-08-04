@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import { moveItem } from '../src/lib/maker'
 import { normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
 
 describe('form maker validation', () => {
+  it('reorders pages and questions without changing the original list', () => {
+    const original = ['첫째', '둘째', '셋째']
+    expect(moveItem(original, 0, 2)).toEqual(['둘째', '셋째', '첫째'])
+    expect(moveItem(original, 2, 0)).toEqual(['셋째', '첫째', '둘째'])
+    expect(original).toEqual(['첫째', '둘째', '셋째'])
+  })
+
   it('normalizes a readable Korean slug', () => {
     expect(normalizeSlug(' 신규 상담 신청 ', '제목')).toBe('신규-상담-신청')
   })

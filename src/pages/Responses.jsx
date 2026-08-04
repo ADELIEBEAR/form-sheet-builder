@@ -1,6 +1,6 @@
-import { ArrowClockwise, ArrowSquareOut, CaretDown, FileCsv, FileXls, LockKey, MagnifyingGlass, SpinnerGap } from '@phosphor-icons/react'
+import { ArrowClockwise, ArrowSquareOut, CaretDown, FileCsv, FileXls, ListBullets, LockKey, MagnifyingGlass, PencilSimple, SpinnerGap } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from '../lib/router'
+import { Link, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import ResponseAdminGate from '../components/ResponseAdminGate'
 import { api, downloadCsv } from '../lib/api'
@@ -88,6 +88,7 @@ export default function Responses() {
 
         {!loading && project && adminReady ? <>
           <div className="responses-heading response-reader-heading"><div><span className="page-eyebrow">응답 관리자 전용</span><h1>응답</h1><p>답변을 한 명씩 펼쳐 읽고, 필요한 파일 형식으로 저장하세요.</p></div><span className="response-security-chip"><LockKey weight="fill" />관리자 인증됨</span></div>
+          <nav className="response-mobile-switcher" aria-label="폼과 응답 빠른 이동"><Link to={`/studio/${projectId}`}><PencilSimple weight="bold" /> 폼 수정</Link><Link to="/responses"><ListBullets weight="bold" /> 전체 응답</Link></nav>
           <section className="response-metrics" aria-label="응답 요약"><article><span>전체 응답</span><strong>{submissions.length.toLocaleString()}</strong></article><article><span>오늘 들어옴</span><strong>{today.toLocaleString()}</strong></article><article className={failed ? 'warning' : ''}><span>전송 확인 필요</span><strong>{failed.toLocaleString()}</strong></article></section>
           {submissions.length ? <div className="response-reader-tools"><label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="답변 내용 검색" /></label><span>{visible.length.toLocaleString()}개 표시</span></div> : null}
           {submissions.length === 0 ? <section className="response-empty"><h2>아직 들어온 응답이 없습니다</h2><p>공개 링크를 공유하면 제출된 응답이 여기에 표시됩니다.</p></section> : null}

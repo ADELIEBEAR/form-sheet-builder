@@ -1,4 +1,4 @@
-import { Check, Copy, DotsThree, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, Plus, Trash } from '@phosphor-icons/react'
+import { Check, Copy, DotsThree, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
@@ -15,6 +15,7 @@ export default function Workspace() {
   const [menu, setMenu] = useState('')
   const [copied, setCopied] = useState('')
   const [folder, setFolder] = useState('전체')
+  const [mobileMeta, setMobileMeta] = useState('')
   const [metaStatus, setMetaStatus] = useState({})
   const projectsRef = useRef([])
   const saveVersionRef = useRef({})
@@ -132,12 +133,17 @@ export default function Workspace() {
                 <small>/s/{project.slug}</small>
               </span>
             </button>
-            <section className={`project-inline-meta memo-tone-${project.memoColor || 'lemon'}`} aria-label={`${project.title} 폴더와 메모`}>
+            <section className={`project-inline-meta memo-tone-${project.memoColor || 'lemon'}${mobileMeta === project.id ? ' mobile-expanded' : ''}`} aria-label={`${project.title} 폴더와 메모`}>
               <header><span><NotePencil weight="fill" /> 폴더 · 메모</span><small className={metaStatus[project.id] || ''}>{metaStatusLabel(project.id)}</small></header>
               <label className="inline-folder-field"><span><Folder weight="fill" /> 폴더</span><input list={`folder-list-${project.id}`} maxLength="80" value={project.folder || ''} onChange={(event) => updateLocalMeta(project.id, { folder: event.target.value })} onBlur={(event) => persistMeta(project.id, { folder: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="미분류" aria-label={`${project.title} 폴더`} /><datalist id={`folder-list-${project.id}`}>{folders.map((item) => <option value={item} key={item} />)}</datalist></label>
               <label className="inline-memo-field"><span>내 메모 <small>{(project.memo || '').length.toLocaleString()} / 2,000</small></span><textarea rows="3" maxLength="2000" value={project.memo || ''} onChange={(event) => updateLocalMeta(project.id, { memo: event.target.value })} onBlur={(event) => persistMeta(project.id, { memo: event.target.value })} onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="마감일, 담당자, 수정할 내용 등을 적어두세요." aria-label={`${project.title} 내 메모`} /></label>
               <fieldset className="inline-memo-colors"><legend>메모 색상</legend><div>{MEMO_COLOR_PRESETS.map(([value, label]) => <button className={`memo-color-${value}${project.memoColor === value ? ' active' : ''}`} type="button" key={value} onClick={() => persistMeta(project.id, { memoColor: value })} aria-label={`${label} 메모 색상`} title={label}>{project.memoColor === value ? <Check weight="bold" /> : null}</button>)}</div></fieldset>
             </section>
+            <nav className="project-mobile-actions" aria-label={`${project.title} 빠른 작업`}>
+              <button type="button" onClick={() => navigate(`/studio/${project.id}`)}><PencilSimple weight="bold" /> 폼 열기</button>
+              <Link to={`/responses/${project.id}`}><LockKey weight="fill" /> 응답 {project.responseCount.toLocaleString()}</Link>
+              <button className={mobileMeta === project.id ? 'active' : ''} type="button" aria-expanded={mobileMeta === project.id} onClick={() => setMobileMeta((current) => current === project.id ? '' : project.id)}><NotePencil weight={mobileMeta === project.id ? 'fill' : 'regular'} /> 메모</button>
+            </nav>
             <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')}</time>
             <Link className="response-count" to={`/responses/${project.id}`}>{project.responseCount.toLocaleString()}개</Link>
             <div className="row-menu-wrap"><button className="row-menu-button" type="button" onClick={() => setMenu(menu === project.id ? '' : project.id)} aria-label="폼 메뉴"><DotsThree /></button>{menu === project.id ? <div className="row-menu">{project.status === 'published' ? <><a href={`/s/${project.slug}`} target="_blank" rel="noreferrer"><Eye /> 공개 폼 보기</a><button type="button" onClick={() => copyLink(project)}>{copied === project.id ? <Check /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button></> : null}<button type="button" onClick={() => duplicate(project.id)}><Copy /> 복제</button><button className="danger" type="button" onClick={() => remove(project.id)}><Trash /> 삭제</button></div> : null}</div>

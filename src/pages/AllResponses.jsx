@@ -95,6 +95,11 @@ export default function AllResponses() {
             </header>
             {filtered.length === 0 ? <div className="response-empty compact"><h2>표시할 응답이 없습니다</h2><p>새 응답이 들어오면 이곳에서 모든 폼을 함께 볼 수 있습니다.</p></div> : null}
             {visible.length ? <div className="response-table-wrap all-response-table"><table><thead><tr><th>제출 시각</th><th>폼</th><th>응답 미리보기</th><th>시트 상태</th><th /></tr></thead><tbody>{visible.map((submission) => { const project = projectMap[submission.projectId]; return <tr key={submission.id}><td className="date-cell">{new Date(submission.submittedAt).toLocaleString('ko-KR')}</td><td><strong>{project?.title || '삭제된 폼'}</strong></td><td className="answer-preview">{answerPreview(submission.answers)}</td><td><span className={`sheet-status ${submission.sheetSyncStatus}`}>{statusLabel[submission.sheetSyncStatus] || submission.sheetSyncStatus}</span></td><td>{project ? <Link className="response-detail-link" to={`/responses/${project.id}`} aria-label={`${project.title} 응답 상세 보기`}><ArrowRight /></Link> : null}</td></tr> })}</tbody></table></div> : null}
+            {visible.length ? <div className="mobile-all-response-list" aria-label="모바일 응답 목록">{visible.map((submission) => {
+              const project = projectMap[submission.projectId]
+              const content = <><span className="mobile-response-topline"><strong>{project?.title || '삭제된 폼'}</strong><span className={`sheet-status ${submission.sheetSyncStatus}`}>{statusLabel[submission.sheetSyncStatus] || submission.sheetSyncStatus}</span></span><p>{answerPreview(submission.answers)}</p><span className="mobile-response-meta"><time>{new Date(submission.submittedAt).toLocaleString('ko-KR')}</time>{project ? <span>자세히 보기 <ArrowRight /></span> : null}</span></>
+              return project ? <Link key={submission.id} to={`/responses/${project.id}`}>{content}</Link> : <article key={submission.id}>{content}</article>
+            })}</div> : null}
             {pageCount > 1 ? <footer className="response-pagination"><button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>이전</button><span>{page} / {pageCount}</span><button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={page === pageCount}>다음</button></footer> : null}
           </section>
         </> : null}

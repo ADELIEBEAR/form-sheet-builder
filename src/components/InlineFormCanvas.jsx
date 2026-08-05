@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, CheckCircle, Plus, X } from '@phosphor-icons/rea
 import { useEffect, useState } from 'react'
 import { FIELD_GROUPS, FONT_STACKS, TYPE_LABEL, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
 import DirectCanvasText from './DirectCanvasText'
+import { CompletionCelebration } from './FormCanvas'
 import FocusEffects from './FocusEffects'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
 import InlineFieldEditor from './InlineFieldEditor'
@@ -111,6 +112,7 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
 
         {isSuccess ? (
           <main className={`focus-content-card focus-success-card studio-success-editor ${transition}`} key="studio-success">
+            <CompletionCelebration />
             <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
             <div className="success-symbol"><CheckCircle weight="fill" /></div>
             <DirectCanvasText className="direct-success-title" label="완료 제목" value={directValue('successTitle')} fallback={directFallback('successTitle', successTitleBase)} minSize={28} maxSize={mobilePreview ? 48 : 72} selected={activeText === 'successTitle'} onSelect={() => setActiveText('successTitle')} onChange={(next) => patchThemeText(directKey('successTitle'), next)} snapToGrid={snapToGrid} mobile={mobilePreview}>

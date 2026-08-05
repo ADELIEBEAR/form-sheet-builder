@@ -195,6 +195,34 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .focus-success-card { position: relative; z-index: 1; align-items: center; text-align: center; }
 .focus-success-card h1 { margin: 0; font-size: min(var(--preview-title-size), 48px); font-weight: var(--preview-title-weight); line-height: var(--preview-title-line); letter-spacing: var(--preview-title-tracking); }
 .focus-success-card p { max-width: 470px; margin: 14px 0 0; color: color-mix(in srgb, var(--preview-text) 62%, transparent); font-size: var(--preview-body-size); font-weight: var(--preview-body-weight); line-height: var(--preview-body-line); letter-spacing: var(--preview-body-tracking); }
+.completion-confetti { position: absolute; z-index: 7; inset: 0; overflow: hidden; pointer-events: none; }
+.success-confetti-particle {
+  position: absolute;
+  left: 50%;
+  top: 25%;
+  width: 9px;
+  height: 15px;
+  border-radius: 3px;
+  background: var(--particle-color);
+  opacity: 0;
+  animation: success-confetti-burst 4.6s cubic-bezier(.18, .78, .24, 1) var(--delay) both;
+  will-change: transform, opacity;
+}
+.success-confetti-particle.shape-1 { width: 11px; height: 11px; border-radius: 50%; }
+.success-confetti-particle.shape-2 { width: 13px; height: 7px; border-radius: 999px; }
+.success-close-panel { position: absolute; z-index: 9; left: 50%; bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 6px 7px 6px 12px; border: 1px solid color-mix(in srgb, var(--preview-text) 12%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--preview-card) 88%, transparent); box-shadow: 0 10px 30px rgb(33 27 51 / .12); backdrop-filter: blur(12px); display: flex; align-items: center; gap: 9px; color: color-mix(in srgb, var(--preview-text) 68%, transparent); font-size: 10px; font-weight: 700; }
+.success-close-panel button { min-height: 30px; padding: 0 11px; border: 0; border-radius: 999px; background: var(--preview-accent); color: #fff; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+@keyframes success-confetti-burst {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(.25) rotate(0); }
+  7% { opacity: 1; }
+  36% { opacity: 1; transform: translate(calc(-50% + var(--burst-x)), var(--burst-y)) scale(1) rotate(var(--spin)); }
+  78% { opacity: .95; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--fall-x)), var(--fall-y)) scale(.82) rotate(var(--spin-end)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .success-confetti-particle { animation: success-confetti-soft 1.2s ease-out var(--delay) both; }
+  @keyframes success-confetti-soft { 0% { opacity: 0; } 24% { opacity: .85; } 100% { opacity: 0; } }
+}
 .form-canvas { position: relative; isolation: isolate; font-family: var(--preview-font); }
 .canvas-banner-media { width: 100%; height: var(--preview-image-height); }
 .canvas-banner-media + .canvas-content { position: relative; margin-top: -42px; }

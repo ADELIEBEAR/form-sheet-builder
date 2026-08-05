@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
+import { useEffect, useState } from 'react'
 import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
 import ColoredText from './ColoredText'
 import FocusEffects from './FocusEffects'
@@ -61,19 +62,68 @@ function coloredText(text, desktopStyle, mobileStyle) {
   return <ColoredText text={text} desktopStyle={desktopStyle} mobileStyle={mobileStyle} />
 }
 
-function SuccessScreen({ project, style, focus, onRestart }) {
+const CONFETTI_COLORS = ['#7156d9', '#ff6b8a', '#ffb547', '#40bfa5', '#4f83ff', '#f06cb5']
+const CONFETTI_PARTICLES = Array.from({ length: 30 }, (_, index) => ({
+  x: ((index * 47) % 330) - 165,
+  y: -55 - ((index * 29) % 155),
+  fall: 320 + ((index * 41) % 230),
+  rotate: 240 + ((index * 83) % 620),
+  delay: (index % 8) * 35,
+  color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+  shape: index % 3,
+}))
+
+export function CompletionCelebration({ autoClose = false }) {
+  const [seconds, setSeconds] = useState(5)
+  const [closeBlocked, setCloseBlocked] = useState(false)
+
+  useEffect(() => {
+    if (!autoClose) return undefined
+    const interval = window.setInterval(() => setSeconds((current) => Math.max(0, current - 1)), 1000)
+    const closeTimer = window.setTimeout(() => {
+      window.clearInterval(interval)
+      window.close()
+      window.setTimeout(() => {
+        if (!window.closed) setCloseBlocked(true)
+      }, 300)
+    }, 5000)
+    return () => {
+      window.clearInterval(interval)
+      window.clearTimeout(closeTimer)
+    }
+  }, [autoClose])
+
+  const closeNow = () => {
+    window.close()
+    window.setTimeout(() => {
+      if (!window.closed) setCloseBlocked(true)
+    }, 300)
+  }
+
+  return (
+    <>
+      <div className="completion-confetti" aria-hidden="true">
+        {CONFETTI_PARTICLES.map((particle, index) => <i className={`success-confetti-particle shape-${particle.shape}`} style={{ '--burst-x': `${particle.x}px`, '--burst-y': `${particle.y}px`, '--fall-x': `${Math.round(particle.x * 1.3)}px`, '--fall-y': `${particle.fall}px`, '--spin': `${particle.rotate}deg`, '--spin-end': `${particle.rotate * 2}deg`, '--delay': `${particle.delay}ms`, '--particle-color': particle.color }} key={index} />)}
+      </div>
+      {autoClose ? <div className="success-close-panel" aria-live="polite"><span>{closeBlocked ? '브라우저가 자동 닫기를 막았어요.' : `${seconds}초 뒤 자동으로 닫혀요.`}</span><button type="button" onClick={closeNow}>{closeBlocked ? '창 닫기' : '지금 닫기'}</button></div> : null}
+    </>
+  )
+}
+
+function SuccessScreen({ project, style, focus, onRestart, closeOnSuccess = false }) {
   const transition = transitionClass(project.theme)
   const typography = resolvePageTypography(project, null)
   const directStyles = project.theme?.directStyles || {}
   return (
     <div className={focus ? 'focus-form-canvas focus-success-canvas' : 'form-canvas success-canvas'} style={style}>
+      <CompletionCelebration autoClose={closeOnSuccess} />
       {focus ? <FocusBackdrop project={project} /> : null}
       <div className={focus ? `focus-content-card focus-success-card ${transition}` : transition}>
         <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
         <div className="success-symbol"><CheckCircle weight="fill" /></div>
         <h1 className="public-direct-text" style={publicTextStyle(directStyles.successTitle, { font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' }, directStyles.successTitleMobile)}>{coloredText(project.settings?.successTitle, directStyles.successTitle, directStyles.successTitleMobile)}</h1>
         <p className="public-direct-text" style={publicTextStyle(directStyles.successBody, { font: project.theme?.font, size: typography.bodySize, align: 'center' }, directStyles.successBodyMobile)}>{coloredText(project.settings?.successMessage, directStyles.successBody, directStyles.successBodyMobile)}</p>
-        {onRestart && project.settings?.restartLabel !== '' ? <button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button> : null}
+        {!closeOnSuccess && onRestart && project.settings?.restartLabel !== '' ? <button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button> : null}
       </div>
     </div>
   )
@@ -89,14 +139,14 @@ function FocusBackdrop({ project }) {
   )
 }
 
-function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart, errors, preview, submitted, submitting }) {
+function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart, errors, preview, submitted, submitting, closeOnSuccess }) {
   const steps = formSteps(project)
   const total = steps.length
   const isCover = stepIndex === 0
   const current = isCover ? null : steps[Math.min(Math.max(stepIndex - 1, 0), Math.max(total - 1, 0))]
   const style = canvasStyle(project, current?.page)
 
-  if (submitted) return <SuccessScreen project={project} style={canvasStyle(project)} focus onRestart={onRestart} />
+  if (submitted) return <SuccessScreen project={project} style={canvasStyle(project)} focus onRestart={onRestart} closeOnSuccess={closeOnSuccess} />
 
   const currentNumber = current ? Math.min(stepIndex, total) : 0
   const canContinue = total > 0
@@ -159,7 +209,7 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
   )
 }
 
-function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart, errors, preview, selectedFieldId, onSelectField, submitted, submitting }) {
+function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart, errors, preview, selectedFieldId, onSelectField, submitted, submitting, closeOnSuccess }) {
   const page = project.pages?.[pageIndex]
   if (!page) return null
   const style = canvasStyle(project, page)
@@ -168,7 +218,7 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart,
   const typography = resolvePageTypography(project, page)
   const directStyles = project.theme?.directStyles || {}
 
-  if (submitted) return <SuccessScreen project={project} style={style} onRestart={onRestart} />
+  if (submitted) return <SuccessScreen project={project} style={style} onRestart={onRestart} closeOnSuccess={closeOnSuccess} />
 
   return (
     <div className="form-canvas" style={style}>
@@ -230,6 +280,7 @@ export default function FormCanvas(props) {
         preview={safeProps.preview}
         submitted={safeProps.submitted}
         submitting={safeProps.submitting}
+        closeOnSuccess={safeProps.closeOnSuccess}
       />
     )
   }

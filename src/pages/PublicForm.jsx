@@ -117,7 +117,7 @@ export default function PublicForm() {
   return (
     <main className="public-page" style={{ background: project.theme?.background || '#f0edfb' }}>
       <form className="public-form-wrap" onSubmit={submit} noValidate>
-        <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={changeAnswers} onPage={movePage} onRestart={restart} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
+        <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={changeAnswers} onPage={movePage} onRestart={restart} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} closeOnSuccess />
         <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
         {message ? <div className="public-submit-error"><WarningCircle /> {message}</div> : null}
       </form>

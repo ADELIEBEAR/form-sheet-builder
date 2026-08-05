@@ -154,6 +154,16 @@ describe('focused form canvas', () => {
     expect(html).toContain('다시 신청하기')
   })
 
+  it('celebrates a public submission and offers an automatic close countdown', () => {
+    const project = emptyProject()
+    const html = renderToStaticMarkup(<FormCanvas project={project} submitted closeOnSuccess />)
+
+    expect(html.match(/success-confetti-particle/g)).toHaveLength(30)
+    expect(html).toContain('5초 뒤 자동으로 닫혀요.')
+    expect(html).toContain('지금 닫기')
+    expect(html).not.toContain('처음부터 보기')
+  })
+
   it('renders every form color and marks the current selection', () => {
     const html = renderToStaticMarkup(<ProjectColorPicker value="mint" onChange={() => {}} />)
 

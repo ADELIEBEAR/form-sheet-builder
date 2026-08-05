@@ -91,6 +91,17 @@ describe('form maker validation', () => {
     expect(project.pages[0].typography).toMatchObject({ titleSize: 34, questionSize: 48, bodySize: 12, questionWeight: 610, questionLineHeight: 142, questionTracking: -2.4, textAlign: 'center' })
   })
 
+  it('stores direct canvas text placement within mobile-safe bounds', () => {
+    const project = sanitizeProject({
+      title: '직접 편집 폼',
+      pages: page([{ id: 'q1', type: 'short', label: '바로 움직일 질문', directStyles: { question: { font: 'hahmlet', size: 66, width: 72, offsetX: 999, offsetY: -999, align: 'center' } } }]),
+      theme: { directStyles: { coverTitle: { font: 'unknown', size: 120, width: 12, offsetX: -500, offsetY: 500, align: 'right' } } },
+    })
+
+    expect(project.pages[0].fields[0].directStyles.question).toMatchObject({ font: 'hahmlet', size: 66, width: 72, offsetX: 120, offsetY: -100, align: 'center' })
+    expect(project.theme.directStyles.coverTitle).toMatchObject({ font: 'pretendard', size: 96, width: 48, offsetX: -120, offsetY: 100, align: 'left' })
+  })
+
   it('stores supported visual effects and rejects unknown animation settings', () => {
     const supported = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'liquid', motion: 'playful' } })
     const fallback = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'webgl-magic', motion: 'fastest' } })

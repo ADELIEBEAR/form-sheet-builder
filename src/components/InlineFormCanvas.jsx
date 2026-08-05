@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, CheckCircle, Plus, X } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FIELD_GROUPS, FONT_STACKS, TYPE_LABEL, formSteps, resolvePageTypography } from '../lib/maker'
+import DirectCanvasText from './DirectCanvasText'
 import FocusEffects from './FocusEffects'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
 import InlineFieldEditor from './InlineFieldEditor'
@@ -10,7 +11,11 @@ export const SUCCESS_VIEW = '__success__'
 
 export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, onProjectChange, onPageChange, onNavigate, onFieldSelect, onFieldChange, onFieldAdd, onFieldDuplicate, onFieldDelete, onFieldMove }) {
   const [adding, setAdding] = useState(false)
+  const [activeText, setActiveText] = useState('coverTitle')
   const page = project.pages[pageIndex]
+  useEffect(() => {
+    setActiveText(selectedFieldId === COVER_VIEW ? 'coverTitle' : selectedFieldId === SUCCESS_VIEW ? 'successTitle' : 'question')
+  }, [selectedFieldId])
   if (!page) return null
 
   const selectedIndex = page.fields.findIndex((field) => field.id === selectedFieldId)
@@ -62,6 +67,11 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
     onFieldAdd(type)
     setAdding(false)
   }
+  const directStyles = project.theme?.directStyles || {}
+  const patchThemeText = (key, next) => onProjectChange({
+    ...project,
+    theme: { ...project.theme, directStyles: { ...directStyles, [key]: next } },
+  })
 
   return (
     <div className="inline-form-canvas maker-editor-canvas" style={style}>
@@ -81,8 +91,12 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
           <main className={`focus-content-card focus-cover-card studio-cover-editor ${transition}`} key="studio-cover">
             <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
             <input className="focus-editor-kicker" value={copy.coverKicker ?? 'WELCOME'} onChange={(event) => onProjectChange({ ...project, settings: { ...copy, coverKicker: event.target.value } })} aria-label="시작 화면 작은 문구" placeholder="작은 문구" />
-            <textarea className="focus-editor-title" rows="1" value={project.title} onChange={(event) => onProjectChange({ ...project, title: event.target.value })} aria-label="폼 제목" placeholder="폼 제목을 입력하세요" />
-            <textarea className="focus-editor-description" rows="2" value={project.description || ''} onChange={(event) => onProjectChange({ ...project, description: event.target.value })} aria-label="폼 설명" placeholder="응답자에게 보여줄 안내를 입력하세요" />
+            <DirectCanvasText className="direct-cover-title" label="제목" value={directStyles.coverTitle} fallback={{ font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }} minSize={28} maxSize={96} selected={activeText === 'coverTitle'} onSelect={() => setActiveText('coverTitle')} onChange={(next) => patchThemeText('coverTitle', next)}>
+              <textarea className="focus-editor-title" rows="1" value={project.title} onChange={(event) => onProjectChange({ ...project, title: event.target.value })} aria-label="폼 제목" placeholder="폼 제목을 입력하세요" />
+            </DirectCanvasText>
+            <DirectCanvasText className="direct-cover-body" label="설명" value={directStyles.coverBody} fallback={{ font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }} minSize={12} maxSize={40} selected={activeText === 'coverBody'} onSelect={() => setActiveText('coverBody')} onChange={(next) => patchThemeText('coverBody', next)}>
+              <textarea className="focus-editor-description" rows="2" value={project.description || ''} onChange={(event) => onProjectChange({ ...project, description: event.target.value })} aria-label="폼 설명" placeholder="응답자에게 보여줄 안내를 입력하세요" />
+            </DirectCanvasText>
             <button className="focus-primary" type="button" onClick={() => navigateToStep(0)} disabled={!steps.length} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button>
           </main>
         ) : null}
@@ -91,8 +105,12 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
           <main className={`focus-content-card focus-success-card studio-success-editor ${transition}`} key="studio-success">
             <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
             <div className="success-symbol"><CheckCircle weight="fill" /></div>
-            <textarea className="focus-editor-success-title" rows="1" value={project.settings.successTitle} onChange={(event) => onProjectChange({ ...project, settings: { ...project.settings, successTitle: event.target.value } })} aria-label="제출 완료 제목" />
-            <textarea className="focus-editor-description" rows="2" value={project.settings.successMessage} onChange={(event) => onProjectChange({ ...project, settings: { ...project.settings, successMessage: event.target.value } })} aria-label="제출 완료 안내" />
+            <DirectCanvasText className="direct-success-title" label="완료 제목" value={directStyles.successTitle} fallback={{ font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' }} minSize={28} maxSize={72} selected={activeText === 'successTitle'} onSelect={() => setActiveText('successTitle')} onChange={(next) => patchThemeText('successTitle', next)}>
+              <textarea className="focus-editor-success-title" rows="1" value={project.settings.successTitle} onChange={(event) => onProjectChange({ ...project, settings: { ...project.settings, successTitle: event.target.value } })} aria-label="제출 완료 제목" />
+            </DirectCanvasText>
+            <DirectCanvasText className="direct-success-body" label="완료 설명" value={directStyles.successBody} fallback={{ font: project.theme?.font, size: typography.bodySize, align: 'center' }} minSize={12} maxSize={32} selected={activeText === 'successBody'} onSelect={() => setActiveText('successBody')} onChange={(next) => patchThemeText('successBody', next)}>
+              <textarea className="focus-editor-description" rows="2" value={project.settings.successMessage} onChange={(event) => onProjectChange({ ...project, settings: { ...project.settings, successMessage: event.target.value } })} aria-label="제출 완료 안내" />
+            </DirectCanvasText>
             <button className="focus-restart" type="button" onClick={() => onNavigate?.(0, COVER_VIEW)} aria-label={copy.restartLabel || '처음부터 보기'}>{copy.restartLabel ?? '처음부터 보기'}</button>
           </main>
         ) : null}
@@ -120,6 +138,14 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
                 onDuplicate={() => onFieldDuplicate(selectedField.id)}
                 onDelete={() => onFieldDelete(selectedField.id)}
                 onMove={(direction) => onFieldMove(selectedField.id, direction)}
+                directStyles={selectedField.directStyles}
+                directFallbacks={{
+                  question: { font: project.theme?.font, size: typography.questionSize, align: typography.textAlign },
+                  body: { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign },
+                }}
+                activeTextRole={activeText}
+                onTextRoleSelect={setActiveText}
+                onDirectStyleChange={(role, next) => onFieldChange(selectedField.id, { ...selectedField, directStyles: { ...(selectedField.directStyles || {}), [role]: next } })}
               />
             ) : <div className="studio-no-question"><strong>이 페이지가 비어 있습니다</strong><p>아래에서 첫 질문을 추가하세요.</p></div>}
             {selectedField ? <footer className="focus-actions studio-flow-actions">

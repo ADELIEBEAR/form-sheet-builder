@@ -39,6 +39,23 @@ function safeText(value, fallback, maxLength) {
   return String(value == null ? fallback : value).slice(0, maxLength)
 }
 
+function sanitizeDirectTextStyle(input, fallbackSize, minSize, maxSize) {
+  if (!input || typeof input !== 'object') return null
+  return {
+    font: allowedFonts.has(input.font) ? input.font : 'pretendard',
+    size: safeSize(input.size, fallbackSize, minSize, maxSize),
+    width: safeSize(input.width, 100, 48, 100),
+    offsetX: safeSize(input.offsetX, 0, -120, 120),
+    offsetY: safeSize(input.offsetY, 0, -100, 100),
+    align: allowedTextAlignments.has(input.align) ? input.align : 'left',
+  }
+}
+
+function sanitizeDirectTextGroup(input, roles) {
+  if (!input || typeof input !== 'object') return null
+  return Object.fromEntries(roles.map(([key, fallbackSize, minSize, maxSize]) => [key, sanitizeDirectTextStyle(input[key], fallbackSize, minSize, maxSize)]))
+}
+
 function safeConsentUrl(value) {
   const input = String(value || '').trim()
   if (!input) return ''
@@ -77,6 +94,10 @@ function sanitizeField(field) {
     consentText,
     consentLinkLabel: consentLinkUrl ? String(field?.consentLinkLabel || '자세히 보기').trim().slice(0, 120) || '자세히 보기' : '',
     consentLinkUrl,
+    directStyles: sanitizeDirectTextGroup(field?.directStyles, [
+      ['question', 32, 20, 72],
+      ['body', 16, 12, 32],
+    ]),
   }
 }
 
@@ -203,6 +224,12 @@ export function sanitizeProject(input) {
       questionTracking: defaultQuestionTracking,
       bodyTracking: defaultBodyTracking,
       textAlign: defaultTextAlign,
+      directStyles: sanitizeDirectTextGroup(input?.theme?.directStyles, [
+        ['coverTitle', defaultTitleSize, 28, 96],
+        ['coverBody', defaultBodySize, 12, 40],
+        ['successTitle', defaultTitleSize, 28, 72],
+        ['successBody', defaultBodySize, 12, 32],
+      ]),
       effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
       motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',
       transition: allowedTransitions.has(input?.theme?.transition) ? input.theme.transition : 'rise',

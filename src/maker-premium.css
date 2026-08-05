@@ -711,6 +711,162 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .inline-field-actions-top button.danger { margin-left: 3px; background: color-mix(in srgb, #c33d53 8%, transparent); }
 .inline-field-controls { align-items: center; }
 
+/* Canvas-first text editing */
+.studio-focus-shell .focus-content-card { overflow: visible; }
+.direct-canvas-text {
+  position: relative;
+  z-index: 2;
+  width: min(100%, var(--direct-width, 100%));
+  transform: translate(var(--direct-x, 0), var(--direct-y, 0));
+  transform-origin: 0 0;
+  font-family: var(--direct-font, var(--preview-font));
+  text-align: var(--direct-align, left);
+  transition: width .18s cubic-bezier(.2, .8, .2, 1), transform .18s cubic-bezier(.2, .8, .2, 1);
+}
+.canvas-direct-manipulating .direct-canvas-text { transition: none; }
+.canvas-direct-manipulating { cursor: grabbing; user-select: none; }
+.direct-canvas-text::after {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  inset: -7px;
+  border: 1.5px solid transparent;
+  border-radius: 9px;
+  pointer-events: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.direct-canvas-text:hover::after { border-color: color-mix(in srgb, var(--preview-accent) 25%, transparent); }
+.direct-canvas-text.selected { z-index: 14; }
+.direct-canvas-text.selected::after {
+  border-color: var(--preview-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--preview-accent) 10%, transparent);
+}
+.direct-canvas-text .focus-editor-title,
+.direct-canvas-text .focus-editor-description,
+.direct-canvas-text .focus-editor-success-title,
+.direct-canvas-text .inline-question-input,
+.direct-canvas-text .inline-description-input {
+  font-family: inherit;
+  font-size: var(--direct-size);
+  text-align: var(--direct-align);
+}
+.direct-canvas-text .focus-editor-success-title { font-size: var(--direct-size); }
+.direct-question-text,
+.direct-question-body { transform-origin: 0 50%; }
+.direct-question-body { margin-top: 9px; }
+.studio-question-editor .direct-question-body .inline-description-input { margin-top: 0; }
+.direct-success-title,
+.direct-success-body { align-self: center; }
+
+.direct-text-toolbar {
+  position: absolute;
+  z-index: 24;
+  left: -7px;
+  bottom: calc(100% + 13px);
+  width: max-content;
+  max-width: min(660px, calc(100vw - 28px));
+  min-height: 40px;
+  padding: 5px;
+  border: 1px solid rgb(255 255 255 / .12);
+  border-radius: 10px;
+  background: #272431;
+  box-shadow: 0 16px 36px rgb(30 25 42 / .25), inset 0 1px 0 rgb(255 255 255 / .08);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #fff;
+  font-family: Pretendard, "Noto Sans KR", sans-serif;
+  text-align: left;
+  transform: none;
+}
+.direct-text-toolbar > span { padding: 0 5px; color: #c7c1d0; font-size: 9px; font-weight: 780; white-space: nowrap; }
+.direct-text-toolbar select {
+  width: 112px;
+  min-height: 29px;
+  padding: 0 23px 0 8px;
+  border: 1px solid #4a4555;
+  border-radius: 6px;
+  outline: 0;
+  background: #34303d;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+}
+.direct-text-toolbar select:focus-visible { border-color: #ad9bf1; box-shadow: 0 0 0 2px rgb(173 155 241 / .22); }
+.direct-text-toolbar > button,
+.direct-align-buttons button {
+  min-width: 29px;
+  height: 29px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #e6e2ea;
+  display: inline-grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 760;
+  cursor: pointer;
+}
+.direct-text-toolbar > button:hover,
+.direct-align-buttons button:hover,
+.direct-align-buttons button.active { background: #4a435d; color: #fff; }
+.direct-text-toolbar > button:active,
+.direct-align-buttons button:active { transform: scale(.94); }
+.direct-text-toolbar svg { width: 14px; height: 14px; }
+.direct-text-toolbar output { min-width: 37px; color: #fff; text-align: center; font-size: 9px; font-weight: 760; font-variant-numeric: tabular-nums; }
+.direct-move-button { cursor: grab !important; }
+.direct-move-button:active { cursor: grabbing !important; }
+.direct-align-buttons { padding-left: 3px; border-left: 1px solid #474250; display: flex; gap: 2px; }
+.direct-align-buttons button { min-width: 25px; }
+.direct-reset-button { margin-left: 2px; color: #bbb4c5 !important; }
+.direct-width-handle,
+.direct-size-handle {
+  position: absolute;
+  z-index: 28;
+  padding: 0;
+  border: 2px solid var(--preview-card);
+  background: var(--preview-accent);
+  box-shadow: 0 0 0 1px var(--preview-accent), 0 3px 8px rgb(38 30 66 / .2);
+}
+.direct-width-handle { width: 9px; height: 22px; right: -11px; top: 50%; border-radius: 5px; cursor: ew-resize; transform: translateY(-50%); }
+.direct-size-handle { width: 12px; height: 12px; right: -12px; bottom: -12px; border-radius: 3px; cursor: nwse-resize; }
+.direct-canvas-text:focus-within::after { border-color: var(--preview-accent); }
+
+.public-direct-text {
+  width: min(100%, var(--public-direct-width, 100%));
+  max-width: 100%;
+  transform: translate(var(--public-direct-x, 0), var(--public-direct-y, 0));
+  transform-origin: 0 0;
+  font-family: var(--public-direct-font, var(--preview-font));
+  text-align: var(--public-direct-align, var(--preview-text-align));
+}
+.focus-form-canvas .public-direct-text,
+.form-canvas .public-direct-text { font-size: var(--public-direct-size); }
+.focus-form-canvas .render-heading .public-direct-text,
+.form-canvas .render-heading .public-direct-text { font-size: var(--public-direct-size); }
+
+@media (max-width: 720px) {
+  .direct-text-toolbar { max-width: calc(100vw - 36px); flex-wrap: wrap; }
+  .direct-text-toolbar > span { display: none; }
+  .direct-text-toolbar select { width: 92px; }
+  .direct-align-buttons button { min-width: 24px; padding-inline: 5px; }
+  .public-direct-text {
+    width: min(100%, var(--public-direct-width, 100%));
+    transform: translate(clamp(-28px, var(--public-direct-x, 0), 28px), clamp(-48px, var(--public-direct-y, 0), 48px));
+  }
+  .focus-cover-card h1.public-direct-text,
+  .focus-success-card h1.public-direct-text,
+  .form-canvas .canvas-intro h1.public-direct-text { font-size: min(var(--public-direct-size), 12vw); }
+  .focus-question-card legend.public-direct-text,
+  .focus-question-card .render-heading h3.public-direct-text,
+  .form-canvas legend.public-direct-text { font-size: min(var(--public-direct-size), 9vw); }
+  .focus-cover-card p.public-direct-text,
+  .focus-success-card p.public-direct-text,
+  .render-help.public-direct-text,
+  .render-heading p.public-direct-text { font-size: min(var(--public-direct-size), 5.6vw); }
+}
+
 /* Foldered workspace */
 .folder-filter { margin: -12px 0 25px; display: flex; flex-wrap: wrap; gap: 7px; }
 .folder-filter button { min-height: 35px; padding: 0 11px; border: 1px solid var(--app-line); border-radius: 10px; background: #fff; color: var(--app-muted); display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 740; cursor: pointer; }

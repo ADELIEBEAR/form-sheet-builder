@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
-import { FONT_STACKS, formSteps, resolvePageTypography } from '../lib/maker'
+import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
 import FocusEffects from './FocusEffects'
 import FormField from './FormField'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
@@ -31,16 +31,31 @@ function canvasStyle(project, page = null) {
   }
 }
 
+function publicTextStyle(value, fallback) {
+  if (!value || typeof value !== 'object') return {}
+  const resolved = resolveDirectTextStyle(value, fallback)
+  return {
+    '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
+    '--public-direct-size': `${resolved.size}px`,
+    '--public-direct-width': `${resolved.width}%`,
+    '--public-direct-x': `${resolved.offsetX}px`,
+    '--public-direct-y': `${resolved.offsetY}px`,
+    '--public-direct-align': resolved.align,
+  }
+}
+
 function SuccessScreen({ project, style, focus, onRestart }) {
   const transition = transitionClass(project.theme)
+  const typography = resolvePageTypography(project, null)
+  const directStyles = project.theme?.directStyles || {}
   return (
     <div className={focus ? 'focus-form-canvas focus-success-canvas' : 'form-canvas success-canvas'} style={style}>
       {focus ? <FocusBackdrop project={project} /> : null}
       <div className={focus ? `focus-content-card focus-success-card ${transition}` : transition}>
         <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
         <div className="success-symbol"><CheckCircle weight="fill" /></div>
-        <h1>{project.settings?.successTitle}</h1>
-        <p>{project.settings?.successMessage}</p>
+        <h1 className="public-direct-text" style={publicTextStyle(directStyles.successTitle, { font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' })}>{project.settings?.successTitle}</h1>
+        <p className="public-direct-text" style={publicTextStyle(directStyles.successBody, { font: project.theme?.font, size: typography.bodySize, align: 'center' })}>{project.settings?.successMessage}</p>
         {onRestart && project.settings?.restartLabel !== '' ? <button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button> : null}
       </div>
     </div>
@@ -71,6 +86,8 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
   const copy = project.settings || {}
   const transition = transitionClass(project.theme)
   const hasBanner = Boolean(project.theme?.coverUrl && mediaMode(project.theme) === 'banner')
+  const typography = resolvePageTypography(project, null)
+  const directStyles = project.theme?.directStyles || {}
 
   return (
     <div className="focus-form-canvas" style={style}>
@@ -88,8 +105,8 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
           <main className={`focus-cover-card focus-content-card ${transition}`} key="cover">
             <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
             {copy.coverKicker !== '' ? <span className="focus-kicker">{copy.coverKicker ?? 'WELCOME'}</span> : null}
-            <h1>{project.title}</h1>
-            {project.description ? <p>{project.description}</p> : null}
+            <h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign })}>{project.title}</h1>
+            {project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign })}>{project.description}</p> : null}
             <button className="focus-primary" type="button" onClick={() => onStep?.(1)} disabled={preview || !canContinue} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button>
           </main>
         ) : current ? (
@@ -131,6 +148,8 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart,
   const style = canvasStyle(project, page)
   const copy = project.settings || {}
   const transition = transitionClass(project.theme)
+  const typography = resolvePageTypography(project, page)
+  const directStyles = project.theme?.directStyles || {}
 
   if (submitted) return <SuccessScreen project={project} style={style} onRestart={onRestart} />
 
@@ -142,7 +161,7 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart,
         <FormMedia theme={project.theme} placement="card" className="canvas-card-media" />
         {project.theme?.showProgress && project.pages.length > 1 ? <div className="page-progress"><span style={{ width: `${((pageIndex + 1) / project.pages.length) * 100}%` }} /></div> : null}
         <header className="canvas-intro">
-          {pageIndex === 0 ? <><h1>{project.title}</h1>{project.description ? <p>{project.description}</p> : null}</> : null}
+          {pageIndex === 0 ? <><h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign })}>{project.title}</h1>{project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign })}>{project.description}</p> : null}</> : null}
           {project.pages.length > 1 ? <div className="page-copy"><small>{pageIndex + 1} / {project.pages.length}</small><h2>{page.title}</h2>{page.description ? <p>{page.description}</p> : null}</div> : null}
         </header>
         <div className="canvas-fields">

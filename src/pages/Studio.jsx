@@ -454,8 +454,8 @@ export default function Studio() {
 
           <div className="stage-toolbar">
             <div className="studio-toolbar-copy">
-              <strong>한 화면에 한 질문</strong>
-              <span>응답자가 보는 화면을 직접 눌러 편집하세요</span>
+              <strong>화면에서 바로 디자인</strong>
+              <span>글자를 누른 뒤 핸들로 크기와 위치를 조절하세요</span>
             </div>
             <div className="studio-toolbar-actions">
               <div className="device-switch" aria-label="미리보기 화면 크기">

@@ -233,6 +233,18 @@ export function resolvePageTypography(project, page) {
   }
 }
 
+export function resolveDirectTextStyle(value, fallback = {}) {
+  const source = value && typeof value === 'object' ? value : {}
+  return {
+    font: source.font || fallback.font || 'pretendard',
+    size: Number.isFinite(Number(source.size)) ? Number(source.size) : (fallback.size ?? 16),
+    width: Number.isFinite(Number(source.width)) ? Number(source.width) : 100,
+    offsetX: Number.isFinite(Number(source.offsetX)) ? Number(source.offsetX) : 0,
+    offsetY: Number.isFinite(Number(source.offsetY)) ? Number(source.offsetY) : 0,
+    align: source.align || fallback.align || 'left',
+  }
+}
+
 export function emptyProject() {
   return {
     title: '제목 없는 폼',
@@ -262,6 +274,7 @@ export function emptyProject() {
       questionTracking: -4.5,
       bodyTracking: 0,
       textAlign: 'left',
+      directStyles: null,
       effect: 'aurora',
       motion: 'soft',
       transition: 'rise',

@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
+import DirectCanvasText from '../src/components/DirectCanvasText'
 import InlineFieldEditor from '../src/components/InlineFieldEditor'
 import ProjectColorPicker from '../src/components/ProjectColorPicker'
 import { emptyProject, formSteps, makePage } from '../src/lib/maker'
@@ -38,6 +39,29 @@ describe('focused form canvas', () => {
     expect(html).toContain('--preview-question-line:1.42')
     expect(html).toContain('--preview-question-tracking:-0.024em')
     expect(html).toContain('--preview-text-align:center')
+  })
+
+  it('renders saved direct text size, width, position, font, and alignment', () => {
+    const project = emptyProject()
+    project.pages[0].fields[0].directStyles = { question: { font: 'hahmlet', size: 44, width: 73, offsetX: 18, offsetY: -12, align: 'center' } }
+
+    const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={1} preview />)
+
+    expect(html).toContain('--public-direct-size:44px')
+    expect(html).toContain('--public-direct-width:73%')
+    expect(html).toContain('--public-direct-x:18px')
+    expect(html).toContain('--public-direct-y:-12px')
+    expect(html).toContain('--public-direct-align:center')
+    expect(html).toContain('Hahmlet')
+  })
+
+  it('shows direct manipulation controls on the selected canvas text', () => {
+    const html = renderToStaticMarkup(<DirectCanvasText label="질문" value={{ font: 'pretendard', size: 32, width: 100, offsetX: 0, offsetY: 0, align: 'left' }} fallback={{ size: 32 }} minSize={20} maxSize={72} selected onSelect={() => {}} onChange={() => {}}><span>질문 내용</span></DirectCanvasText>)
+
+    expect(html).toContain('질문 빠른 디자인')
+    expect(html).toContain('질문 위치 이동')
+    expect(html).toContain('질문 너비 조절')
+    expect(html).toContain('질문 글자 크기 조절')
   })
 
   it('renders customized copy, image placement, and transition choices', () => {

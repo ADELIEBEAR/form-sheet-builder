@@ -1,11 +1,12 @@
 import { ArrowDown, ArrowUp, Check, Copy, LinkSimple, Plus, Trash } from '@phosphor-icons/react'
 import { changeFieldType, FIELD_TYPES } from '../lib/maker'
+import DirectCanvasText from './DirectCanvasText'
 import FormField from './FormField'
 
 const OPTION_TYPES = ['single', 'multi', 'select']
 const PLACEHOLDER_TYPES = ['short', 'long', 'email', 'phone', 'number', 'date']
 
-export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove }) {
+export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove, directStyles, directFallbacks, activeTextRole, onTextRoleSelect, onDirectStyleChange }) {
   const hasOptions = OPTION_TYPES.includes(field.type)
   const hasPlaceholder = PLACEHOLDER_TYPES.includes(field.type)
   const isConsent = field.type === 'consent'
@@ -32,22 +33,26 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
         </div> : null}
       </div>
 
-      <textarea
-        className="inline-question-input"
-        rows="1"
-        value={field.label}
-        onChange={(event) => patch({ label: event.target.value })}
-        aria-label={`${index + 1}번째 ${field.type === 'heading' ? '제목' : '질문'}`}
-        placeholder={field.type === 'heading' ? '안내 제목' : isConsent ? '동의 항목 제목을 입력하세요' : '질문을 입력하세요'}
-      />
-      <textarea
-        className="inline-description-input"
-        rows="1"
-        value={field.description || ''}
-        onChange={(event) => patch({ description: event.target.value })}
-        aria-label={`${index + 1}번째 설명`}
-        placeholder={isConsent ? '수집 항목·이용 목적·보관 기간 등 안내를 적어주세요' : '설명이 필요하면 여기에 입력하세요'}
-      />
+      <DirectCanvasText className="direct-question-text" label={field.type === 'heading' ? '안내 제목' : '질문'} value={directStyles?.question} fallback={directFallbacks?.question || { size: 32 }} minSize={20} maxSize={72} selected={selected && activeTextRole === 'question'} onSelect={() => onTextRoleSelect?.('question')} onChange={(next) => onDirectStyleChange?.('question', next)}>
+        <textarea
+          className="inline-question-input"
+          rows="1"
+          value={field.label}
+          onChange={(event) => patch({ label: event.target.value })}
+          aria-label={`${index + 1}번째 ${field.type === 'heading' ? '제목' : '질문'}`}
+          placeholder={field.type === 'heading' ? '안내 제목' : isConsent ? '동의 항목 제목을 입력하세요' : '질문을 입력하세요'}
+        />
+      </DirectCanvasText>
+      <DirectCanvasText className="direct-question-body" label="설명" value={directStyles?.body} fallback={directFallbacks?.body || { size: 16 }} minSize={12} maxSize={32} selected={selected && activeTextRole === 'body'} onSelect={() => onTextRoleSelect?.('body')} onChange={(next) => onDirectStyleChange?.('body', next)}>
+        <textarea
+          className="inline-description-input"
+          rows="1"
+          value={field.description || ''}
+          onChange={(event) => patch({ description: event.target.value })}
+          aria-label={`${index + 1}번째 설명`}
+          placeholder={isConsent ? '수집 항목·이용 목적·보관 기간 등 안내를 적어주세요' : '설명이 필요하면 여기에 입력하세요'}
+        />
+      </DirectCanvasText>
 
       {field.type !== 'heading' && hasOptions ? <div className="inline-option-editor">{field.options.map((option, optionIndex) => <div key={`${field.id}-${optionIndex}`}><span className={field.type === 'single' ? 'option-dot' : 'option-box'} /><input value={option} onChange={(event) => patch({ options: field.options.map((item, itemIndex) => itemIndex === optionIndex ? event.target.value : item) })} aria-label={`${optionIndex + 1}번째 선택지`} />{selected ? <button type="button" onClick={() => patch({ options: field.options.filter((_, itemIndex) => itemIndex !== optionIndex) })} disabled={field.options.length === 1} aria-label={`${optionIndex + 1}번째 선택지 삭제`}><Trash /></button> : null}</div>)}<button className="inline-add-option" type="button" onClick={() => patch({ options: [...field.options, `선택 ${field.options.length + 1}`] })}><Plus /> 선택지 추가</button></div> : null}
       {isConsent ? <div className="inline-consent-editor"><span className="choice-indicator"><Check weight="bold" /></span><label><small>체크박스 문구 · 눌러서 바로 수정</small><textarea rows="2" value={field.consentText == null ? consentLabel : field.consentText} maxLength="500" onChange={(event) => patch({ consentText: event.target.value })} aria-label={`${index + 1}번째 동의 체크박스 문구`} placeholder="응답자가 직접 체크할 동의 문구" /></label></div> : null}

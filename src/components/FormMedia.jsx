@@ -1,3 +1,7 @@
+import { TRANSITION_PRESETS } from '../lib/maker'
+
+const transitionIds = new Set(TRANSITION_PRESETS.map(([transition]) => transition))
+
 export function mediaMode(theme) {
   if (['background', 'banner', 'card'].includes(theme?.imageMode)) return theme.imageMode
   return theme?.layout === 'card' ? 'banner' : 'background'
@@ -17,9 +21,7 @@ export function mediaVariables(theme) {
 }
 
 export function transitionClass(theme) {
-  const transition = ['rise', 'fade', 'slide', 'zoom', 'flip', 'none'].includes(theme?.transition)
-    ? theme.transition
-    : 'rise'
+  const transition = transitionIds.has(theme?.transition) ? theme.transition : 'rise'
   return `form-screen-enter transition-${transition}`
 }
 

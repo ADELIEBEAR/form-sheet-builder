@@ -102,9 +102,17 @@ export const MOTION_PRESETS = [
 export const TRANSITION_PRESETS = [
   ['rise', '살짝 떠오르기'],
   ['fade', '부드럽게 나타나기'],
-  ['slide', '옆으로 넘기기'],
+  ['slide', '오른쪽에서 밀기'],
+  ['slide-left', '왼쪽에서 밀기'],
+  ['slide-up', '아래에서 올리기'],
+  ['drop', '위에서 내려오기'],
   ['zoom', '가볍게 확대'],
+  ['shrink', '살짝 축소하며 안착'],
   ['flip', '카드 뒤집기'],
+  ['swing', '가볍게 흔들기'],
+  ['blur', '초점 맞추기'],
+  ['reveal', '커튼처럼 열기'],
+  ['bounce', '말랑하게 착지'],
   ['none', '전환 없음'],
 ]
 

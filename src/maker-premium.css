@@ -182,14 +182,30 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .transition-rise { animation-name: form-transition-rise; }
 .transition-fade { animation-name: form-transition-fade; }
 .transition-slide { animation-name: form-transition-slide; }
+.transition-slide-left { animation-name: form-transition-slide-left; }
+.transition-slide-up { animation-name: form-transition-slide-up; }
+.transition-drop { animation-name: form-transition-drop; }
 .transition-zoom { animation-name: form-transition-zoom; }
+.transition-shrink { animation-name: form-transition-shrink; }
 .transition-flip { animation-name: form-transition-flip; backface-visibility: hidden; }
+.transition-swing { animation-name: form-transition-swing; transform-origin: 50% 0; }
+.transition-blur { animation-name: form-transition-blur; }
+.transition-reveal { animation-name: form-transition-reveal; }
+.transition-bounce { animation-name: form-transition-bounce; }
 .transition-none { animation: none; }
 @keyframes form-transition-rise { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes form-transition-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes form-transition-slide { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes form-transition-slide-left { from { opacity: 0; transform: translateX(-42px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes form-transition-slide-up { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes form-transition-drop { from { opacity: 0; transform: translateY(-38px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes form-transition-zoom { from { opacity: 0; transform: scale(.93); } to { opacity: 1; transform: scale(1); } }
+@keyframes form-transition-shrink { from { opacity: 0; transform: scale(1.075); } to { opacity: 1; transform: scale(1); } }
 @keyframes form-transition-flip { from { opacity: 0; transform: perspective(900px) rotateY(9deg) translateX(16px); } to { opacity: 1; transform: perspective(900px) rotateY(0) translateX(0); } }
+@keyframes form-transition-swing { from { opacity: 0; transform: translateY(-12px) rotateZ(-3.5deg); } 70% { transform: translateY(1px) rotateZ(.7deg); } to { opacity: 1; transform: translateY(0) rotateZ(0); } }
+@keyframes form-transition-blur { from { opacity: 0; filter: blur(12px); transform: scale(.985); } to { opacity: 1; filter: blur(0); transform: scale(1); } }
+@keyframes form-transition-reveal { from { opacity: .2; clip-path: inset(0 100% 0 0 round var(--preview-radius)); transform: translateX(-12px); } to { opacity: 1; clip-path: inset(0 0 0 0 round var(--preview-radius)); transform: translateX(0); } }
+@keyframes form-transition-bounce { 0% { opacity: 0; transform: translateY(34px) scale(.96); } 68% { opacity: 1; transform: translateY(-5px) scale(1.01); } 86% { transform: translateY(2px) scale(.997); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 
 .focus-success-canvas { min-height: 700px; padding: 74px 24px; }
 .focus-success-card { position: relative; z-index: 1; align-items: center; text-align: center; }
@@ -409,9 +425,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .transition-option > i b { width: 20px; height: 24px; border-radius: 5px; background: #fff; box-shadow: 0 4px 10px rgb(45 37 69 / .15); }
 .transition-demo-fade > i b { opacity: .62; }
 .transition-demo-slide > i b { transform: translateX(5px); }
+.transition-demo-slide-left > i b { transform: translateX(-5px); }
+.transition-demo-slide-up > i b { transform: translateY(5px); }
+.transition-demo-drop > i b { transform: translateY(-5px); }
 .transition-demo-rise > i b { transform: translateY(-3px); }
 .transition-demo-zoom > i b { transform: scale(.82); }
+.transition-demo-shrink > i b { transform: scale(1.12); }
 .transition-demo-flip > i b { transform: perspective(70px) rotateY(-22deg); }
+.transition-demo-swing > i b { transform: rotateZ(-7deg); transform-origin: 50% 0; }
+.transition-demo-blur > i b { filter: blur(1.5px); opacity: .72; }
+.transition-demo-reveal > i b { clip-path: inset(0 36% 0 0 round 5px); }
+.transition-demo-bounce > i b { transform: translateY(4px) scale(.94); }
 .transition-demo-none > i b { box-shadow: none; }
 .transition-speed-control { margin-top: 12px; margin-bottom: 0; }
 .theme-grid { grid-template-columns: repeat(3, 1fr); }

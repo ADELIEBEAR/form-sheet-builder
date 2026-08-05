@@ -155,7 +155,7 @@ describe('focused form canvas', () => {
     project.settings.startLabel = '바로 참여'
     project.theme.coverUrl = 'https://example.com/cover.webp'
     project.theme.imageMode = 'banner'
-    project.theme.transition = 'slide'
+    project.theme.transition = 'reveal'
 
     const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={0} preview />)
 
@@ -163,7 +163,7 @@ describe('focused form canvas', () => {
     expect(html).toContain('준비')
     expect(html).toContain('바로 참여')
     expect(html).toContain('form-media-banner')
-    expect(html).toContain('transition-slide')
+    expect(html).toContain('transition-reveal')
   })
 
   it('renders consent title, checkbox copy, and policy link as separate content', () => {

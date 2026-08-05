@@ -166,7 +166,7 @@ describe('form maker validation', () => {
         imageOpacity: 2,
         imageBrightness: 200,
         imageOverlay: 90,
-        transition: 'flip',
+        transition: 'bounce',
         transitionSpeed: 1200,
       },
     })
@@ -181,7 +181,7 @@ describe('form maker validation', () => {
       imageOpacity: 20,
       imageBrightness: 140,
       imageOverlay: 70,
-      transition: 'flip',
+      transition: 'bounce',
       transitionSpeed: 900,
     })
   })

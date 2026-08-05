@@ -9,6 +9,7 @@ const corsHeaders = {
 const BACKUP_SHEET_ID = Deno.env.get('FORM_MAKER_BACKUP_SHEET_ID') || '14BpX7cxcKVrw2LF0bQWW9CNjmBcY7HVj7HcQNaaSPL0'
 const BACKUP_SHEET_URL = `https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/edit`
 const BACKUP_SHEET_TITLE = '백업'
+const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') || '827968184295-1eiuboa2tuqu61rft40v10d3gdcms6re.apps.googleusercontent.com'
 
 class HttpError extends Error {
   status: number
@@ -48,15 +49,14 @@ type BackupSheetRow = {
 }
 
 async function refreshGoogleAccessToken(admin: any, userId: string, tokenRow: GoogleTokenRow) {
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID') || ''
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') || ''
-  if (!tokenRow.refresh_token || !clientId || !clientSecret) return ''
+  if (!tokenRow.refresh_token || !clientSecret) return ''
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: clientId,
+      client_id: GOOGLE_CLIENT_ID,
       client_secret: clientSecret,
       grant_type: 'refresh_token',
       refresh_token: tokenRow.refresh_token,

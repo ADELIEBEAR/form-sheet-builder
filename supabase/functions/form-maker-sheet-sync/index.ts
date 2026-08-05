@@ -104,7 +104,8 @@ async function loadGoogleToken(admin: any, userId: string) {
 
 async function googleError(response: Response, fallback: string) {
   const payload = await response.json().catch(() => ({}))
-  if (response.status === 401 || response.status === 403) return new HttpError('Google 권한이 만료되었거나 시트 권한이 없습니다. Google 권한을 다시 승인해 주세요.', 401)
+  if (response.status === 401) return new HttpError('Google 권한이 만료되었습니다. Google 계정으로 다시 로그인해 주세요.', 401)
+  if (response.status === 403) return new HttpError('현재 Google 계정에 백업시트 편집 권한이 없거나 Sheets 권한이 승인되지 않았습니다. Google 계정으로 다시 로그인해 주세요.', 403)
   return new HttpError(payload?.error?.message || fallback, response.status || 500)
 }
 
@@ -198,16 +199,6 @@ async function writeProjectHeader(admin: any, project: ProjectRow, tokenRow: Goo
 }
 
 async function ensureProjectBackupSheet(admin: any, project: ProjectRow, tokenRow: GoogleTokenRow) {
-  const { data: assignedBackup, error: assignedBackupError } = await admin
-    .from('form_maker_backup_sheets')
-    .select('user_id,sheet_id,sheet_url,sheet_title')
-    .eq('user_id', project.owner_id)
-    .maybeSingle()
-  if (assignedBackupError) throw assignedBackupError
-  if (!assignedBackup || assignedBackup.sheet_id !== BACKUP_SHEET_ID) {
-    throw new HttpError('이 계정의 백업 저장 위치가 아직 설정되지 않았습니다.', 409)
-  }
-
   const backup: BackupSheetRow = {
     user_id: project.owner_id,
     sheet_id: BACKUP_SHEET_ID,

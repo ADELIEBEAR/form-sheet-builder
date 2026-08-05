@@ -181,6 +181,10 @@ export async function api(path, options = {}) {
       if (error?.code === '23505') throw new ApiError('이미 사용 중인 공개 주소입니다.', 409, error)
       if (error) fail(error)
       const meta = await saveProjectMeta(data.id, body)
+      if (data.status === 'published') {
+        const connected = await ensureBackupSheet(data.id).catch(() => null)
+        if (connected?.project) return connected
+      }
       return { project: serializeProject(data, meta) }
     }
 
@@ -297,8 +301,11 @@ export async function api(path, options = {}) {
       if (error) fail(error)
       const meta = await saveProjectMeta(data.id, body)
       const latestMeta = await projectMetaMap([data.id])
-      const project = serializeProject(data, { ...latestMeta.get(data.id), ...meta })
-      if (project.sheetId) ensureBackupSheet(project.id).catch(() => {})
+      let project = serializeProject(data, { ...latestMeta.get(data.id), ...meta })
+      if (project.status === 'published') {
+        const connected = await ensureBackupSheet(project.id).catch(() => null)
+        if (connected?.project) project = connected.project
+      }
       return { project }
     }
     if (projectMatch && method === 'DELETE') {

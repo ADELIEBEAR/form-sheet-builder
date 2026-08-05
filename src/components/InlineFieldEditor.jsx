@@ -6,7 +6,7 @@ import FormField from './FormField'
 const OPTION_TYPES = ['single', 'multi', 'select']
 const PLACEHOLDER_TYPES = ['short', 'long', 'email', 'phone', 'number', 'date']
 
-export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove, directStyles, directFallbacks, activeTextRole, onTextRoleSelect, onDirectStyleChange }) {
+export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove, directStyles, directFallbacks, activeTextRole, onTextRoleSelect, onDirectStyleChange, snapToGrid = false }) {
   const hasOptions = OPTION_TYPES.includes(field.type)
   const hasPlaceholder = PLACEHOLDER_TYPES.includes(field.type)
   const isConsent = field.type === 'consent'
@@ -33,7 +33,7 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
         </div> : null}
       </div>
 
-      <DirectCanvasText className="direct-question-text" label={field.type === 'heading' ? '안내 제목' : '질문'} value={directStyles?.question} fallback={directFallbacks?.question || { size: 32 }} minSize={20} maxSize={72} selected={selected && activeTextRole === 'question'} onSelect={() => onTextRoleSelect?.('question')} onChange={(next) => onDirectStyleChange?.('question', next)}>
+      <DirectCanvasText className="direct-question-text" label={field.type === 'heading' ? '안내 제목' : '질문'} value={directStyles?.question} fallback={directFallbacks?.question || { size: 32 }} minSize={20} maxSize={72} selected={selected && activeTextRole === 'question'} onSelect={() => onTextRoleSelect?.('question')} onChange={(next) => onDirectStyleChange?.('question', next)} snapToGrid={snapToGrid}>
         <textarea
           className="inline-question-input"
           rows="1"
@@ -43,7 +43,7 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
           placeholder={field.type === 'heading' ? '안내 제목' : isConsent ? '동의 항목 제목을 입력하세요' : '질문을 입력하세요'}
         />
       </DirectCanvasText>
-      <DirectCanvasText className="direct-question-body" label="설명" value={directStyles?.body} fallback={directFallbacks?.body || { size: 16 }} minSize={12} maxSize={32} selected={selected && activeTextRole === 'body'} onSelect={() => onTextRoleSelect?.('body')} onChange={(next) => onDirectStyleChange?.('body', next)}>
+      <DirectCanvasText className="direct-question-body" label="설명" value={directStyles?.body} fallback={directFallbacks?.body || { size: 16 }} minSize={12} maxSize={32} selected={selected && activeTextRole === 'body'} onSelect={() => onTextRoleSelect?.('body')} onChange={(next) => onDirectStyleChange?.('body', next)} snapToGrid={snapToGrid}>
         <textarea
           className="inline-description-input"
           rows="1"

@@ -7,6 +7,7 @@ import {
   Eye,
   FloppyDisk,
   Gear,
+  GridFour,
   LinkSimple,
   PaintBrush,
   Plus,
@@ -27,6 +28,16 @@ import { api } from '../lib/api'
 import { AUTO_SAVE_INTERVAL, canAutoSaveProject } from '../lib/autosave'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
 
+const SNAP_GRID_KEY = 'form_maker_snap_to_grid'
+
+function initialSnapPreference() {
+  try {
+    return window.localStorage.getItem(SNAP_GRID_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
 export default function Studio() {
   const { projectId } = useParams()
   const navigate = useNavigate()
@@ -36,6 +47,7 @@ export default function Studio() {
   const [drawer, setDrawer] = useState('design')
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
   const [device, setDevice] = useState('desktop')
+  const [snapToGrid, setSnapToGrid] = useState(initialSnapPreference)
   const [loading, setLoading] = useState(Boolean(projectId))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -99,6 +111,14 @@ export default function Studio() {
       window.clearTimeout(savedTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SNAP_GRID_KEY, String(snapToGrid))
+    } catch {
+      // The editor still works when browser storage is unavailable.
+    }
+  }, [snapToGrid])
 
   const page = project.pages[pageIndex]
   const canPublish = useMemo(
@@ -518,6 +538,12 @@ export default function Studio() {
                 <button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => setDevice('desktop')} aria-label="데스크톱 보기"><Desktop /></button>
                 <button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => setDevice('mobile')} aria-label="모바일 보기"><DeviceMobile /></button>
               </div>
+              <label className={`snap-grid-toggle ${snapToGrid ? 'active' : ''}`} title="이동 8px · 너비 4% · 글자 2px 간격으로 맞춥니다">
+                <input type="checkbox" checked={snapToGrid} onChange={(event) => setSnapToGrid(event.target.checked)} />
+                <GridFour weight={snapToGrid ? 'fill' : 'regular'} />
+                <span>자석 정렬</span>
+                <small>8px</small>
+              </label>
               <button className={drawer === 'design' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => { setDrawer('design'); setMobileInspectorOpen(true) }}><PaintBrush /> 디자인</button>
               <button className={drawer === 'settings' ? 'toolbar-action active' : 'toolbar-action'} type="button" onClick={() => { setDrawer('settings'); setMobileInspectorOpen(true) }}><Gear /> 설정</button>
             </div>
@@ -537,6 +563,7 @@ export default function Studio() {
               onFieldDuplicate={duplicateField}
               onFieldDelete={deleteField}
               onFieldMove={moveField}
+              snapToGrid={snapToGrid}
             />
           </div>
         </section>

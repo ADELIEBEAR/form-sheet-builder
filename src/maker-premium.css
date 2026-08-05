@@ -713,6 +713,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* Canvas-first text editing */
 .studio-focus-shell .focus-content-card { overflow: visible; }
+.snap-grid-active .focus-content-card {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--preview-accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--preview-accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--preview-accent) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--preview-accent) 4%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+  background-position: -1px -1px;
+}
 .direct-canvas-text {
   position: relative;
   z-index: 2;

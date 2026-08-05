@@ -884,6 +884,27 @@ button:focus-visible > .outline-drag-handle { color: var(--app-accent); opacity:
 
 .stage-toolbar .device-switch button { width: 30px; min-width: 30px; padding: 0; justify-content: center; }
 .stage-toolbar .toolbar-action:hover, .stage-toolbar .toolbar-action.active { background: #eeece7; color: #202521; }
+.snap-grid-toggle {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #74716d;
+  font-size: 10px;
+  font-weight: 760;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease;
+}
+.snap-grid-toggle:hover { border-color: #d8d4cb; background: #f5f3ef; color: #2f2d29; }
+.snap-grid-toggle:active { transform: scale(.97); }
+.snap-grid-toggle.active { border-color: #d9d0f5; background: #eee9fc; color: var(--app-accent); }
+.snap-grid-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.snap-grid-toggle:has(input:focus-visible) { outline: 3px solid rgb(113 86 217 / .17); outline-offset: 1px; }
+.snap-grid-toggle svg { width: 15px; height: 15px; }
+.snap-grid-toggle small { padding-left: 5px; border-left: 1px solid currentColor; opacity: .55; font-size: 8px; font-variant-numeric: tabular-nums; }
 
 .preview-frame.inline-preview-frame { min-height: calc(100dvh - 160px); }
 .preview-frame.inline-preview-frame.desktop { width: min(900px, 100%); }
@@ -1285,6 +1306,8 @@ button:focus-visible > .outline-drag-handle { color: var(--app-accent); opacity:
   .studio-toolbar-copy { display: none !important; }
   .studio-toolbar-actions { width: 100%; justify-content: space-between; }
   .studio-toolbar-actions .device-switch { margin-right: auto; }
+  .snap-grid-toggle { padding-inline: 7px; }
+  .snap-grid-toggle small { display: none; }
   .preview-frame.inline-preview-frame { min-height: 650px; }
   .inline-form-canvas { min-height: 650px; border-radius: 13px; }
   .inline-canvas-content { width: calc(100% - 18px); min-height: 650px; padding: 42px 25px 52px; }
@@ -1299,6 +1322,7 @@ button:focus-visible > .outline-drag-handle { color: var(--app-accent); opacity:
 @media (max-width: 480px) {
   .studio-name span { display: none; }
   .studio-toolbar-actions .toolbar-action { padding-inline: 8px; }
+  .snap-grid-toggle span { display: none; }
   .inline-canvas-content { padding-inline: 20px; }
   .inline-add-menu { grid-template-columns: 1fr; }
   .inline-field-settings { display: grid; }

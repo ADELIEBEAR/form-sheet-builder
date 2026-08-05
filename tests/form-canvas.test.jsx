@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
-import DirectCanvasText from '../src/components/DirectCanvasText'
+import DirectCanvasText, { snapToGridValue } from '../src/components/DirectCanvasText'
 import InlineFieldEditor from '../src/components/InlineFieldEditor'
 import ProjectColorPicker from '../src/components/ProjectColorPicker'
 import { emptyProject, formSteps, makePage } from '../src/lib/maker'
@@ -62,6 +62,12 @@ describe('focused form canvas', () => {
     expect(html).toContain('질문 위치 이동')
     expect(html).toContain('질문 너비 조절')
     expect(html).toContain('질문 글자 크기 조절')
+  })
+
+  it('snaps freeform canvas values to the nearest editor grid line', () => {
+    expect(snapToGridValue(13, 8)).toBe(16)
+    expect(snapToGridValue(-13, 8)).toBe(-16)
+    expect(snapToGridValue(71, 4)).toBe(72)
   })
 
   it('renders customized copy, image placement, and transition choices', () => {

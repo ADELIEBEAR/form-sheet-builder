@@ -139,8 +139,8 @@ describe('form maker validation', () => {
       theme: { buttonStyles: { start: { width: 420, offsetX: -300, offsetY: 120 }, primaryMobile: { width: 310, offsetX: 120, offsetY: -80 } } },
     })
 
-    expect(project.theme.buttonStyles.start).toEqual({ width: 360, offsetX: -140, offsetY: 90 })
-    expect(project.theme.buttonStyles.primaryMobile).toEqual({ width: 280, offsetX: 80, offsetY: -48 })
+    expect(project.theme.buttonStyles.start).toEqual({ width: 360, offsetX: -300, offsetY: 120 })
+    expect(project.theme.buttonStyles.primaryMobile).toEqual({ width: 280, offsetX: 120, offsetY: -80 })
   })
 
   it('stores supported visual effects and rejects unknown animation settings', () => {

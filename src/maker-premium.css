@@ -810,7 +810,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   transition: width .18s cubic-bezier(.2, .8, .2, 1), transform .18s cubic-bezier(.2, .8, .2, 1);
 }
 .canvas-direct-manipulating .direct-canvas-button { transition: none; }
-.direct-canvas-button > .direct-edit-button { width: 100% !important; min-width: 0 !important; max-width: none; }
+.direct-canvas-button > .direct-edit-button { width: 100% !important; min-width: 0 !important; max-width: none; touch-action: none; }
+.direct-canvas-button:hover > .direct-edit-button,
+.direct-canvas-button.selected > .direct-edit-button { cursor: grab; }
+.canvas-direct-manipulating .direct-canvas-button > .direct-edit-button { cursor: grabbing; }
 .studio-flow-actions .direct-canvas-button { align-self: center; }
 .studio-success-editor .direct-restart-button { align-self: center; }
 .direct-canvas-button.selected { z-index: 18; outline: 1.5px solid var(--preview-accent); outline-offset: 5px; border-radius: calc(var(--preview-radius) * .5); }
@@ -1109,7 +1112,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   }
   .public-button-frame {
     width: var(--public-mobile-button-width, var(--public-button-width, fit-content));
-    transform: translate(clamp(-80px, var(--public-mobile-button-x, var(--public-button-x, 0)), 80px), clamp(-48px, var(--public-mobile-button-y, var(--public-button-y, 0)), 48px));
+    transform: translate(clamp(-240px, var(--public-mobile-button-x, var(--public-button-x, 0)), 240px), clamp(-280px, var(--public-mobile-button-y, var(--public-button-y, 0)), 280px));
   }
   .public-rich-desktop { display: none; }
   .public-rich-mobile { display: inline; }

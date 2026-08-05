@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
-import DirectCanvasButton from '../src/components/DirectCanvasButton'
+import DirectCanvasButton, { directButtonOffsetBounds } from '../src/components/DirectCanvasButton'
 import DirectCanvasText, { snapToGridValue } from '../src/components/DirectCanvasText'
 import InlineFieldEditor from '../src/components/InlineFieldEditor'
 import InlineFormCanvas, { COVER_VIEW } from '../src/components/InlineFormCanvas'
@@ -95,6 +95,16 @@ describe('focused form canvas', () => {
     expect(html).toContain('시작 버튼 빠른 배치')
     expect(html).toContain('시작 버튼 너비 조절')
     expect(html).toContain('--direct-button-width:144px')
+    expect(html).toContain('클릭하면 실행 · 끌면 이동')
+  })
+
+  it('keeps direct button dragging inside the actual card bounds', () => {
+    expect(directButtonOffsetBounds(
+      { left: 120, right: 248, top: 310, bottom: 358 },
+      { left: 80, right: 520, top: 120, bottom: 500 },
+      { offsetX: 24, offsetY: -8 },
+      { minX: -480, maxX: 480, minY: -360, maxY: 360 },
+    )).toEqual({ minX: -16, maxX: 296, minY: -198, maxY: 134 })
   })
 
   it('renders separate desktop and mobile button placement for applicants', () => {

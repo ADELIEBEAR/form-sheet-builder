@@ -73,8 +73,8 @@ function sanitizeDirectButtonStyle(input, fallbackWidth, minWidth, maxWidth, mob
   if (!input || typeof input !== 'object') return null
   return {
     width: safeSize(input.width, fallbackWidth, minWidth, maxWidth),
-    offsetX: safeSize(input.offsetX, 0, mobile ? -80 : -140, mobile ? 80 : 140),
-    offsetY: safeSize(input.offsetY, 0, mobile ? -48 : -90, mobile ? 48 : 90),
+    offsetX: safeSize(input.offsetX, 0, mobile ? -240 : -480, mobile ? 240 : 480),
+    offsetY: safeSize(input.offsetY, 0, mobile ? -280 : -360, mobile ? 280 : 360),
   }
 }
 

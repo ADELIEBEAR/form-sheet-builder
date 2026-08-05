@@ -69,22 +69,26 @@ describe('form maker validation', () => {
     expect(project.theme.font).toBe('pretendard')
   })
 
-  it('stores a valid Korean font and clamps typography sizes', () => {
-    const project = sanitizeProject({ title: '글자 설정 폼', pages: page([]), theme: { font: 'black-han', titleSize: 200, questionSize: 10, bodySize: 50 } })
+  it('stores a valid Korean font and clamps typography controls', () => {
+    const project = sanitizeProject({ title: '글자 설정 폼', pages: page([]), theme: { font: 'black-han', titleSize: 200, questionSize: 10, bodySize: 50, titleWeight: 1200, questionLineHeight: 40, bodyTracking: 30, textAlign: 'right' } })
     expect(project.theme.font).toBe('black-han')
     expect(project.theme.titleSize).toBe(72)
     expect(project.theme.questionSize).toBe(20)
     expect(project.theme.bodySize).toBe(22)
+    expect(project.theme.titleWeight).toBe(900)
+    expect(project.theme.questionLineHeight).toBe(90)
+    expect(project.theme.bodyTracking).toBe(12)
+    expect(project.theme.textAlign).toBe('left')
   })
 
   it('stores page-specific typography without changing the form defaults', () => {
     const project = sanitizeProject({
       title: '페이지별 글자 폼',
-      pages: [{ ...page([])[0], typography: { titleSize: 34, questionSize: 99, bodySize: 8 } }],
-      theme: { titleSize: 60, questionSize: 30, bodySize: 17 },
+      pages: [{ ...page([])[0], typography: { titleSize: 34, questionSize: 99, bodySize: 8, questionWeight: 610, questionLineHeight: 142, questionTracking: -2.4, textAlign: 'center' } }],
+      theme: { titleSize: 60, questionSize: 30, bodySize: 17, titleWeight: 700 },
     })
-    expect(project.theme).toMatchObject({ titleSize: 60, questionSize: 30, bodySize: 17 })
-    expect(project.pages[0].typography).toEqual({ titleSize: 34, questionSize: 48, bodySize: 12 })
+    expect(project.theme).toMatchObject({ titleSize: 60, questionSize: 30, bodySize: 17, titleWeight: 700 })
+    expect(project.pages[0].typography).toMatchObject({ titleSize: 34, questionSize: 48, bodySize: 12, questionWeight: 610, questionLineHeight: 142, questionTracking: -2.4, textAlign: 'center' })
   })
 
   it('stores supported visual effects and rejects unknown animation settings', () => {

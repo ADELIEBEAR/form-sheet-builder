@@ -27,13 +27,17 @@ describe('focused form canvas', () => {
 
   it('uses the current page typography on its question screen', () => {
     const project = emptyProject()
-    project.pages[0].typography = { titleSize: 38, questionSize: 47, bodySize: 20 }
+    project.pages[0].typography = { titleSize: 38, questionSize: 47, bodySize: 20, questionWeight: 610, questionLineHeight: 142, questionTracking: -2.4, textAlign: 'center' }
 
     const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={1} preview />)
 
     expect(html).toContain('--preview-title-size:38px')
     expect(html).toContain('--preview-question-size:47px')
     expect(html).toContain('--preview-body-size:20px')
+    expect(html).toContain('--preview-question-weight:610')
+    expect(html).toContain('--preview-question-line:1.42')
+    expect(html).toContain('--preview-question-tracking:-0.024em')
+    expect(html).toContain('--preview-text-align:center')
   })
 
   it('renders customized copy, image placement, and transition choices', () => {

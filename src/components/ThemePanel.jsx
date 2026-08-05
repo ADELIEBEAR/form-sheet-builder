@@ -1,35 +1,19 @@
 import { Check, MagicWand, Sparkle } from '@phosphor-icons/react'
-import { ACCENT_PRESETS, EFFECT_PRESETS, FONT_PRESETS, FONT_STACKS, MOTION_PRESETS, THEME_PRESETS, TRANSITION_PRESETS } from '../lib/maker'
+import { ACCENT_PRESETS, EFFECT_PRESETS, MOTION_PRESETS, THEME_PRESETS, TRANSITION_PRESETS } from '../lib/maker'
 import ImageUpload from './ImageUpload'
-
-const fontGroups = [...new Set(FONT_PRESETS.map(([, , group]) => group))]
+import TypographyWorkbench from './TypographyWorkbench'
 
 export default function ThemePanel({ project, projectId, pageIndex = 0, onChange }) {
   const theme = project.theme || {}
-  const page = project.pages?.[pageIndex]
-  const pageTypography = page?.typography || null
   const patch = (next) => onChange({ ...project, theme: { ...theme, ...next } })
   const applyTheme = (preset) => patch(preset.theme)
   const hasImage = Boolean(theme.coverUrl)
-  const updatePageTypography = (next) => {
-    if (!page) return
-    const pages = project.pages.map((item, index) => index === pageIndex ? { ...item, typography: { ...(item.typography || {}), ...next } } : item)
-    onChange({ ...project, pages })
-  }
-  const enablePageTypography = () => updatePageTypography({
-    titleSize: theme.titleSize ?? 56,
-    questionSize: theme.questionSize ?? 32,
-    bodySize: theme.bodySize ?? 16,
-  })
-  const resetPageTypography = () => {
-    if (!page) return
-    const pages = project.pages.map((item, index) => index === pageIndex ? { ...item, typography: null } : item)
-    onChange({ ...project, pages })
-  }
 
   return (
     <div className="inspector-panel theme-inspector">
       <div className="panel-heading"><span>디자인</span><strong>느낌을 바로 골라보세요</strong><p>고른 스타일은 편집 화면과 공개 폼에 즉시 적용됩니다.</p></div>
+
+      <TypographyWorkbench project={project} pageIndex={pageIndex} onChange={onChange} />
 
       <div className="theme-group theme-preset-section">
         <div className="theme-section-title"><span>완성형 테마</span><small><MagicWand /> 한 번에 적용</small></div>
@@ -76,25 +60,6 @@ export default function ThemePanel({ project, projectId, pageIndex = 0, onChange
           ))}
         </div>
         <label className="studio-control font-size-control transition-speed-control"><span>전환 속도</span><input type="range" min="180" max="900" step="20" value={theme.transitionSpeed ?? 440} onChange={(event) => patch({ transitionSpeed: Number(event.target.value) })} /><small>{theme.transitionSpeed ?? 440}ms</small></label>
-      </div>
-
-      <div className="theme-group typography-settings">
-        <span>글자 스타일 · {FONT_PRESETS.length}가지</span>
-        <label className="studio-control"><span>글꼴</span><select value={theme.font || 'pretendard'} onChange={(event) => patch({ font: event.target.value })}>{fontGroups.map((group) => <optgroup label={group} key={group}>{FONT_PRESETS.filter(([, , itemGroup]) => itemGroup === group).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</optgroup>)}</select></label>
-        <div className="font-live-sample" style={{ fontFamily: FONT_STACKS[theme.font] || FONT_STACKS.pretendard }}>가나다라 · Aa 123</div>
-        <div className="typography-scope-title"><strong>폼 전체 기본 크기</strong><small>시작·완료 화면과 기본값</small></div>
-        <label className="studio-control font-size-control"><span>제목</span><input type="range" min="28" max="72" step="2" value={theme.titleSize ?? 56} onChange={(event) => patch({ titleSize: Number(event.target.value) })} /><small>{theme.titleSize ?? 56}px</small></label>
-        <label className="studio-control font-size-control"><span>질문</span><input type="range" min="20" max="48" step="1" value={theme.questionSize ?? 32} onChange={(event) => patch({ questionSize: Number(event.target.value) })} /><small>{theme.questionSize ?? 32}px</small></label>
-        <label className="studio-control font-size-control"><span>본문</span><input type="range" min="12" max="22" step="1" value={theme.bodySize ?? 16} onChange={(event) => patch({ bodySize: Number(event.target.value) })} /><small>{theme.bodySize ?? 16}px</small></label>
-        {page ? <section className={`page-typography-settings${pageTypography ? ' active' : ''}`}>
-          <header><span><small>현재 페이지</small><strong>{pageIndex + 1}. {page.title || `페이지 ${pageIndex + 1}`}</strong></span>{pageTypography ? <button type="button" onClick={resetPageTypography}>전체 크기 사용</button> : <button type="button" onClick={enablePageTypography}>이 페이지만 조절</button>}</header>
-          {pageTypography ? <div className="page-typography-controls">
-            <label className="studio-control font-size-control"><span>제목</span><input type="range" min="28" max="72" step="2" value={pageTypography.titleSize ?? theme.titleSize ?? 56} onChange={(event) => updatePageTypography({ titleSize: Number(event.target.value) })} /><small>{pageTypography.titleSize ?? theme.titleSize ?? 56}px</small></label>
-            <label className="studio-control font-size-control"><span>질문</span><input type="range" min="20" max="48" step="1" value={pageTypography.questionSize ?? theme.questionSize ?? 32} onChange={(event) => updatePageTypography({ questionSize: Number(event.target.value) })} /><small>{pageTypography.questionSize ?? theme.questionSize ?? 32}px</small></label>
-            <label className="studio-control font-size-control"><span>본문</span><input type="range" min="12" max="22" step="1" value={pageTypography.bodySize ?? theme.bodySize ?? 16} onChange={(event) => updatePageTypography({ bodySize: Number(event.target.value) })} /><small>{pageTypography.bodySize ?? theme.bodySize ?? 16}px</small></label>
-          </div> : <p>지금은 폼 전체 크기를 따라갑니다. 페이지마다 질문 길이가 다를 때 따로 조절하세요.</p>}
-        </section> : null}
-        <p className="control-note">모바일에서는 선택한 크기를 기준으로 화면 폭에 맞게 자동 조절됩니다.</p>
       </div>
 
       <div className="theme-group"><span>포인트 색상</span><div className="swatches">{ACCENT_PRESETS.map((color) => <button style={{ background: color }} className={theme.accent === color ? 'active' : ''} type="button" key={color} onClick={() => patch({ accent: color })} aria-label={`${color} 선택`}>{theme.accent === color ? <Check weight="bold" /> : null}</button>)}</div></div>

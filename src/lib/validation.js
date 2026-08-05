@@ -7,6 +7,7 @@ const allowedMotions = new Set(MOTION_PRESETS.map(([motion]) => motion))
 const allowedTransitions = new Set(TRANSITION_PRESETS.map(([transition]) => transition))
 const allowedImageModes = new Set(['background', 'banner', 'card'])
 const allowedImageFits = new Set(['cover', 'contain'])
+const allowedTextAlignments = new Set(['left', 'center'])
 
 export class ValidationError extends Error {
   name = 'ValidationError'
@@ -126,6 +127,16 @@ export function sanitizeProject(input) {
   const defaultTitleSize = safeSize(input?.theme?.titleSize, 56, 28, 72)
   const defaultQuestionSize = safeSize(input?.theme?.questionSize, 32, 20, 48)
   const defaultBodySize = safeSize(input?.theme?.bodySize, 16, 12, 22)
+  const defaultTitleWeight = safeSize(input?.theme?.titleWeight, 820, 300, 900)
+  const defaultQuestionWeight = safeSize(input?.theme?.questionWeight, 760, 300, 900)
+  const defaultBodyWeight = safeSize(input?.theme?.bodyWeight, 400, 300, 900)
+  const defaultTitleLineHeight = safeSize(input?.theme?.titleLineHeight, 106, 90, 200)
+  const defaultQuestionLineHeight = safeSize(input?.theme?.questionLineHeight, 128, 90, 200)
+  const defaultBodyLineHeight = safeSize(input?.theme?.bodyLineHeight, 165, 90, 200)
+  const defaultTitleTracking = safeSize(input?.theme?.titleTracking, -5.8, -8, 12)
+  const defaultQuestionTracking = safeSize(input?.theme?.questionTracking, -4.5, -8, 12)
+  const defaultBodyTracking = safeSize(input?.theme?.bodyTracking, 0, -8, 12)
+  const defaultTextAlign = allowedTextAlignments.has(input?.theme?.textAlign) ? input.theme.textAlign : 'left'
   const sourcePages = Array.isArray(input?.pages) ? input.pages : []
   if (!sourcePages.length) throw new ValidationError('페이지가 하나 이상 필요합니다.')
   if (sourcePages.length > 20) throw new ValidationError('페이지는 최대 20개까지 만들 수 있습니다.')
@@ -141,6 +152,16 @@ export function sanitizeProject(input) {
         titleSize: safeSize(page.typography.titleSize, defaultTitleSize, 28, 72),
         questionSize: safeSize(page.typography.questionSize, defaultQuestionSize, 20, 48),
         bodySize: safeSize(page.typography.bodySize, defaultBodySize, 12, 22),
+        titleWeight: safeSize(page.typography.titleWeight, defaultTitleWeight, 300, 900),
+        questionWeight: safeSize(page.typography.questionWeight, defaultQuestionWeight, 300, 900),
+        bodyWeight: safeSize(page.typography.bodyWeight, defaultBodyWeight, 300, 900),
+        titleLineHeight: safeSize(page.typography.titleLineHeight, defaultTitleLineHeight, 90, 200),
+        questionLineHeight: safeSize(page.typography.questionLineHeight, defaultQuestionLineHeight, 90, 200),
+        bodyLineHeight: safeSize(page.typography.bodyLineHeight, defaultBodyLineHeight, 90, 200),
+        titleTracking: safeSize(page.typography.titleTracking, defaultTitleTracking, -8, 12),
+        questionTracking: safeSize(page.typography.questionTracking, defaultQuestionTracking, -8, 12),
+        bodyTracking: safeSize(page.typography.bodyTracking, defaultBodyTracking, -8, 12),
+        textAlign: allowedTextAlignments.has(page.typography.textAlign) ? page.typography.textAlign : defaultTextAlign,
       } : null,
       fields,
     }
@@ -172,6 +193,16 @@ export function sanitizeProject(input) {
       titleSize: defaultTitleSize,
       questionSize: defaultQuestionSize,
       bodySize: defaultBodySize,
+      titleWeight: defaultTitleWeight,
+      questionWeight: defaultQuestionWeight,
+      bodyWeight: defaultBodyWeight,
+      titleLineHeight: defaultTitleLineHeight,
+      questionLineHeight: defaultQuestionLineHeight,
+      bodyLineHeight: defaultBodyLineHeight,
+      titleTracking: defaultTitleTracking,
+      questionTracking: defaultQuestionTracking,
+      bodyTracking: defaultBodyTracking,
+      textAlign: defaultTextAlign,
       effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
       motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',
       transition: allowedTransitions.has(input?.theme?.transition) ? input.theme.transition : 'rise',

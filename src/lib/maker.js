@@ -1,3 +1,5 @@
+import { resolveTextEffect } from './textEffects'
+
 export const FIELD_TYPES = [
   ['short', '짧은 답변'],
   ['long', '긴 답변'],
@@ -246,6 +248,7 @@ export function resolveDirectTextStyle(value, fallback = {}) {
     color: /^#[0-9a-f]{6}$/i.test(source.color || '') ? source.color : (/^#[0-9a-f]{6}$/i.test(fallback.color || '') ? fallback.color : ''),
     colorRanges: sourceRanges || (Array.isArray(fallback.colorRanges) ? fallback.colorRanges : []),
     colorText: sourceRanges ? String(source.colorText ?? '') : String(fallback.colorText ?? ''),
+    ...resolveTextEffect(source, fallback),
   }
 }
 

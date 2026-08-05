@@ -70,6 +70,21 @@ describe('focused form canvas', () => {
     expect(html).toContain('질문 위치 이동')
     expect(html).toContain('질문 너비 조절')
     expect(html).toContain('질문 글자 크기 조절')
+    expect(html).toContain('질문 글자 효과')
+  })
+
+  it('renders separate desktop and mobile text effects for applicants', () => {
+    const project = emptyProject()
+    project.pages[0].fields[0].directStyles = {
+      question: { textEffect: 'shadow', effectColor: '#3155aa', effectStrength: 60, effectBlur: 12, effectDistance: 5 },
+      questionMobile: { textEffect: 'outline', effectColor: '#aa3355', effectStrength: 80, effectDistance: 6 },
+    }
+
+    const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={1} preview />)
+
+    expect(html).toContain('--public-direct-shadow:3.3px 5px 12px color-mix(in srgb, #3155aa 60%, transparent)')
+    expect(html).toContain('--public-mobile-shadow:none')
+    expect(html).toContain('--public-mobile-stroke:1.7px color-mix(in srgb, #aa3355 80%, transparent)')
   })
 
   it('snaps freeform canvas values to the nearest editor grid line', () => {

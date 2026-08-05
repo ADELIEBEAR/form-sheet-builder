@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
+import { textEffectCss } from '../lib/textEffects'
 import ColoredText from './ColoredText'
 import FocusEffects from './FocusEffects'
 import FormField from './FormField'
@@ -36,16 +37,22 @@ function canvasStyle(project, page = null) {
 function publicTextStyle(value, fallback, mobileValue) {
   const style = {}
   const resolved = value && typeof value === 'object' ? resolveDirectTextStyle(value, fallback) : null
-  if (resolved) Object.assign(style, {
-    '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
-    '--public-direct-size': `${resolved.size}px`,
-    '--public-direct-width': `${resolved.width}%`,
-    '--public-direct-x': `${resolved.offsetX}px`,
-    '--public-direct-y': `${resolved.offsetY}px`,
-    '--public-direct-align': resolved.align,
-  })
+  if (resolved) {
+    const effect = textEffectCss(resolved)
+    Object.assign(style, {
+      '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
+      '--public-direct-size': `${resolved.size}px`,
+      '--public-direct-width': `${resolved.width}%`,
+      '--public-direct-x': `${resolved.offsetX}px`,
+      '--public-direct-y': `${resolved.offsetY}px`,
+      '--public-direct-align': resolved.align,
+      '--public-direct-shadow': effect.textShadow,
+      '--public-direct-stroke': effect.WebkitTextStroke,
+    })
+  }
   if (mobileValue && typeof mobileValue === 'object') {
     const mobile = resolveDirectTextStyle(mobileValue, resolved || fallback)
+    const effect = textEffectCss(mobile)
     Object.assign(style, {
       '--public-mobile-font': FONT_STACKS[mobile.font] || FONT_STACKS.pretendard,
       '--public-mobile-size': `${mobile.size}px`,
@@ -53,6 +60,8 @@ function publicTextStyle(value, fallback, mobileValue) {
       '--public-mobile-x': `${mobile.offsetX}px`,
       '--public-mobile-y': `${mobile.offsetY}px`,
       '--public-mobile-align': mobile.align,
+      '--public-mobile-shadow': effect.textShadow,
+      '--public-mobile-stroke': effect.WebkitTextStroke,
     })
   }
   return style
@@ -73,19 +82,34 @@ const CONFETTI_PARTICLES = Array.from({ length: 30 }, (_, index) => ({
   shape: index % 3,
 }))
 
+function closeCompletedForm() {
+  const completedUrl = window.location.href
+  try {
+    window.open('', '_self')
+    window.close()
+  } catch {
+    // Some browsers block scripts from closing a directly opened tab.
+  }
+  window.setTimeout(() => {
+    if (window.closed) return
+    if (document.referrer && window.history.length > 1) {
+      window.history.back()
+      window.setTimeout(() => {
+        if (!window.closed && window.location.href === completedUrl) window.location.replace('about:blank')
+      }, 600)
+    } else window.location.replace('about:blank')
+  }, 250)
+}
+
 export function CompletionCelebration({ autoClose = false }) {
   const [seconds, setSeconds] = useState(5)
-  const [closeBlocked, setCloseBlocked] = useState(false)
 
   useEffect(() => {
     if (!autoClose) return undefined
     const interval = window.setInterval(() => setSeconds((current) => Math.max(0, current - 1)), 1000)
     const closeTimer = window.setTimeout(() => {
       window.clearInterval(interval)
-      window.close()
-      window.setTimeout(() => {
-        if (!window.closed) setCloseBlocked(true)
-      }, 300)
+      closeCompletedForm()
     }, 5000)
     return () => {
       window.clearInterval(interval)
@@ -93,19 +117,12 @@ export function CompletionCelebration({ autoClose = false }) {
     }
   }, [autoClose])
 
-  const closeNow = () => {
-    window.close()
-    window.setTimeout(() => {
-      if (!window.closed) setCloseBlocked(true)
-    }, 300)
-  }
-
   return (
     <>
       <div className="completion-confetti" aria-hidden="true">
         {CONFETTI_PARTICLES.map((particle, index) => <i className={`success-confetti-particle shape-${particle.shape}`} style={{ '--burst-x': `${particle.x}px`, '--burst-y': `${particle.y}px`, '--fall-x': `${Math.round(particle.x * 1.3)}px`, '--fall-y': `${particle.fall}px`, '--spin': `${particle.rotate}deg`, '--spin-end': `${particle.rotate * 2}deg`, '--delay': `${particle.delay}ms`, '--particle-color': particle.color }} key={index} />)}
       </div>
-      {autoClose ? <div className="success-close-panel" aria-live="polite"><span>{closeBlocked ? '브라우저가 자동 닫기를 막았어요.' : `${seconds}초 뒤 자동으로 닫혀요.`}</span><button type="button" onClick={closeNow}>{closeBlocked ? '창 닫기' : '지금 닫기'}</button></div> : null}
+      {autoClose ? <div className="success-close-panel" aria-live="polite"><span>{seconds}초 뒤 자동으로 닫혀요.</span><button type="button" onClick={closeCompletedForm}>지금 닫기</button></div> : null}
     </>
   )
 }

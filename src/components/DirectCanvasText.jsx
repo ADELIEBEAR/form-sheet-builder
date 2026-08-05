@@ -1,7 +1,8 @@
-import { ArrowCounterClockwise, DotsSixVertical, Minus, Plus } from '@phosphor-icons/react'
+import { ArrowCounterClockwise, DotsSixVertical, MagicWand, Minus, Plus } from '@phosphor-icons/react'
 import { Children, cloneElement, isValidElement, useRef, useState } from 'react'
 import { FONT_PRESETS, FONT_STACKS, resolveDirectTextStyle } from '../lib/maker'
 import { applyTextColorRange, effectiveTextColorRanges, textColorSegments } from '../lib/richText'
+import { TEXT_EFFECT_PRESETS, textEffectCss } from '../lib/textEffects'
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
@@ -21,6 +22,7 @@ function RichColorLayer({ text, ranges }) {
 
 export function directTextVariables(value, fallback) {
   const resolved = resolveDirectTextStyle(value, fallback)
+  const effect = textEffectCss(resolved)
   const variables = {
     '--direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
     '--direct-size': `${resolved.size}px`,
@@ -28,6 +30,8 @@ export function directTextVariables(value, fallback) {
     '--direct-x': `${resolved.offsetX}px`,
     '--direct-y': `${resolved.offsetY}px`,
     '--direct-align': resolved.align,
+    '--direct-text-shadow': effect.textShadow,
+    '--direct-text-stroke': effect.WebkitTextStroke,
   }
   if (resolved.color) variables['--direct-color'] = resolved.color
   return variables
@@ -36,6 +40,7 @@ export function directTextVariables(value, fallback) {
 export default function DirectCanvasText({ children, value, fallback, minSize, maxSize, label, selected, onSelect, onChange, snapToGrid = false, mobile = false, className = '' }) {
   const inputRef = useRef(null)
   const [selection, setSelection] = useState({ start: 0, end: 0 })
+  const [effectOpen, setEffectOpen] = useState(false)
   const maxOffsetX = mobile ? 28 : 120
   const maxOffsetY = mobile ? 48 : 100
   const source = resolveDirectTextStyle(value, fallback)
@@ -134,7 +139,7 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
       {hasRichColor ? <div className={`direct-rich-color-layer ${child.props.className || ''}`} aria-hidden="true"><RichColorLayer text={text} ranges={effectiveRanges} /></div> : null}
       {editableChild}
       {selected ? <>
-        <div className="direct-text-toolbar" role="toolbar" aria-label={`${label} 빠른 디자인`} onPointerDown={(event) => event.stopPropagation()}>
+        <div className={`direct-text-toolbar ${effectOpen ? 'effect-open' : ''}`} role="toolbar" aria-label={`${label} 빠른 디자인`} onPointerDown={(event) => event.stopPropagation()}>
           <button className="direct-move-button" type="button" onPointerDown={(event) => beginPointerAction(event, 'move')} onKeyDown={nudgePosition} aria-label={`${label} 위치 이동`} title="잡아서 이동 · 방향키로 미세 조절"><DotsSixVertical weight="bold" /></button>
           <span>{label}</span>
           {selection.end > selection.start ? <em>{selection.end - selection.start}자 선택</em> : mobile ? <em>모바일</em> : null}
@@ -144,6 +149,7 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
           <label className="direct-color-control" title={selection.end > selection.start ? `선택한 ${selection.end - selection.start}자 색상` : '전체 글자 색상'}>
             <input type="color" value={resolved.color || '#222131'} onInput={(event) => applyColor(event.currentTarget.value)} onChange={(event) => applyColor(event.currentTarget.value)} aria-label={`${label} ${selection.end > selection.start ? '선택 글자' : '전체'} 색상`} />
           </label>
+          <button className={`direct-effect-button ${resolved.textEffect !== 'none' ? 'active' : ''}`} type="button" onClick={() => setEffectOpen((open) => !open)} aria-label={`${label} 글자 효과`} aria-expanded={effectOpen} title="그림자와 글자 효과"><MagicWand weight="fill" /></button>
           <button type="button" onClick={() => patch({ size: clamp(resolved.size - (snapToGrid ? 2 : 1), minSize, maxSize) })} aria-label={`${label} 글자 줄이기`}><Minus weight="bold" /></button>
           <output aria-label={`${label} 현재 크기`}>{Math.round(resolved.size)}px</output>
           <button type="button" onClick={() => patch({ size: clamp(resolved.size + (snapToGrid ? 2 : 1), minSize, maxSize) })} aria-label={`${label} 글자 키우기`}><Plus weight="bold" /></button>
@@ -152,6 +158,23 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
             <button className={resolved.align === 'center' ? 'active' : ''} type="button" onClick={() => patch({ align: 'center' })}>중</button>
           </div>
           <button className="direct-reset-button" type="button" onClick={() => onChange?.(null)} aria-label={`${label} 위치와 글자 설정 초기화`} title="초기화"><ArrowCounterClockwise /></button>
+          {effectOpen ? <div className="direct-effect-panel" role="group" aria-label={`${label} 글자 효과 설정`}>
+            <div className="direct-effect-heading"><strong>글자 효과</strong><span>선택 즉시 적용</span></div>
+            <div className="direct-effect-presets">
+              {TEXT_EFFECT_PRESETS.map(([effect, effectLabel]) => {
+                const sample = textEffectCss({ ...resolved, textEffect: effect })
+                return <button className={`direct-effect-preset ${resolved.textEffect === effect ? 'active' : ''}`} type="button" onClick={() => patch({ textEffect: effect })} aria-pressed={resolved.textEffect === effect} key={effect}>
+                  <b style={sample}>Aa</b><span>{effectLabel}</span>
+                </button>
+              })}
+            </div>
+            {resolved.textEffect !== 'none' ? <div className="direct-effect-tuning">
+              <label className="direct-effect-color"><span>효과 색상</span><span><input type="color" value={resolved.effectColor} onInput={(event) => patch({ effectColor: event.currentTarget.value })} onChange={(event) => patch({ effectColor: event.currentTarget.value })} aria-label={`${label} 효과 색상`} /><code>{resolved.effectColor.toUpperCase()}</code></span></label>
+              <label><span>강도 <output>{Math.round(resolved.effectStrength)}</output></span><input type="range" min="10" max="100" step="1" value={resolved.effectStrength} onInput={(event) => patch({ effectStrength: Number(event.currentTarget.value) })} onChange={(event) => patch({ effectStrength: Number(event.currentTarget.value) })} aria-label={`${label} 효과 강도`} /></label>
+              {['shadow', 'glow'].includes(resolved.textEffect) ? <label><span>{resolved.textEffect === 'glow' ? '번짐' : '흐림'} <output>{Math.round(resolved.effectBlur)}</output></span><input type="range" min="0" max="32" step="1" value={resolved.effectBlur} onInput={(event) => patch({ effectBlur: Number(event.currentTarget.value) })} onChange={(event) => patch({ effectBlur: Number(event.currentTarget.value) })} aria-label={`${label} 효과 흐림`} /></label> : null}
+              {['shadow', 'hard-shadow', 'outline', 'depth'].includes(resolved.textEffect) ? <label><span>{resolved.textEffect === 'outline' ? '굵기' : resolved.textEffect === 'depth' ? '깊이' : '거리'} <output>{Math.round(resolved.effectDistance)}</output></span><input type="range" min={resolved.textEffect === 'outline' ? 1 : 0} max="18" step="1" value={resolved.effectDistance} onInput={(event) => patch({ effectDistance: Number(event.currentTarget.value) })} onChange={(event) => patch({ effectDistance: Number(event.currentTarget.value) })} aria-label={`${label} 효과 거리`} /></label> : null}
+            </div> : null}
+          </div> : null}
         </div>
         <button className="direct-width-handle" type="button" onPointerDown={(event) => beginPointerAction(event, 'width')} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const step = snapToGrid ? 4 : 2; patch({ width: clamp(resolved.width + (event.key === 'ArrowRight' ? step : -step), 48, 100) }) } }} aria-label={`${label} 너비 조절`} title="좌우로 드래그해 너비 조절" />
         <button className="direct-size-handle" type="button" onPointerDown={(event) => beginPointerAction(event, 'size')} onKeyDown={(event) => { if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(event.key)) { event.preventDefault(); const grow = event.key === 'ArrowUp' || event.key === 'ArrowRight'; const step = snapToGrid ? 2 : 1; patch({ size: clamp(resolved.size + (grow ? step : -step), minSize, maxSize) }) } }} aria-label={`${label} 글자 크기 조절`} title="드래그해 글자 크기 조절" />

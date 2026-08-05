@@ -1,4 +1,5 @@
 import { EFFECT_PRESETS, FIELD_TYPES, FONT_PRESETS, MOTION_PRESETS, TRANSITION_PRESETS } from './maker'
+import { TEXT_EFFECT_TYPES } from './textEffects'
 
 const allowedTypes = new Set(FIELD_TYPES.map(([type]) => type))
 const allowedFonts = new Set(FONT_PRESETS.map(([font]) => font))
@@ -55,6 +56,11 @@ function sanitizeDirectTextStyle(input, fallbackSize, minSize, maxSize) {
       color: safeColor(range?.color, ''),
     })).filter((range) => range.color && range.end > range.start) : [],
     colorText: safeText(input.colorText, '', 10000),
+    textEffect: TEXT_EFFECT_TYPES.has(input.textEffect) ? input.textEffect : 'none',
+    effectColor: safeColor(input.effectColor, '#5f50a4'),
+    effectStrength: safeSize(input.effectStrength, 58, 10, 100),
+    effectBlur: safeSize(input.effectBlur, 10, 0, 32),
+    effectDistance: safeSize(input.effectDistance, 4, 0, 18),
   }
 }
 

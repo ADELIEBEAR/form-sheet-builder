@@ -1,20 +1,27 @@
 import { Check, Star } from '@phosphor-icons/react'
 import { FONT_STACKS, resolveDirectTextStyle } from '../lib/maker'
+import { textEffectCss } from '../lib/textEffects'
 import ColoredText from './ColoredText'
 
 function publicDirectStyle(value, fallback, mobileValue) {
   const style = {}
   const resolved = value && typeof value === 'object' ? resolveDirectTextStyle(value, fallback) : null
-  if (resolved) Object.assign(style, {
-    '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
-    '--public-direct-size': `${resolved.size}px`,
-    '--public-direct-width': `${resolved.width}%`,
-    '--public-direct-x': `${resolved.offsetX}px`,
-    '--public-direct-y': `${resolved.offsetY}px`,
-    '--public-direct-align': resolved.align,
-  })
+  if (resolved) {
+    const effect = textEffectCss(resolved)
+    Object.assign(style, {
+      '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
+      '--public-direct-size': `${resolved.size}px`,
+      '--public-direct-width': `${resolved.width}%`,
+      '--public-direct-x': `${resolved.offsetX}px`,
+      '--public-direct-y': `${resolved.offsetY}px`,
+      '--public-direct-align': resolved.align,
+      '--public-direct-shadow': effect.textShadow,
+      '--public-direct-stroke': effect.WebkitTextStroke,
+    })
+  }
   if (mobileValue && typeof mobileValue === 'object') {
     const mobile = resolveDirectTextStyle(mobileValue, resolved || fallback)
+    const effect = textEffectCss(mobile)
     Object.assign(style, {
       '--public-mobile-font': FONT_STACKS[mobile.font] || FONT_STACKS.pretendard,
       '--public-mobile-size': `${mobile.size}px`,
@@ -22,6 +29,8 @@ function publicDirectStyle(value, fallback, mobileValue) {
       '--public-mobile-x': `${mobile.offsetX}px`,
       '--public-mobile-y': `${mobile.offsetY}px`,
       '--public-mobile-align': mobile.align,
+      '--public-mobile-shadow': effect.textShadow,
+      '--public-mobile-stroke': effect.WebkitTextStroke,
     })
   }
   return style

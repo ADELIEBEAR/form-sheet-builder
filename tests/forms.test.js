@@ -109,6 +109,16 @@ describe('form maker validation', () => {
     expect(project.pages[0].fields[0].directStyles.question).toMatchObject({ color: '#123456', colorText: '이름', colorRanges: [{ start: 0, end: 1, color: '#ff3366' }] })
   })
 
+  it('sanitizes direct canvas text effects and their tuning values', () => {
+    const project = sanitizeProject({
+      title: '글자 효과 폼',
+      pages: page([{ id: 'q1', type: 'short', label: '효과 질문', directStyles: { question: { textEffect: 'glow', effectColor: '#4455cc', effectStrength: 140, effectBlur: -5, effectDistance: 40 }, body: { textEffect: 'unknown', effectColor: 'bad' } } }]),
+    })
+
+    expect(project.pages[0].fields[0].directStyles.question).toMatchObject({ textEffect: 'glow', effectColor: '#4455cc', effectStrength: 100, effectBlur: 0, effectDistance: 18 })
+    expect(project.pages[0].fields[0].directStyles.body).toMatchObject({ textEffect: 'none', effectColor: '#5f50a4' })
+  })
+
   it('stores direct canvas text placement within mobile-safe bounds', () => {
     const project = sanitizeProject({
       title: '직접 편집 폼',

@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { injectShareMetadata, shareMetadata } from '../api/share.js'
+import { publicFormPath, publicFormUrl, shareVersion } from '../src/lib/share.js'
 
 describe('public form share metadata', () => {
+  it('adds a stable edit version so messenger previews refresh after changes', () => {
+    const project = { slug: 'stock-application', updatedAt: '2026-08-05T10:30:00.000Z' }
+    const version = shareVersion(project.updatedAt)
+
+    expect(publicFormPath(project)).toBe(`/s/stock-application?v=${version}`)
+    expect(publicFormUrl(project, 'https://form-maker-next.vercel.app')).toBe(`https://form-maker-next.vercel.app/s/stock-application?v=${version}`)
+  })
+
+  it('keeps a clean working link when the edit date is unavailable', () => {
+    expect(publicFormPath({ slug: '한글-신청', updatedAt: '' })).toBe('/s/%ED%95%9C%EA%B8%80-%EC%8B%A0%EC%B2%AD')
+  })
+
   it('uses per-form copy and the cover image', () => {
     const metadata = shareMetadata({
       title: '기본 제목',

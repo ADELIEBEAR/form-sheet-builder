@@ -89,7 +89,9 @@ async function loadAppShell() {
 
 export default async function handler(request, response) {
   const rawSlug = Array.isArray(request.query?.slug) ? request.query.slug[0] : request.query?.slug
+  const rawVersion = Array.isArray(request.query?.v) ? request.query.v[0] : request.query?.v
   const slug = String(rawSlug || '').normalize('NFKC').slice(0, 64)
+  const version = /^[a-z0-9_-]{1,32}$/i.test(String(rawVersion || '')) ? String(rawVersion) : ''
   try {
     const indexHtml = await loadAppShell()
     if (!/^[\p{L}\p{N}-]{1,64}$/u.test(slug)) {
@@ -98,7 +100,7 @@ export default async function handler(request, response) {
     }
 
     const project = await loadPublishedProject(slug)
-    const pageUrl = `https://form-maker-next.vercel.app/s/${encodeURIComponent(slug)}`
+    const pageUrl = `https://form-maker-next.vercel.app/s/${encodeURIComponent(slug)}${version ? `?v=${encodeURIComponent(version)}` : ''}`
     const html = project ? injectShareMetadata(indexHtml, shareMetadata(project, pageUrl)) : indexHtml
     response.setHeader('content-type', 'text/html; charset=utf-8')
     response.setHeader('cache-control', 'public, s-maxage=60, stale-while-revalidate=300')

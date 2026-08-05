@@ -29,6 +29,7 @@ import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
 import { AUTO_SAVE_INTERVAL, canAutoSaveProject } from '../lib/autosave'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
+import { publicFormPath, publicFormUrl } from '../lib/share'
 import { createUndoHistory, recordUndoSnapshot, redoSnapshot, undoSnapshot } from '../lib/undoHistory'
 
 const SNAP_GRID_KEY = 'form_maker_snap_to_grid'
@@ -428,7 +429,7 @@ export default function Studio() {
 
   async function copyPublicLink() {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/s/${project.slug}`)
+      await navigator.clipboard.writeText(publicFormUrl(project))
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -455,7 +456,7 @@ export default function Studio() {
       </span>
       {projectId ? <Link className="header-text-button" to={`/responses/${projectId}`}>응답 보기</Link> : null}
       {project.status === 'published' ? (
-        <a className="square-button" href={`/s/${project.slug}`} target="_blank" rel="noreferrer" aria-label="공개 폼 열기"><Eye /></a>
+        <a className="square-button" href={publicFormPath(project)} target="_blank" rel="noreferrer" aria-label="공개 폼 열기"><Eye /></a>
       ) : null}
       <button className="studio-secondary header-save" type="button" onClick={() => save()} disabled={saving}>
         {saving ? <SpinnerGap className="spin" /> : <FloppyDisk />} 저장
@@ -658,7 +659,7 @@ export default function Studio() {
                     {project.status === 'published' ? (
                       <div className="published-link-actions">
                         <button className="copy-link-button" type="button" onClick={copyPublicLink}><LinkSimple /> {copied ? '복사됨' : '공개 링크 복사'}</button>
-                        <a className="open-public-button" href={`/s/${project.slug}`} target="_blank" rel="noreferrer"><ArrowSquareOut /> 열기</a>
+                        <a className="open-public-button" href={publicFormPath(project)} target="_blank" rel="noreferrer"><ArrowSquareOut /> 열기</a>
                       </div>
                     ) : null}
                   </div>

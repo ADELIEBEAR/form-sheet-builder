@@ -6,6 +6,7 @@ import ExternalConnectPanel from '../components/ExternalConnectPanel'
 import ProjectColorPicker from '../components/ProjectColorPicker'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
+import { publicFormUrl } from '../lib/share'
 
 export default function Workspace() {
   const navigate = useNavigate()
@@ -75,7 +76,7 @@ export default function Workspace() {
 
   async function copyLink(project) {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/s/${project.slug}`)
+      await navigator.clipboard.writeText(publicFormUrl(project))
       setCopied(project.id)
       window.setTimeout(() => setCopied(''), 1500)
     } catch {

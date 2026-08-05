@@ -9,6 +9,7 @@ const corsHeaders = {
 const BACKUP_SHEET_ID = Deno.env.get('FORM_MAKER_BACKUP_SHEET_ID') || '14BpX7cxcKVrw2LF0bQWW9CNjmBcY7HVj7HcQNaaSPL0'
 const BACKUP_SHEET_URL = `https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/edit`
 const BACKUP_SHEET_TITLE = '백업'
+const BACKUP_SCRIPT_URL = Deno.env.get('FORM_MAKER_BACKUP_SCRIPT_URL') || 'https://script.google.com/macros/s/AKfycby-KqvP9P5agWpkwa_GgH9xKaVQHzwbRZ_JerZOQ-fyHa1SpzRk5jZNSWfMCeg_LctKWw/exec'
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') || '827968184295-1eiuboa2tuqu61rft40v10d3gdcms6re.apps.googleusercontent.com'
 
 class HttpError extends Error {
@@ -84,14 +85,6 @@ async function googleRequest(admin: any, userId: string, tokenRow: GoogleTokenRo
 }
 
 async function loadGoogleToken(admin: any, userId: string) {
-  const { data: legacyToken, error: legacyError } = await admin
-    .from('google_tokens')
-    .select('access_token,refresh_token')
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (legacyError) throw legacyError
-  if (legacyToken?.access_token) return { ...legacyToken, source: 'google_tokens' } as GoogleTokenRow
-
   const { data: makerToken, error: makerError } = await admin
     .from('form_maker_google_tokens')
     .select('access_token,refresh_token')
@@ -99,6 +92,14 @@ async function loadGoogleToken(admin: any, userId: string) {
     .maybeSingle()
   if (makerError) throw makerError
   if (makerToken?.access_token) return { ...makerToken, source: 'form_maker_google_tokens' } as GoogleTokenRow
+
+  const { data: legacyToken, error: legacyError } = await admin
+    .from('google_tokens')
+    .select('access_token,refresh_token')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (legacyError) throw legacyError
+  if (legacyToken?.access_token) return { ...legacyToken, source: 'google_tokens' } as GoogleTokenRow
   return null
 }
 
@@ -233,6 +234,58 @@ async function ensureProjectBackupSheet(admin: any, project: ProjectRow, tokenRo
   return updatedProject as ProjectRow
 }
 
+async function rememberLegacyBackupSheet(admin: any, project: ProjectRow) {
+  const backup: BackupSheetRow = {
+    user_id: project.owner_id,
+    sheet_id: BACKUP_SHEET_ID,
+    sheet_url: BACKUP_SHEET_URL,
+    sheet_title: BACKUP_SHEET_TITLE,
+  }
+  const { error: backupError } = await admin
+    .from('form_maker_backup_sheets')
+    .upsert({ ...backup, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  if (backupError) throw backupError
+
+  const sheetName = project.sheet_id === BACKUP_SHEET_ID && project.sheet_name && project.sheet_name !== '응답'
+    ? project.sheet_name
+    : projectSheetName(project)
+  const { data: updatedProject, error: updateError } = await admin
+    .from('form_maker_projects')
+    .update({ sheet_id: backup.sheet_id, sheet_url: backup.sheet_url, sheet_name: sheetName })
+    .eq('id', project.id)
+    .eq('owner_id', project.owner_id)
+    .select('*')
+    .single()
+  if (updateError) throw updateError
+  return updatedProject as ProjectRow
+}
+
+async function sendToLegacyBackupScript(project: ProjectRow, submission: any) {
+  const fields = Array.isArray(project.pages)
+    ? project.pages.flatMap((page: any) => Array.isArray(page.fields) ? page.fields : []).filter((field: any) => field.type !== 'heading')
+    : []
+  const answers = submission.answers && typeof submission.answers === 'object' ? submission.answers : {}
+  const payload: Record<string, unknown> = {
+    _ts: new Date(submission.submitted_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    _formTitle: project.title || '제목 없는 폼',
+    'DB 판정': submission.quality_status === 'duplicate' ? '중복 DB' : submission.quality_status === 'invalid' ? '불량 DB' : '정상',
+    '판정 사유': Array.isArray(submission.quality_reasons) ? submission.quality_reasons.join(' · ') : '',
+  }
+  for (const field of fields) {
+    const value = answers[field.id]
+    payload[String(field.label || '질문')] = Array.isArray(value) ? value.join(', ') : value ?? ''
+  }
+
+  const response = await fetch(BACKUP_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    redirect: 'follow',
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!response.ok) throw new HttpError(`백업 스크립트 오류 (${response.status})`, 502)
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -250,8 +303,6 @@ Deno.serve(async (request) => {
     const projectId = String(body?.projectId || '')
     submissionId = String(body?.submissionId || '')
     const syncKey = String(body?.syncKey || '')
-    const providerToken = String(body?.providerToken || '').slice(0, 8192)
-    const providerRefreshToken = String(body?.providerRefreshToken || '').slice(0, 8192)
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     if (!uuid.test(projectId) || (action === 'sync' && !uuid.test(submissionId))) throw new HttpError('Invalid request.', 400)
 
@@ -272,25 +323,7 @@ Deno.serve(async (request) => {
 
     if (action === 'ensure') {
       if (!userId || project.owner_id !== userId) throw new HttpError('Forbidden', 403)
-      if (providerToken) {
-        const tokenPayload: Record<string, string> = {
-          user_id: userId,
-          access_token: providerToken,
-          updated_at: new Date().toISOString(),
-        }
-        if (providerRefreshToken) tokenPayload.refresh_token = providerRefreshToken
-        const { error: tokenSaveError } = await admin
-          .from('form_maker_google_tokens')
-          .upsert(tokenPayload, { onConflict: 'user_id' })
-        if (tokenSaveError) throw tokenSaveError
-      }
-    }
-
-    const tokenRow = await loadGoogleToken(admin, project.owner_id)
-    if (!tokenRow?.access_token) throw new HttpError('Google 권한이 필요합니다. 한 번만 다시 로그인해 주세요.', 401)
-
-    if (action === 'ensure') {
-      const connectedProject = await ensureProjectBackupSheet(admin, project, tokenRow)
+      const connectedProject = await rememberLegacyBackupSheet(admin, project)
       return json({ ok: true, status: 'connected', project: connectedProject })
     }
 
@@ -306,34 +339,8 @@ Deno.serve(async (request) => {
     if (!ownerRequest && !publicSubmissionRequest) throw new HttpError('Forbidden', 403)
     if (submission.sheet_sync_status === 'synced') return json({ ok: true, status: 'synced' })
 
-    const connectedProject = await ensureProjectBackupSheet(admin, project, tokenRow)
-    const fields = Array.isArray(connectedProject.pages)
-      ? connectedProject.pages.flatMap((page: any) => Array.isArray(page.fields) ? page.fields : []).filter((field: any) => field.type !== 'heading')
-      : []
-    const answers = submission.answers && typeof submission.answers === 'object' ? submission.answers : {}
-    const values = [
-      new Date(submission.submitted_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
-      submission.quality_status === 'duplicate' ? '중복 DB' : submission.quality_status === 'invalid' ? '불량 DB' : '정상',
-      Array.isArray(submission.quality_reasons) ? submission.quality_reasons.join(' · ') : '',
-      ...fields.map((field: any) => {
-        const value = answers[field.id]
-        return Array.isArray(value) ? value.join(', ') : value ?? ''
-      }),
-    ]
-    const sheetName = connectedProject.sheet_name || projectSheetName(connectedProject)
-    const a1Range = `${quotedSheetName(sheetName)}!A:ZZ`
-    const sheetResponse = await googleRequest(
-      admin,
-      connectedProject.owner_id,
-      tokenRow,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(connectedProject.sheet_id || '')}/values/${encodeURIComponent(a1Range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ range: a1Range, majorDimension: 'ROWS', values: [values] }),
-      },
-    )
-    if (!sheetResponse.ok) throw await googleError(sheetResponse, `Google Sheets 오류 (${sheetResponse.status})`)
+    const connectedProject = await rememberLegacyBackupSheet(admin, project)
+    await sendToLegacyBackupScript(connectedProject, submission)
 
     await admin.from('form_maker_submissions').update({ sheet_sync_status: 'synced', sheet_sync_error: null }).eq('id', submission.id)
     return json({ ok: true, status: 'synced' })

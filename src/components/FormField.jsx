@@ -1,17 +1,29 @@
 import { Check, Star } from '@phosphor-icons/react'
 import { FONT_STACKS, resolveDirectTextStyle } from '../lib/maker'
 
-function publicDirectStyle(value, fallback) {
-  if (!value || typeof value !== 'object') return {}
-  const resolved = resolveDirectTextStyle(value, fallback)
-  return {
+function publicDirectStyle(value, fallback, mobileValue) {
+  const style = {}
+  const resolved = value && typeof value === 'object' ? resolveDirectTextStyle(value, fallback) : null
+  if (resolved) Object.assign(style, {
     '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
     '--public-direct-size': `${resolved.size}px`,
     '--public-direct-width': `${resolved.width}%`,
     '--public-direct-x': `${resolved.offsetX}px`,
     '--public-direct-y': `${resolved.offsetY}px`,
     '--public-direct-align': resolved.align,
+  })
+  if (mobileValue && typeof mobileValue === 'object') {
+    const mobile = resolveDirectTextStyle(mobileValue, resolved || fallback)
+    Object.assign(style, {
+      '--public-mobile-font': FONT_STACKS[mobile.font] || FONT_STACKS.pretendard,
+      '--public-mobile-size': `${mobile.size}px`,
+      '--public-mobile-width': `${mobile.width}%`,
+      '--public-mobile-x': `${mobile.offsetX}px`,
+      '--public-mobile-y': `${mobile.offsetY}px`,
+      '--public-mobile-align': mobile.align,
+    })
   }
+  return style
 }
 
 export default function FormField({
@@ -28,8 +40,8 @@ export default function FormField({
   consentLabel = '내용을 확인했으며 동의합니다.',
 }) {
   const set = (next) => onChange?.(next)
-  const questionDirect = publicDirectStyle(field.directStyles?.question, { size: 32 })
-  const bodyDirect = publicDirectStyle(field.directStyles?.body, { size: 16 })
+  const questionDirect = publicDirectStyle(field.directStyles?.question, { size: 32 }, field.directStyles?.questionMobile)
+  const bodyDirect = publicDirectStyle(field.directStyles?.body, { size: 16 }, field.directStyles?.bodyMobile)
   if (field.type === 'heading') return <div className="render-heading"><h3 className="public-direct-text" style={questionDirect}>{field.label}</h3>{field.description ? <p className="public-direct-text" style={bodyDirect}>{field.description}</p> : null}</div>
 
   const common = { disabled: preview, value: value || '', placeholder: field.placeholder || answerPlaceholder, onChange: (event) => set(event.target.value) }

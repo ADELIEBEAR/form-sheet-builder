@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
 import DirectCanvasText, { snapToGridValue } from '../src/components/DirectCanvasText'
 import InlineFieldEditor from '../src/components/InlineFieldEditor'
+import InlineFormCanvas, { COVER_VIEW } from '../src/components/InlineFormCanvas'
 import ProjectColorPicker from '../src/components/ProjectColorPicker'
 import { emptyProject, formSteps, makePage } from '../src/lib/maker'
 
@@ -43,7 +44,7 @@ describe('focused form canvas', () => {
 
   it('renders saved direct text size, width, position, font, and alignment', () => {
     const project = emptyProject()
-    project.pages[0].fields[0].directStyles = { question: { font: 'hahmlet', size: 44, width: 73, offsetX: 18, offsetY: -12, align: 'center' } }
+    project.pages[0].fields[0].directStyles = { question: { font: 'hahmlet', size: 44, width: 73, offsetX: 18, offsetY: -12, align: 'center' }, questionMobile: { font: 'jua', size: 34, width: 88, offsetX: 8, offsetY: 16, align: 'left' } }
 
     const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={1} preview />)
 
@@ -52,7 +53,13 @@ describe('focused form canvas', () => {
     expect(html).toContain('--public-direct-x:18px')
     expect(html).toContain('--public-direct-y:-12px')
     expect(html).toContain('--public-direct-align:center')
+    expect(html).toContain('--public-mobile-size:34px')
+    expect(html).toContain('--public-mobile-width:88%')
+    expect(html).toContain('--public-mobile-x:8px')
+    expect(html).toContain('--public-mobile-y:16px')
+    expect(html).toContain('--public-mobile-align:left')
     expect(html).toContain('Hahmlet')
+    expect(html).toContain('Jua')
   })
 
   it('shows direct manipulation controls on the selected canvas text', () => {
@@ -68,6 +75,15 @@ describe('focused form canvas', () => {
     expect(snapToGridValue(13, 8)).toBe(16)
     expect(snapToGridValue(-13, 8)).toBe(-16)
     expect(snapToGridValue(71, 4)).toBe(72)
+  })
+
+  it('uses compact direct controls and a separate style scope in mobile preview', () => {
+    const project = emptyProject()
+    const html = renderToStaticMarkup(<InlineFormCanvas project={project} pageIndex={0} selectedFieldId={COVER_VIEW} device="mobile" snapToGrid onProjectChange={() => {}} onPageChange={() => {}} onNavigate={() => {}} onFieldSelect={() => {}} onFieldChange={() => {}} onFieldAdd={() => {}} onFieldDuplicate={() => {}} onFieldDelete={() => {}} onFieldMove={() => {}} />)
+
+    expect(html).toContain('mobile-canvas-editing')
+    expect(html).toContain('snap-grid-active')
+    expect(html).toContain('>모바일</em>')
   })
 
   it('renders customized copy, image placement, and transition choices', () => {

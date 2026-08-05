@@ -789,6 +789,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   transform: none;
 }
 .direct-text-toolbar > span { padding: 0 5px; color: #c7c1d0; font-size: 9px; font-weight: 780; white-space: nowrap; }
+.direct-text-toolbar > em { padding: 3px 5px; border-radius: 4px; background: #5a4c86; color: #e9e2ff; font-size: 7px; font-style: normal; font-weight: 820; letter-spacing: .04em; white-space: nowrap; }
 .direct-text-toolbar select {
   width: 112px;
   min-height: 29px;
@@ -861,20 +862,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .direct-text-toolbar select { width: 92px; }
   .direct-align-buttons button { min-width: 24px; padding-inline: 5px; }
   .public-direct-text {
-    width: min(100%, var(--public-direct-width, 100%));
-    transform: translate(clamp(-28px, var(--public-direct-x, 0), 28px), clamp(-48px, var(--public-direct-y, 0), 48px));
+    width: min(100%, var(--public-mobile-width, var(--public-direct-width, 100%)));
+    transform: translate(clamp(-28px, var(--public-mobile-x, var(--public-direct-x, 0)), 28px), clamp(-48px, var(--public-mobile-y, var(--public-direct-y, 0)), 48px));
+    font-family: var(--public-mobile-font, var(--public-direct-font, var(--preview-font)));
+    text-align: var(--public-mobile-align, var(--public-direct-align, var(--preview-text-align)));
   }
   .focus-cover-card h1.public-direct-text,
   .focus-success-card h1.public-direct-text,
-  .form-canvas .canvas-intro h1.public-direct-text { font-size: min(var(--public-direct-size), 12vw); }
+  .form-canvas .canvas-intro h1.public-direct-text { font-size: min(var(--public-mobile-size, var(--public-direct-size)), 12vw); }
   .focus-question-card legend.public-direct-text,
   .focus-question-card .render-heading h3.public-direct-text,
-  .form-canvas legend.public-direct-text { font-size: min(var(--public-direct-size), 9vw); }
+  .form-canvas legend.public-direct-text { font-size: min(var(--public-mobile-size, var(--public-direct-size)), 9vw); }
   .focus-cover-card p.public-direct-text,
   .focus-success-card p.public-direct-text,
   .render-help.public-direct-text,
-  .render-heading p.public-direct-text { font-size: min(var(--public-direct-size), 5.6vw); }
+  .render-heading p.public-direct-text { font-size: min(var(--public-mobile-size, var(--public-direct-size)), 5.6vw); }
 }
+
+.preview-frame.mobile .direct-text-toolbar { max-width: 340px; flex-wrap: wrap; }
+.preview-frame.mobile .direct-text-toolbar > span { display: none; }
+.preview-frame.mobile .direct-text-toolbar select { width: 88px; }
+.preview-frame.mobile .direct-align-buttons button { min-width: 24px; padding-inline: 5px; }
+.preview-frame.mobile .direct-canvas-text { max-width: 100%; }
 
 /* Foldered workspace */
 .folder-filter { margin: -12px 0 25px; display: flex; flex-wrap: wrap; gap: 7px; }

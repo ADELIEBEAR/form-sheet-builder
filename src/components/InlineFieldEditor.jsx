@@ -1,15 +1,20 @@
 import { ArrowDown, ArrowUp, Check, Copy, LinkSimple, Plus, Trash } from '@phosphor-icons/react'
-import { changeFieldType, FIELD_TYPES } from '../lib/maker'
+import { changeFieldType, FIELD_TYPES, resolveDirectTextStyle } from '../lib/maker'
 import DirectCanvasText from './DirectCanvasText'
 import FormField from './FormField'
 
 const OPTION_TYPES = ['single', 'multi', 'select']
 const PLACEHOLDER_TYPES = ['short', 'long', 'email', 'phone', 'number', 'date']
 
-export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove, directStyles, directFallbacks, activeTextRole, onTextRoleSelect, onDirectStyleChange, snapToGrid = false }) {
+export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove, directStyles, directFallbacks, activeTextRole, onTextRoleSelect, onDirectStyleChange, snapToGrid = false, device = 'desktop' }) {
   const hasOptions = OPTION_TYPES.includes(field.type)
   const hasPlaceholder = PLACEHOLDER_TYPES.includes(field.type)
   const isConsent = field.type === 'consent'
+  const mobilePreview = device === 'mobile'
+  const questionKey = mobilePreview ? 'questionMobile' : 'question'
+  const bodyKey = mobilePreview ? 'bodyMobile' : 'body'
+  const questionFallback = mobilePreview ? resolveDirectTextStyle(directStyles?.question, directFallbacks?.question || { size: 32 }) : (directFallbacks?.question || { size: 32 })
+  const bodyFallback = mobilePreview ? resolveDirectTextStyle(directStyles?.body, directFallbacks?.body || { size: 16 }) : (directFallbacks?.body || { size: 16 })
   const patch = (next) => onChange({ ...field, ...next })
 
   return (
@@ -33,7 +38,7 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
         </div> : null}
       </div>
 
-      <DirectCanvasText className="direct-question-text" label={field.type === 'heading' ? '안내 제목' : '질문'} value={directStyles?.question} fallback={directFallbacks?.question || { size: 32 }} minSize={20} maxSize={72} selected={selected && activeTextRole === 'question'} onSelect={() => onTextRoleSelect?.('question')} onChange={(next) => onDirectStyleChange?.('question', next)} snapToGrid={snapToGrid}>
+      <DirectCanvasText className="direct-question-text" label={field.type === 'heading' ? '안내 제목' : '질문'} value={directStyles?.[questionKey]} fallback={questionFallback} minSize={20} maxSize={mobilePreview ? 48 : 72} selected={selected && activeTextRole === 'question'} onSelect={() => onTextRoleSelect?.('question')} onChange={(next) => onDirectStyleChange?.(questionKey, next)} snapToGrid={snapToGrid} mobile={mobilePreview}>
         <textarea
           className="inline-question-input"
           rows="1"
@@ -43,7 +48,7 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
           placeholder={field.type === 'heading' ? '안내 제목' : isConsent ? '동의 항목 제목을 입력하세요' : '질문을 입력하세요'}
         />
       </DirectCanvasText>
-      <DirectCanvasText className="direct-question-body" label="설명" value={directStyles?.body} fallback={directFallbacks?.body || { size: 16 }} minSize={12} maxSize={32} selected={selected && activeTextRole === 'body'} onSelect={() => onTextRoleSelect?.('body')} onChange={(next) => onDirectStyleChange?.('body', next)} snapToGrid={snapToGrid}>
+      <DirectCanvasText className="direct-question-body" label="설명" value={directStyles?.[bodyKey]} fallback={bodyFallback} minSize={12} maxSize={mobilePreview ? 22 : 32} selected={selected && activeTextRole === 'body'} onSelect={() => onTextRoleSelect?.('body')} onChange={(next) => onDirectStyleChange?.(bodyKey, next)} snapToGrid={snapToGrid} mobile={mobilePreview}>
         <textarea
           className="inline-description-input"
           rows="1"

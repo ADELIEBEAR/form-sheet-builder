@@ -97,6 +97,8 @@ function sanitizeField(field) {
     directStyles: sanitizeDirectTextGroup(field?.directStyles, [
       ['question', 32, 20, 72],
       ['body', 16, 12, 32],
+      ['questionMobile', 32, 20, 48],
+      ['bodyMobile', 16, 12, 22],
     ]),
   }
 }
@@ -229,6 +231,10 @@ export function sanitizeProject(input) {
         ['coverBody', defaultBodySize, 12, 40],
         ['successTitle', defaultTitleSize, 28, 72],
         ['successBody', defaultBodySize, 12, 32],
+        ['coverTitleMobile', defaultTitleSize, 28, 48],
+        ['coverBodyMobile', defaultBodySize, 12, 22],
+        ['successTitleMobile', defaultTitleSize, 28, 48],
+        ['successBodyMobile', defaultBodySize, 12, 22],
       ]),
       effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
       motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',

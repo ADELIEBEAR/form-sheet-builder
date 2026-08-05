@@ -103,12 +103,14 @@ describe('form maker validation', () => {
   it('stores direct canvas text placement within mobile-safe bounds', () => {
     const project = sanitizeProject({
       title: '직접 편집 폼',
-      pages: page([{ id: 'q1', type: 'short', label: '바로 움직일 질문', directStyles: { question: { font: 'hahmlet', size: 66, width: 72, offsetX: 999, offsetY: -999, align: 'center' } } }]),
-      theme: { directStyles: { coverTitle: { font: 'unknown', size: 120, width: 12, offsetX: -500, offsetY: 500, align: 'right' } } },
+      pages: page([{ id: 'q1', type: 'short', label: '바로 움직일 질문', directStyles: { question: { font: 'hahmlet', size: 66, width: 72, offsetX: 999, offsetY: -999, align: 'center' }, questionMobile: { font: 'gowun', size: 80, width: 68, offsetX: 16, offsetY: -24, align: 'left' } } }]),
+      theme: { directStyles: { coverTitle: { font: 'unknown', size: 120, width: 12, offsetX: -500, offsetY: 500, align: 'right' }, coverTitleMobile: { font: 'jua', size: 80, width: 84, offsetX: 24, offsetY: -16, align: 'center' } } },
     })
 
     expect(project.pages[0].fields[0].directStyles.question).toMatchObject({ font: 'hahmlet', size: 66, width: 72, offsetX: 120, offsetY: -100, align: 'center' })
+    expect(project.pages[0].fields[0].directStyles.questionMobile).toMatchObject({ font: 'gowun', size: 48, width: 68, offsetX: 16, offsetY: -24, align: 'left' })
     expect(project.theme.directStyles.coverTitle).toMatchObject({ font: 'pretendard', size: 96, width: 48, offsetX: -120, offsetY: 100, align: 'left' })
+    expect(project.theme.directStyles.coverTitleMobile).toMatchObject({ font: 'jua', size: 48, width: 84, offsetX: 24, offsetY: -16, align: 'center' })
   })
 
   it('stores supported visual effects and rejects unknown animation settings', () => {

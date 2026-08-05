@@ -564,6 +564,7 @@ export default function Studio() {
               onFieldDelete={deleteField}
               onFieldMove={moveField}
               snapToGrid={snapToGrid}
+              device={device}
             />
           </div>
         </section>

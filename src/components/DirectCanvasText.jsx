@@ -25,15 +25,23 @@ export function directTextVariables(value, fallback) {
   }
 }
 
-export default function DirectCanvasText({ children, value, fallback, minSize, maxSize, label, selected, onSelect, onChange, snapToGrid = false, className = '' }) {
-  const resolved = resolveDirectTextStyle(value, fallback)
+export default function DirectCanvasText({ children, value, fallback, minSize, maxSize, label, selected, onSelect, onChange, snapToGrid = false, mobile = false, className = '' }) {
+  const maxOffsetX = mobile ? 28 : 120
+  const maxOffsetY = mobile ? 48 : 100
+  const source = resolveDirectTextStyle(value, fallback)
+  const resolved = {
+    ...source,
+    size: clamp(source.size, minSize, maxSize),
+    offsetX: clamp(source.offsetX, -maxOffsetX, maxOffsetX),
+    offsetY: clamp(source.offsetY, -maxOffsetY, maxOffsetY),
+  }
   const patch = (next) => onChange?.({ ...resolved, ...next })
   const nudgePosition = (event) => {
     const amount = snapToGrid ? (event.shiftKey ? 16 : 8) : (event.shiftKey ? 10 : 2)
     const delta = { ArrowLeft: [-amount, 0], ArrowRight: [amount, 0], ArrowUp: [0, -amount], ArrowDown: [0, amount] }[event.key]
     if (!delta) return
     event.preventDefault()
-    patch({ offsetX: clamp(resolved.offsetX + delta[0], -120, 120), offsetY: clamp(resolved.offsetY + delta[1], -100, 100) })
+    patch({ offsetX: clamp(resolved.offsetX + delta[0], -maxOffsetX, maxOffsetX), offsetY: clamp(resolved.offsetY + delta[1], -maxOffsetY, maxOffsetY) })
   }
 
   const beginPointerAction = (event, mode) => {
@@ -51,9 +59,9 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
       const deltaX = moveEvent.clientX - startX
       const deltaY = moveEvent.clientY - startY
       if (mode === 'move') {
-        const nextX = clamp(start.offsetX + deltaX, -120, 120)
-        const nextY = clamp(start.offsetY + deltaY, -100, 100)
-        patch({ offsetX: Math.round(clamp(snap(nextX, 8, snapToGrid), -120, 120)), offsetY: Math.round(clamp(snap(nextY, 8, snapToGrid), -100, 100)) })
+        const nextX = clamp(start.offsetX + deltaX, -maxOffsetX, maxOffsetX)
+        const nextY = clamp(start.offsetY + deltaY, -maxOffsetY, maxOffsetY)
+        patch({ offsetX: Math.round(clamp(snap(nextX, 8, snapToGrid), -maxOffsetX, maxOffsetX)), offsetY: Math.round(clamp(snap(nextY, 8, snapToGrid), -maxOffsetY, maxOffsetY)) })
         return
       }
       if (mode === 'width') {
@@ -82,7 +90,7 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
   return (
     <div
       className={`direct-canvas-text ${selected ? 'selected' : ''} ${className}`}
-      style={directTextVariables(value, fallback)}
+      style={directTextVariables(resolved)}
       onPointerDown={onSelect}
       data-direct-label={label}
     >
@@ -91,6 +99,7 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
         <div className="direct-text-toolbar" role="toolbar" aria-label={`${label} 빠른 디자인`} onPointerDown={(event) => event.stopPropagation()}>
           <button className="direct-move-button" type="button" onPointerDown={(event) => beginPointerAction(event, 'move')} onKeyDown={nudgePosition} aria-label={`${label} 위치 이동`} title="잡아서 이동 · 방향키로 미세 조절"><DotsSixVertical weight="bold" /></button>
           <span>{label}</span>
+          {mobile ? <em>모바일</em> : null}
           <select value={resolved.font} onChange={(event) => patch({ font: event.target.value })} aria-label={`${label} 글꼴`}>
             {FONT_PRESETS.map(([font, fontLabel]) => <option value={font} key={font}>{fontLabel}</option>)}
           </select>

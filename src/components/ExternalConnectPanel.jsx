@@ -1,11 +1,12 @@
 import { Check, Code, Copy, LinkSimple, WarningCircle } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
-import { EXTERNAL_SUBMIT_URL, externalAssistantPrompt, externalFields, externalSubmitSnippet } from '../lib/externalIntegration'
+import { externalAssistantPrompt, externalFields, externalResponseUrl, externalSubmitSnippet } from '../lib/externalIntegration'
 
 export default function ExternalConnectPanel({ project }) {
   const [tab, setTab] = useState('easy')
   const [copied, setCopied] = useState('')
   const fields = useMemo(() => externalFields(project), [project])
+  const responseUrl = useMemo(() => externalResponseUrl(project), [project])
   const prompt = useMemo(() => externalAssistantPrompt(project), [project])
   const code = useMemo(() => externalSubmitSnippet(project), [project])
 
@@ -29,9 +30,10 @@ export default function ExternalConnectPanel({ project }) {
       </div>
 
       <div className="external-endpoint">
-        <span><LinkSimple /> 연결 주소</span>
-        <code>{EXTERNAL_SUBMIT_URL}</code>
-        <button type="button" onClick={() => copy(EXTERNAL_SUBMIT_URL, 'url')}>{copied === 'url' ? <Check /> : <Copy />} {copied === 'url' ? '복사됨' : '복사'}</button>
+        <span><LinkSimple /> 이 폼 전용 응답 연결 링크</span>
+        <code>{responseUrl}</code>
+        <button type="button" onClick={() => copy(responseUrl, 'url')}>{copied === 'url' ? <Check /> : <Copy />} {copied === 'url' ? '복사됨' : '링크 복사'}</button>
+        <small>사이트를 만들 때 “신청 내용을 이 링크로 보내줘”라고 이 주소만 붙여넣으면 됩니다.</small>
       </div>
 
       <div className="external-tabs" role="tablist" aria-label="외부 사이트 연결 방법">

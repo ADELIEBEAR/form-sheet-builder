@@ -1281,6 +1281,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .external-endpoint { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
 .external-endpoint > span { grid-column: 1 / -1; color: var(--app-muted); display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 800; }
 .external-endpoint > span svg { width: 13px; height: 13px; }
+.external-endpoint > small { grid-column: 1 / -1; color: var(--app-muted); font-size: 8px; line-height: 1.55; }
 .external-endpoint code,
 .external-code {
   min-width: 0;

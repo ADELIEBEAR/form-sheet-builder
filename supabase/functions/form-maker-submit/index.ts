@@ -124,7 +124,8 @@ Deno.serve(async (request) => {
     try { body = JSON.parse(rawBody) } catch { throw new HttpError('올바른 JSON 요청이 아닙니다.', 400) }
 
     if (String(body?.website || '').trim()) return json({ ok: true })
-    const form = String(body?.form || body?.slug || '').trim().slice(0, 120)
+    const requestUrl = new URL(request.url)
+    const form = String(body?.form || body?.slug || requestUrl.searchParams.get('form') || '').trim().slice(0, 120)
     if (!form) throw new HttpError('form 주소값을 입력해 주세요.', 400)
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''

@@ -1,7 +1,8 @@
-import { Check, Copy, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { Check, Code, Copy, Eye, FilePlus, Folder, LinkSimple, LockKey, MagnifyingGlass, NotePencil, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
+import ExternalConnectPanel from '../components/ExternalConnectPanel'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
 
@@ -14,6 +15,7 @@ export default function Workspace() {
   const [copied, setCopied] = useState('')
   const [folder, setFolder] = useState('전체')
   const [busyAction, setBusyAction] = useState('')
+  const [connectProject, setConnectProject] = useState(null)
   const [metaStatus, setMetaStatus] = useState({})
   const projectsRef = useRef([])
   const saveVersionRef = useRef({})
@@ -161,13 +163,22 @@ export default function Workspace() {
               </div>
               <div className="project-utility-actions">
                 <button type="button" disabled={project.status !== 'published'} onClick={() => copyLink(project)} title={project.status === 'published' ? '공개 링크 복사' : '폼을 공개하면 링크를 복사할 수 있습니다'}>{copied === project.id ? <Check weight="bold" /> : <LinkSimple />} {copied === project.id ? '복사됨' : '링크 복사'}</button>
-                <button type="button" disabled={busyAction === `duplicate-${project.id}`} onClick={() => duplicate(project.id)}><Copy /> {busyAction === `duplicate-${project.id}` ? '복제 중' : '복제'}</button>
+                <button type="button" disabled={project.status !== 'published'} onClick={() => setConnectProject(project)} title={project.status === 'published' ? '외부 사이트에서 이 폼으로 응답 받기' : '폼을 공개하면 외부 사이트를 연결할 수 있습니다'}><Code /> 외부 연결</button>
+                <button type="button" disabled={busyAction === `duplicate-${project.id}`} onClick={() => duplicate(project.id)} aria-label={`${project.title} 복제`} title={busyAction === `duplicate-${project.id}` ? '복제 중' : '복제'}><Copy /></button>
                 <button className="danger" type="button" disabled={busyAction === `remove-${project.id}`} onClick={() => remove(project.id)} aria-label={`${project.title} 삭제`} title="삭제"><Trash /></button>
               </div>
             </nav>
           </article>)}
           {visible.length === 0 ? <div className="no-search-result">검색 결과가 없습니다.</div> : null}
         </div> : null}
+        {connectProject ? (
+          <div className="external-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConnectProject(null) }}>
+            <section className="external-modal" role="dialog" aria-modal="true" aria-labelledby="external-modal-title">
+              <header><div><span>EXTERNAL CONNECTION</span><h2 id="external-modal-title">{connectProject.title}</h2></div><button type="button" onClick={() => setConnectProject(null)} aria-label="외부 연결 창 닫기"><X /></button></header>
+              <ExternalConnectPanel project={connectProject} />
+            </section>
+          </div>
+        ) : null}
       </main>
     </AppFrame>
   )

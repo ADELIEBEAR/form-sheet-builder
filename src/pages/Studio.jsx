@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from '../lib/router'
 import AppFrame from '../components/AppFrame'
+import ExternalConnectPanel from '../components/ExternalConnectPanel'
 import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
 import SharePreviewPanel from '../components/SharePreviewPanel'
@@ -504,6 +505,7 @@ export default function Studio() {
                     <label className="studio-control"><span>한 줄 설명</span><input maxLength="160" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="이 폼이 어떤 용도인지 간단히 적어주세요." /></label>
                   </div>
                   <SharePreviewPanel project={project} onChange={changeProject} />
+                  <ExternalConnectPanel project={project} />
                   <FormCopyPanel project={project} onChange={changeProject} />
                   <div className="inspector-panel">
                     <div className="panel-heading"><span>공개 설정</span><strong>공개 주소</strong></div>

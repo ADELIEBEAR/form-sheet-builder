@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
 import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
+import ColoredText from './ColoredText'
 import FocusEffects from './FocusEffects'
 import FormField from './FormField'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
@@ -56,6 +57,10 @@ function publicTextStyle(value, fallback, mobileValue) {
   return style
 }
 
+function coloredText(text, desktopStyle, mobileStyle) {
+  return <ColoredText text={text} desktopStyle={desktopStyle} mobileStyle={mobileStyle} />
+}
+
 function SuccessScreen({ project, style, focus, onRestart }) {
   const transition = transitionClass(project.theme)
   const typography = resolvePageTypography(project, null)
@@ -66,8 +71,8 @@ function SuccessScreen({ project, style, focus, onRestart }) {
       <div className={focus ? `focus-content-card focus-success-card ${transition}` : transition}>
         <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
         <div className="success-symbol"><CheckCircle weight="fill" /></div>
-        <h1 className="public-direct-text" style={publicTextStyle(directStyles.successTitle, { font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' }, directStyles.successTitleMobile)}>{project.settings?.successTitle}</h1>
-        <p className="public-direct-text" style={publicTextStyle(directStyles.successBody, { font: project.theme?.font, size: typography.bodySize, align: 'center' }, directStyles.successBodyMobile)}>{project.settings?.successMessage}</p>
+        <h1 className="public-direct-text" style={publicTextStyle(directStyles.successTitle, { font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' }, directStyles.successTitleMobile)}>{coloredText(project.settings?.successTitle, directStyles.successTitle, directStyles.successTitleMobile)}</h1>
+        <p className="public-direct-text" style={publicTextStyle(directStyles.successBody, { font: project.theme?.font, size: typography.bodySize, align: 'center' }, directStyles.successBodyMobile)}>{coloredText(project.settings?.successMessage, directStyles.successBody, directStyles.successBodyMobile)}</p>
         {onRestart && project.settings?.restartLabel !== '' ? <button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button> : null}
       </div>
     </div>
@@ -117,8 +122,8 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
           <main className={`focus-cover-card focus-content-card ${transition}`} key="cover">
             <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
             {copy.coverKicker !== '' ? <span className="focus-kicker">{copy.coverKicker ?? 'WELCOME'}</span> : null}
-            <h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{project.title}</h1>
-            {project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{project.description}</p> : null}
+            <h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{coloredText(project.title, directStyles.coverTitle, directStyles.coverTitleMobile)}</h1>
+            {project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{coloredText(project.description, directStyles.coverBody, directStyles.coverBodyMobile)}</p> : null}
             <button className="focus-primary" type="button" onClick={() => onStep?.(1)} disabled={preview || !canContinue} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button>
           </main>
         ) : current ? (
@@ -173,7 +178,7 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart,
         <FormMedia theme={project.theme} placement="card" className="canvas-card-media" />
         {project.theme?.showProgress && project.pages.length > 1 ? <div className="page-progress"><span style={{ width: `${((pageIndex + 1) / project.pages.length) * 100}%` }} /></div> : null}
         <header className="canvas-intro">
-          {pageIndex === 0 ? <><h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{project.title}</h1>{project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{project.description}</p> : null}</> : null}
+          {pageIndex === 0 ? <><h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{coloredText(project.title, directStyles.coverTitle, directStyles.coverTitleMobile)}</h1>{project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{coloredText(project.description, directStyles.coverBody, directStyles.coverBodyMobile)}</p> : null}</> : null}
           {project.pages.length > 1 ? <div className="page-copy"><small>{pageIndex + 1} / {project.pages.length}</small><h2>{page.title}</h2>{page.description ? <p>{page.description}</p> : null}</div> : null}
         </header>
         <div className="canvas-fields">

@@ -48,6 +48,13 @@ function sanitizeDirectTextStyle(input, fallbackSize, minSize, maxSize) {
     offsetX: safeSize(input.offsetX, 0, -120, 120),
     offsetY: safeSize(input.offsetY, 0, -100, 100),
     align: allowedTextAlignments.has(input.align) ? input.align : 'left',
+    color: safeColor(input.color, ''),
+    colorRanges: Array.isArray(input.colorRanges) ? input.colorRanges.slice(0, 200).map((range) => ({
+      start: safeSize(range?.start, 0, 0, 10000),
+      end: safeSize(range?.end, 0, 0, 10000),
+      color: safeColor(range?.color, ''),
+    })).filter((range) => range.color && range.end > range.start) : [],
+    colorText: safeText(input.colorText, '', 10000),
   }
 }
 

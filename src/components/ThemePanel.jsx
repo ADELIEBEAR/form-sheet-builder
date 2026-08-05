@@ -1,24 +1,26 @@
 import { Check, MagicWand, Sparkle } from '@phosphor-icons/react'
+import { useState } from 'react'
 import { ACCENT_PRESETS, EFFECT_PRESETS, MOTION_PRESETS, THEME_PRESETS, TRANSITION_PRESETS } from '../lib/maker'
 import ImageUpload from './ImageUpload'
-import TypographyWorkbench from './TypographyWorkbench'
 
-export default function ThemePanel({ project, projectId, pageIndex = 0, onChange }) {
+export default function ThemePanel({ project, projectId, onChange }) {
+  const [showAllThemes, setShowAllThemes] = useState(false)
   const theme = project.theme || {}
   const patch = (next) => onChange({ ...project, theme: { ...theme, ...next } })
   const applyTheme = (preset) => patch(preset.theme)
   const hasImage = Boolean(theme.coverUrl)
+  const featuredThemeIds = new Set(['lavender-soft', 'peach-sorbet', 'mint-soda', 'sky-cloud', 'stock-market', 'crypto-neon', 'mono-ink', 'night-velvet'])
+  const visibleThemes = showAllThemes ? THEME_PRESETS : THEME_PRESETS.filter((preset) => featuredThemeIds.has(preset.id))
 
   return (
     <div className="inspector-panel theme-inspector">
-      <div className="panel-heading"><span>디자인</span><strong>느낌을 바로 골라보세요</strong><p>고른 스타일은 편집 화면과 공개 폼에 즉시 적용됩니다.</p></div>
-
-      <TypographyWorkbench project={project} pageIndex={pageIndex} onChange={onChange} />
+      <div className="panel-heading"><span>디자인</span><strong>폼 전체 분위기</strong><p>전체 테마와 배경만 여기서 정리합니다.</p></div>
+      <div className="canvas-edit-hint"><MagicWand /><span><strong>글자는 화면에서 직접</strong><small>글자를 선택하면 글꼴·크기·색상·위치 도구가 바로 열립니다.</small></span></div>
 
       <div className="theme-group theme-preset-section">
         <div className="theme-section-title"><span>완성형 테마</span><small><MagicWand /> 한 번에 적용</small></div>
         <div className="theme-preset-grid">
-          {THEME_PRESETS.map((preset) => {
+          {visibleThemes.map((preset) => {
             const active = theme.accent === preset.theme.accent && theme.background === preset.theme.background && theme.card === preset.theme.card
             return (
               <button className={active ? 'theme-preset active' : 'theme-preset'} type="button" key={preset.id} onClick={() => applyTheme(preset)}>
@@ -29,12 +31,14 @@ export default function ThemePanel({ project, projectId, pageIndex = 0, onChange
             )
           })}
         </div>
+        <button className="theme-show-all" type="button" onClick={() => setShowAllThemes((current) => !current)}>{showAllThemes ? '대표 테마만 보기' : `전체 ${THEME_PRESETS.length}개 테마 보기`}</button>
       </div>
 
       <div className="theme-group"><span>응답 화면 방식</span><div className="layout-picker"><button className={(theme.layout || 'focus') === 'focus' ? 'active' : ''} type="button" onClick={() => patch({ layout: 'focus' })}><strong>한 질문씩</strong><small>한 화면에 하나만 편안하게</small></button><button className={theme.layout === 'card' ? 'active' : ''} type="button" onClick={() => patch({ layout: 'card' })}><strong>한 페이지씩</strong><small>질문을 한 번에 빠르게</small></button></div></div>
 
-      <div className="theme-group effect-section">
-        <div className="theme-section-title"><span>움직이는 배경</span><small><Sparkle /> 가벼운 내장 효과</small></div>
+      <details className="theme-group theme-collapse effect-section">
+        <summary className="theme-section-title"><span>움직이는 배경</span><small><Sparkle /> 필요할 때 열기</small></summary>
+        <div className="theme-collapse-body">
         <div className="effect-picker">
           {EFFECT_PRESETS.map(([value, label, description]) => (
             <button className={(theme.effect || 'aurora') === value ? 'effect-option active' : 'effect-option'} type="button" key={value} onClick={() => patch({ effect: value })}>
@@ -47,10 +51,12 @@ export default function ThemePanel({ project, projectId, pageIndex = 0, onChange
           {MOTION_PRESETS.map(([value, label]) => <button className={(theme.motion || 'soft') === value ? 'active' : ''} type="button" key={value} onClick={() => patch({ motion: value })}>{label}</button>)}
         </div>
         <p className="control-note">휴대폰의 ‘동작 줄이기’ 설정이 켜져 있으면 애니메이션은 자동으로 멈춥니다.</p>
-      </div>
+        </div>
+      </details>
 
-      <div className="theme-group transition-section">
-        <div className="theme-section-title"><span>화면 전환</span><small>질문을 넘길 때</small></div>
+      <details className="theme-group theme-collapse transition-section">
+        <summary className="theme-section-title"><span>화면 전환</span><small>질문을 넘길 때</small></summary>
+        <div className="theme-collapse-body">
         <div className="transition-picker">
           {TRANSITION_PRESETS.map(([value, label]) => (
             <button className={(theme.transition || 'rise') === value ? `transition-option transition-demo-${value} active` : `transition-option transition-demo-${value}`} type="button" key={value} onClick={() => patch({ transition: value })}>
@@ -60,14 +66,16 @@ export default function ThemePanel({ project, projectId, pageIndex = 0, onChange
           ))}
         </div>
         <label className="studio-control font-size-control transition-speed-control"><span>전환 속도</span><input type="range" min="180" max="900" step="20" value={theme.transitionSpeed ?? 440} onChange={(event) => patch({ transitionSpeed: Number(event.target.value) })} /><small>{theme.transitionSpeed ?? 440}ms</small></label>
-      </div>
+        </div>
+      </details>
 
       <div className="theme-group"><span>포인트 색상</span><div className="swatches">{ACCENT_PRESETS.map((color) => <button style={{ background: color }} className={theme.accent === color ? 'active' : ''} type="button" key={color} onClick={() => patch({ accent: color })} aria-label={`${color} 선택`}>{theme.accent === color ? <Check weight="bold" /> : null}</button>)}</div></div>
       <div className="theme-grid"><label className="studio-control"><span>배경</span><input type="color" value={theme.background || '#f0edfb'} onChange={(event) => patch({ background: event.target.value })} /></label><label className="studio-control"><span>카드</span><input type="color" value={theme.card || '#ffffff'} onChange={(event) => patch({ card: event.target.value })} /></label><label className="studio-control"><span>글자</span><input type="color" value={theme.text || '#222131'} onChange={(event) => patch({ text: event.target.value })} /></label></div>
       <label className="studio-control"><span>모서리 둥글기</span><input type="range" min="0" max="32" step="2" value={theme.radius ?? 24} onChange={(event) => patch({ radius: Number(event.target.value) })} /><small>{theme.radius ?? 24}px</small></label>
       <label className="toggle-control"><input type="checkbox" checked={theme.showProgress !== false} onChange={(event) => patch({ showProgress: event.target.checked })} /><span><i />진행률 표시</span></label>
-      <div className="theme-group image-settings">
-        <div className="theme-section-title"><span>이미지 배치</span><small>크기와 초점까지 세밀하게</small></div>
+      <details className="theme-group theme-collapse image-settings" open={hasImage || undefined}>
+        <summary className="theme-section-title"><span>이미지 배치</span><small>크기와 초점</small></summary>
+        <div className="theme-collapse-body">
         <ImageUpload value={theme.coverUrl || ''} formId={projectId} onChange={(coverUrl) => patch({ coverUrl })} />
         {hasImage ? (
           <div className="image-detail-controls">
@@ -84,7 +92,8 @@ export default function ThemePanel({ project, projectId, pageIndex = 0, onChange
             <label className="studio-control image-range-control"><span>어두운 덮개</span><input type="range" min="0" max="70" step="5" value={theme.imageOverlay ?? 28} onChange={(event) => patch({ imageOverlay: Number(event.target.value) })} /><small>{theme.imageOverlay ?? 28}%</small></label>
           </div>
         ) : <p className="control-note">이미지를 올리면 배치, 확대, 초점, 밝기 조절이 열립니다.</p>}
-      </div>
+        </div>
+      </details>
     </div>
   )
 }

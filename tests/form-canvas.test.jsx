@@ -6,6 +6,7 @@ import InlineFieldEditor from '../src/components/InlineFieldEditor'
 import InlineFormCanvas, { COVER_VIEW } from '../src/components/InlineFormCanvas'
 import ProjectColorPicker from '../src/components/ProjectColorPicker'
 import { emptyProject, formSteps, makePage } from '../src/lib/maker'
+import { applyTextColorRange, rebaseTextColorRanges } from '../src/lib/richText'
 
 describe('focused form canvas', () => {
   it('renders before live answer state has been created', () => {
@@ -75,6 +76,27 @@ describe('focused form canvas', () => {
     expect(snapToGridValue(13, 8)).toBe(16)
     expect(snapToGridValue(-13, 8)).toBe(-16)
     expect(snapToGridValue(71, 4)).toBe(72)
+  })
+
+  it('stores color on only the selected characters and keeps it aligned after typing', () => {
+    const ranges = applyTextColorRange([], 6, 1, 4, '#ff3366')
+    expect(ranges).toEqual([{ start: 1, end: 4, color: '#ff3366' }])
+    expect(rebaseTextColorRanges(ranges, 'abcdef', 'aZZbcdef')).toEqual([{ start: 1, end: 6, color: '#ff3366' }])
+  })
+
+  it('renders separate character colors for desktop and mobile applicants', () => {
+    const project = emptyProject()
+    project.title = '신청폼'
+    project.theme.directStyles = {
+      coverTitle: { color: '#111111', colorText: '신청폼', colorRanges: [{ start: 0, end: 2, color: '#ff3366' }] },
+      coverTitleMobile: { color: '#222222', colorText: '신청폼', colorRanges: [{ start: 2, end: 3, color: '#3366ff' }] },
+    }
+    const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={0} preview />)
+
+    expect(html).toContain('public-rich-desktop')
+    expect(html).toContain('public-rich-mobile')
+    expect(html).toContain('color:#ff3366')
+    expect(html).toContain('color:#3366ff')
   })
 
   it('uses compact direct controls and a separate style scope in mobile preview', () => {

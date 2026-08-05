@@ -235,6 +235,7 @@ export function resolvePageTypography(project, page) {
 
 export function resolveDirectTextStyle(value, fallback = {}) {
   const source = value && typeof value === 'object' ? value : {}
+  const sourceRanges = Array.isArray(source.colorRanges) && source.colorRanges.length ? source.colorRanges : null
   return {
     font: source.font || fallback.font || 'pretendard',
     size: Number.isFinite(Number(source.size)) ? Number(source.size) : (fallback.size ?? 16),
@@ -242,6 +243,9 @@ export function resolveDirectTextStyle(value, fallback = {}) {
     offsetX: Number.isFinite(Number(source.offsetX)) ? Number(source.offsetX) : 0,
     offsetY: Number.isFinite(Number(source.offsetY)) ? Number(source.offsetY) : 0,
     align: source.align || fallback.align || 'left',
+    color: /^#[0-9a-f]{6}$/i.test(source.color || '') ? source.color : (/^#[0-9a-f]{6}$/i.test(fallback.color || '') ? fallback.color : ''),
+    colorRanges: sourceRanges || (Array.isArray(fallback.colorRanges) ? fallback.colorRanges : []),
+    colorText: sourceRanges ? String(source.colorText ?? '') : String(fallback.colorText ?? ''),
   }
 }
 

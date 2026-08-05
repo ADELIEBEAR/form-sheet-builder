@@ -1,5 +1,6 @@
 import { Check, Star } from '@phosphor-icons/react'
 import { FONT_STACKS, resolveDirectTextStyle } from '../lib/maker'
+import ColoredText from './ColoredText'
 
 function publicDirectStyle(value, fallback, mobileValue) {
   const style = {}
@@ -42,14 +43,16 @@ export default function FormField({
   const set = (next) => onChange?.(next)
   const questionDirect = publicDirectStyle(field.directStyles?.question, { size: 32 }, field.directStyles?.questionMobile)
   const bodyDirect = publicDirectStyle(field.directStyles?.body, { size: 16 }, field.directStyles?.bodyMobile)
-  if (field.type === 'heading') return <div className="render-heading"><h3 className="public-direct-text" style={questionDirect}>{field.label}</h3>{field.description ? <p className="public-direct-text" style={bodyDirect}>{field.description}</p> : null}</div>
+  const questionText = <ColoredText text={field.label} desktopStyle={field.directStyles?.question} mobileStyle={field.directStyles?.questionMobile} />
+  const bodyText = <ColoredText text={field.description} desktopStyle={field.directStyles?.body} mobileStyle={field.directStyles?.bodyMobile} />
+  if (field.type === 'heading') return <div className="render-heading"><h3 className="public-direct-text" style={questionDirect}>{questionText}</h3>{field.description ? <p className="public-direct-text" style={bodyDirect}>{bodyText}</p> : null}</div>
 
   const common = { disabled: preview, value: value || '', placeholder: field.placeholder || answerPlaceholder, onChange: (event) => set(event.target.value) }
   const consentText = field.consentText == null ? consentLabel : field.consentText
   return (
     <fieldset className={`render-field ${error ? 'field-invalid' : ''}`} style={{ '--field-accent': accent }}>
-      <legend className={`${hidePrompt ? 'visually-hidden' : ''} public-direct-text`} style={questionDirect}>{field.label}{!hidePrompt && field.required && requiredLabel ? <span>{requiredLabel}</span> : null}</legend>
-      {!hidePrompt && field.description ? <p className="render-help public-direct-text" style={bodyDirect}>{field.description}</p> : null}
+      <legend className={`${hidePrompt ? 'visually-hidden' : ''} public-direct-text`} style={questionDirect}>{questionText}{!hidePrompt && field.required && requiredLabel ? <span>{requiredLabel}</span> : null}</legend>
+      {!hidePrompt && field.description ? <p className="render-help public-direct-text" style={bodyDirect}>{bodyText}</p> : null}
       {['short', 'email', 'phone', 'number', 'date'].includes(field.type) ? <input {...common} type={{ short: 'text', email: 'email', phone: 'tel', number: 'number', date: 'date' }[field.type]} /> : null}
       {field.type === 'long' ? <textarea {...common} rows="4" /> : null}
       {field.type === 'select' ? <select disabled={preview} value={value || ''} onChange={(event) => set(event.target.value)}><option value="">{selectPlaceholder}</option>{field.options.map((option) => <option key={option}>{option}</option>)}</select> : null}

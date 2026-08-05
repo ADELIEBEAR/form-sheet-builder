@@ -100,6 +100,15 @@ describe('form maker validation', () => {
     expect(project.pages[0].typography).toMatchObject({ titleSize: 34, questionSize: 48, bodySize: 12, questionWeight: 610, questionLineHeight: 142, questionTracking: -2.4, textAlign: 'center' })
   })
 
+  it('sanitizes block and per-character text colors', () => {
+    const project = sanitizeProject({
+      title: '색상 폼',
+      pages: page([{ id: 'q1', type: 'short', label: '이름', directStyles: { question: { color: '#123456', colorText: '이름', colorRanges: [{ start: 0, end: 1, color: '#ff3366' }, { start: 1, end: 2, color: 'bad' }] } } }]),
+    })
+
+    expect(project.pages[0].fields[0].directStyles.question).toMatchObject({ color: '#123456', colorText: '이름', colorRanges: [{ start: 0, end: 1, color: '#ff3366' }] })
+  })
+
   it('stores direct canvas text placement within mobile-safe bounds', () => {
     const project = sanitizeProject({
       title: '직접 편집 폼',

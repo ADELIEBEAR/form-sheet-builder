@@ -1,5 +1,7 @@
 import { ArrowCounterClockwise, DotsSixVertical, Minus, Plus } from '@phosphor-icons/react'
+import { Children, cloneElement, isValidElement, useRef, useState } from 'react'
 import { FONT_PRESETS, FONT_STACKS, resolveDirectTextStyle } from '../lib/maker'
+import { applyTextColorRange, effectiveTextColorRanges, textColorSegments } from '../lib/richText'
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
@@ -13,9 +15,13 @@ function snap(value, step, enabled) {
   return enabled ? snapToGridValue(value, step) : value
 }
 
+function RichColorLayer({ text, ranges }) {
+  return textColorSegments(text, ranges).map((segment) => <span style={segment.color ? { color: segment.color } : undefined} key={`${segment.start}-${segment.end}`}>{segment.text}</span>)
+}
+
 export function directTextVariables(value, fallback) {
   const resolved = resolveDirectTextStyle(value, fallback)
-  return {
+  const variables = {
     '--direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
     '--direct-size': `${resolved.size}px`,
     '--direct-width': `${resolved.width}%`,
@@ -23,9 +29,13 @@ export function directTextVariables(value, fallback) {
     '--direct-y': `${resolved.offsetY}px`,
     '--direct-align': resolved.align,
   }
+  if (resolved.color) variables['--direct-color'] = resolved.color
+  return variables
 }
 
 export default function DirectCanvasText({ children, value, fallback, minSize, maxSize, label, selected, onSelect, onChange, snapToGrid = false, mobile = false, className = '' }) {
+  const inputRef = useRef(null)
+  const [selection, setSelection] = useState({ start: 0, end: 0 })
   const maxOffsetX = mobile ? 28 : 120
   const maxOffsetY = mobile ? 48 : 100
   const source = resolveDirectTextStyle(value, fallback)
@@ -36,6 +46,33 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
     offsetY: clamp(source.offsetY, -maxOffsetY, maxOffsetY),
   }
   const patch = (next) => onChange?.({ ...resolved, ...next })
+  const child = Children.only(children)
+  const text = String(isValidElement(child) ? (child.props.value ?? '') : '')
+  const effectiveRanges = effectiveTextColorRanges(resolved, text)
+  const hasRichColor = effectiveRanges.length > 0
+  const rememberSelection = (event) => {
+    const target = event.currentTarget
+    setSelection({ start: target.selectionStart ?? 0, end: target.selectionEnd ?? 0 })
+  }
+  const applyColor = (color) => {
+    const target = inputRef.current
+    const start = target?.selectionStart ?? selection.start
+    const end = target?.selectionEnd ?? selection.end
+    if (end > start) patch({ colorRanges: applyTextColorRange(effectiveRanges, text.length, start, end, color), colorText: text })
+    else patch({ color })
+    requestAnimationFrame(() => {
+      target?.focus()
+      target?.setSelectionRange?.(start, end)
+    })
+  }
+  const editableChild = isValidElement(child) ? cloneElement(child, {
+    ref: inputRef,
+    className: `${child.props.className || ''} direct-edit-input`,
+    onSelect: (event) => { rememberSelection(event); child.props.onSelect?.(event) },
+    onKeyUp: (event) => { rememberSelection(event); child.props.onKeyUp?.(event) },
+    onPointerUp: (event) => { rememberSelection(event); child.props.onPointerUp?.(event) },
+    onChange: child.props.onChange,
+  }) : children
   const nudgePosition = (event) => {
     const amount = snapToGrid ? (event.shiftKey ? 16 : 8) : (event.shiftKey ? 10 : 2)
     const delta = { ArrowLeft: [-amount, 0], ArrowRight: [amount, 0], ArrowUp: [0, -amount], ArrowDown: [0, amount] }[event.key]
@@ -89,26 +126,30 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
 
   return (
     <div
-      className={`direct-canvas-text ${selected ? 'selected' : ''} ${className}`}
+      className={`direct-canvas-text ${selected ? 'selected' : ''} ${resolved.color ? 'has-custom-color' : ''} ${hasRichColor ? 'has-rich-color' : ''} ${className}`}
       style={directTextVariables(resolved)}
       onPointerDown={onSelect}
       data-direct-label={label}
     >
-      {children}
+      {hasRichColor ? <div className={`direct-rich-color-layer ${child.props.className || ''}`} aria-hidden="true"><RichColorLayer text={text} ranges={effectiveRanges} /></div> : null}
+      {editableChild}
       {selected ? <>
         <div className="direct-text-toolbar" role="toolbar" aria-label={`${label} 빠른 디자인`} onPointerDown={(event) => event.stopPropagation()}>
           <button className="direct-move-button" type="button" onPointerDown={(event) => beginPointerAction(event, 'move')} onKeyDown={nudgePosition} aria-label={`${label} 위치 이동`} title="잡아서 이동 · 방향키로 미세 조절"><DotsSixVertical weight="bold" /></button>
           <span>{label}</span>
-          {mobile ? <em>모바일</em> : null}
+          {selection.end > selection.start ? <em>{selection.end - selection.start}자 선택</em> : mobile ? <em>모바일</em> : null}
           <select value={resolved.font} onChange={(event) => patch({ font: event.target.value })} aria-label={`${label} 글꼴`}>
             {FONT_PRESETS.map(([font, fontLabel]) => <option value={font} key={font}>{fontLabel}</option>)}
           </select>
+          <label className="direct-color-control" title={selection.end > selection.start ? `선택한 ${selection.end - selection.start}자 색상` : '전체 글자 색상'}>
+            <input type="color" value={resolved.color || '#222131'} onInput={(event) => applyColor(event.currentTarget.value)} onChange={(event) => applyColor(event.currentTarget.value)} aria-label={`${label} ${selection.end > selection.start ? '선택 글자' : '전체'} 색상`} />
+          </label>
           <button type="button" onClick={() => patch({ size: clamp(resolved.size - (snapToGrid ? 2 : 1), minSize, maxSize) })} aria-label={`${label} 글자 줄이기`}><Minus weight="bold" /></button>
           <output aria-label={`${label} 현재 크기`}>{Math.round(resolved.size)}px</output>
           <button type="button" onClick={() => patch({ size: clamp(resolved.size + (snapToGrid ? 2 : 1), minSize, maxSize) })} aria-label={`${label} 글자 키우기`}><Plus weight="bold" /></button>
           <div className="direct-align-buttons" aria-label={`${label} 정렬`}>
             <button className={resolved.align === 'left' ? 'active' : ''} type="button" onClick={() => patch({ align: 'left' })}>좌</button>
-            <button className={resolved.align === 'center' ? 'active' : ''} type="button" onClick={() => patch({ align: 'center' })}>가운데</button>
+            <button className={resolved.align === 'center' ? 'active' : ''} type="button" onClick={() => patch({ align: 'center' })}>중</button>
           </div>
           <button className="direct-reset-button" type="button" onClick={() => onChange?.(null)} aria-label={`${label} 위치와 글자 설정 초기화`} title="초기화"><ArrowCounterClockwise /></button>
         </div>

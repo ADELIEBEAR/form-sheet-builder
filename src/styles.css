@@ -307,6 +307,9 @@ button:active, a:active { transform: translateY(1px); }
 .studio-name span.published { background: #e1f3ec; color: #18735d; }
 .saved-note { opacity: 0; display: inline-flex; align-items: center; gap: 4px; color: #18735d; font-size: 11px; font-weight: 750; transition: opacity .2s; }
 .saved-note.show { opacity: 1; }
+.saved-note.pending { color: #7a7482; }
+.saved-note > i { width: 6px; height: 6px; border-radius: 50%; background: #a39cab; }
+.saved-note .spin { width: 13px; height: 13px; }
 .header-text-button { padding: 8px; color: var(--app-muted); font-size: 12px; font-weight: 720; }
 .header-save, .header-publish { min-height: 36px; }
 .outline-heading { height: 54px; padding: 0 13px 0 16px; border-bottom: 1px solid var(--app-line); display: flex; align-items: center; justify-content: space-between; }

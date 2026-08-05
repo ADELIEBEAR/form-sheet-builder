@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest'
+import { AUTO_SAVE_INTERVAL, canAutoSaveProject } from '../src/lib/autosave'
 import { changeFieldType, moveItem, normalizeConsentFields, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
 import { fieldAnswerError, normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
 
 describe('form maker validation', () => {
+  it('autosaves every 15 seconds only when the draft is structurally valid', () => {
+    expect(AUTO_SAVE_INTERVAL).toBe(15_000)
+    expect(canAutoSaveProject({ title: '신청 폼', pages: page([{ type: 'short', label: '이름' }]) })).toBe(true)
+    expect(canAutoSaveProject({ title: '', pages: page([{ type: 'short', label: '이름' }]) })).toBe(false)
+    expect(canAutoSaveProject({ title: '신청 폼', pages: page([{ type: 'short', label: '' }]) })).toBe(false)
+    expect(canAutoSaveProject({ title: '신청 폼', pages: page([{ type: 'single', label: '선택', options: [] }]) })).toBe(false)
+  })
+
   it('reorders pages and questions without changing the original list', () => {
     const original = ['첫째', '둘째', '셋째']
     expect(moveItem(original, 0, 2)).toEqual(['둘째', '셋째', '첫째'])

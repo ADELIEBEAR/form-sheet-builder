@@ -24,6 +24,7 @@ import ProjectColorPicker from '../components/ProjectColorPicker'
 import SharePreviewPanel from '../components/SharePreviewPanel'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
+import { AUTO_SAVE_INTERVAL, canAutoSaveProject } from '../lib/autosave'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
 
 export default function Studio() {
@@ -38,38 +39,66 @@ export default function Studio() {
   const [loading, setLoading] = useState(Boolean(projectId))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [saveNotice, setSaveNotice] = useState('저장됨')
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [dragState, setDragState] = useState(null)
   const pointerSortRef = useRef(null)
   const sortClickGuardRef = useRef(false)
+  const revisionRef = useRef(0)
+  const dirtyRef = useRef(false)
+  const savingRef = useRef(false)
+  const latestSaveRef = useRef(null)
+  const savedTimerRef = useRef(null)
+  const skipLoadProjectIdRef = useRef(null)
 
   useEffect(() => {
     if (!projectId) {
       setSelectedFieldId(COVER_VIEW)
       return
     }
+    if (skipLoadProjectIdRef.current === projectId) {
+      skipLoadProjectIdRef.current = null
+      setLoading(false)
+      return
+    }
 
+    let cancelled = false
+    setLoading(true)
     api(`/maker/projects/${projectId}`)
       .then((data) => {
+        if (cancelled) return
         setProject(data.project)
         setSelectedFieldId(COVER_VIEW)
+        revisionRef.current = 0
+        dirtyRef.current = false
+        setDirty(false)
       })
-      .catch((caught) => setError(caught.message))
-      .finally(() => setLoading(false))
+      .catch((caught) => { if (!cancelled) setError(caught.message) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [projectId])
 
   useEffect(() => {
     function handleKeyDown(event) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
-        if (!saving) save()
+        latestSaveRef.current?.()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [project, projectId, saving])
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => latestSaveRef.current?.(undefined, { automatic: true }), AUTO_SAVE_INTERVAL)
+    return () => {
+      window.clearInterval(timer)
+      window.clearTimeout(savedTimerRef.current)
+    }
+  }, [])
 
   const page = project.pages[pageIndex]
   const canPublish = useMemo(
@@ -78,11 +107,20 @@ export default function Studio() {
   )
 
   function changeProject(nextProject) {
+    revisionRef.current += 1
+    dirtyRef.current = true
     setProject(nextProject)
     setSaved(false)
+    setDirty(true)
   }
 
-  async function save(status = project.status) {
+  async function save(status = project.status, { automatic = false } = {}) {
+    if (savingRef.current) return
+    if (automatic && (!dirtyRef.current || loading || !canAutoSaveProject(project))) return
+
+    const revisionAtStart = revisionRef.current
+    const creating = !projectId
+    savingRef.current = true
     setSaving(true)
     setSaved(false)
     setError('')
@@ -91,16 +129,31 @@ export default function Studio() {
       const data = projectId
         ? await api(`/maker/projects/${projectId}`, { method: 'PUT', body: JSON.stringify(payload) })
         : await api('/maker/projects', { method: 'POST', body: JSON.stringify(payload) })
-      setProject(data.project)
+      const unchangedDuringSave = revisionRef.current === revisionAtStart
+      if (unchangedDuringSave) {
+        setProject(data.project)
+        dirtyRef.current = false
+        setDirty(false)
+      } else {
+        setProject((current) => ({ ...current, id: data.project.id, status: data.project.status, slug: current.slug || data.project.slug }))
+      }
+      setSaveNotice(automatic ? '자동 저장됨' : '저장됨')
       setSaved(true)
-      if (!projectId) navigate(`/studio/${data.project.id}`, { replace: true })
-      window.setTimeout(() => setSaved(false), 1700)
+      if (creating) {
+        skipLoadProjectIdRef.current = data.project.id
+        navigate(`/studio/${data.project.id}`, { replace: true })
+      }
+      window.clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = window.setTimeout(() => setSaved(false), 2200)
     } catch (caught) {
       setError(caught.message)
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
+
+  latestSaveRef.current = save
 
   function updatePage(nextPage) {
     changeProject({
@@ -332,7 +385,10 @@ export default function Studio() {
 
   const actions = (
     <>
-      <span className={`saved-note ${saved ? 'show' : ''}`}><Check weight="bold" /> 저장됨</span>
+      <span className={`saved-note ${saving || saved || dirty ? 'show' : ''} ${dirty && !saving && !saved ? 'pending' : ''}`}>
+        {saving ? <SpinnerGap className="spin" /> : saved ? <Check weight="bold" /> : <i />}
+        {saving ? '저장 중' : saved ? saveNotice : '15초 안에 자동 저장'}
+      </span>
       {projectId ? <Link className="header-text-button" to={`/responses/${projectId}`}>응답 보기</Link> : null}
       {project.status === 'published' ? (
         <a className="square-button" href={`/s/${project.slug}`} target="_blank" rel="noreferrer" aria-label="공개 폼 열기"><Eye /></a>

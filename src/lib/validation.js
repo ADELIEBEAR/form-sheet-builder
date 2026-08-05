@@ -42,6 +42,10 @@ function sanitizeField(field) {
   const type = allowedTypes.has(field?.type) ? field.type : 'short'
   const label = String(field?.label || '').trim().slice(0, 300)
   if (!label) throw new ValidationError('비어 있는 질문이 있습니다.')
+  const optionValues = ['single', 'multi', 'select'].includes(type)
+    ? [...new Set((Array.isArray(field.options) ? field.options : []).map((option) => String(option).trim().slice(0, 200)).filter(Boolean))].slice(0, 50)
+    : []
+  if (['single', 'multi', 'select'].includes(type) && optionValues.length === 0) throw new ValidationError(`선택 항목을 하나 이상 만들어 주세요: ${label}`)
   return {
     id: typeof field.id === 'string' && field.id ? field.id.slice(0, 80) : crypto.randomUUID(),
     type,
@@ -49,11 +53,50 @@ function sanitizeField(field) {
     description: String(field.description || '').slice(0, 1000),
     placeholder: String(field.placeholder || '').slice(0, 300),
     required: type !== 'heading' && Boolean(field.required),
-    options: ['single', 'multi', 'select'].includes(type)
-      ? (Array.isArray(field.options) ? field.options : []).map((option) => String(option).trim().slice(0, 200)).filter(Boolean).slice(0, 50)
-      : [],
+    options: optionValues,
     scale: type === 'rating' ? Math.min(10, Math.max(3, Number(field.scale) || 5)) : 5,
   }
+}
+
+function isEmptyAnswer(value) {
+  return value == null || value === '' || (Array.isArray(value) && value.length === 0)
+}
+
+function consentAccepted(value) {
+  if (value === true) return true
+  return ['동의', 'true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+export function fieldAnswerError(field, value) {
+  if (!field || field.type === 'heading') return ''
+  const empty = isEmptyAnswer(value)
+
+  if (field.type === 'consent') {
+    if (field.required && empty) return '동의 항목을 확인해 주세요.'
+    if (!empty && !consentAccepted(value)) return '동의 여부를 다시 확인해 주세요.'
+    return ''
+  }
+
+  if (field.required && empty) return '이 질문에 답해 주세요.'
+  if (empty) return ''
+
+  const text = String(value).trim()
+  if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) return '이메일 주소를 확인해 주세요.'
+  if (field.type === 'phone') {
+    const digits = text.replace(/\D/g, '')
+    if (digits.length < 8 || digits.length > 15) return '연락처를 8~15자리 숫자로 입력해 주세요.'
+  }
+  if (field.type === 'number' && !/^-?\d+(\.\d+)?$/.test(text)) return '숫자 형식을 확인해 주세요.'
+  if (field.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(text)) return '날짜를 선택해 주세요.'
+  if (['single', 'select'].includes(field.type) && !field.options?.includes(text)) return '목록에 있는 항목을 선택해 주세요.'
+  if (field.type === 'multi') {
+    if (!Array.isArray(value) || value.some((item) => !field.options?.includes(String(item)))) return '선택 항목을 다시 확인해 주세요.'
+  }
+  if (field.type === 'rating') {
+    const score = Number(text)
+    if (!Number.isInteger(score) || score < 1 || score > Number(field.scale || 5)) return '별점 범위를 확인해 주세요.'
+  }
+  return ''
 }
 
 export function sanitizeProject(input) {
@@ -157,15 +200,16 @@ export function validateAnswers(pages, input) {
     if (field.type === 'multi') {
       const selected = Array.isArray(raw) ? raw.map(String).filter((value) => field.options?.includes(value)).slice(0, 50) : []
       if (field.required && selected.length === 0) throw new ValidationError(`필수 질문에 답해 주세요: ${field.label}`)
+      const error = fieldAnswerError(field, selected)
+      if (error) throw new ValidationError(`${error}: ${field.label}`)
       answers[field.id] = selected
       continue
     }
     const value = raw == null ? '' : String(raw).trim().slice(0, 10000)
-    if (field.required && !value) throw new ValidationError(`필수 질문에 답해 주세요: ${field.label}`)
-    if (['single', 'select'].includes(field.type) && value && !field.options?.includes(value)) throw new ValidationError('올바르지 않은 선택 항목입니다.')
-    if (field.type === 'rating' && value && (Number(value) < 1 || Number(value) > Number(field.scale || 5))) throw new ValidationError('별점 범위를 확인해 주세요.')
-    if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new ValidationError('이메일 형식을 확인해 주세요.')
-    answers[field.id] = value
+    if (field.type !== 'consent' && field.required && !value) throw new ValidationError(`필수 질문에 답해 주세요: ${field.label}`)
+    const error = fieldAnswerError(field, value)
+    if (error) throw new ValidationError(`${error}: ${field.label}`)
+    answers[field.id] = field.type === 'consent' && consentAccepted(value) ? '동의' : value
   }
   if (JSON.stringify(answers).length > 200000) throw new ValidationError('응답 내용이 너무 큽니다.')
   return answers

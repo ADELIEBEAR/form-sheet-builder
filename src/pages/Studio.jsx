@@ -20,6 +20,7 @@ import AppFrame from '../components/AppFrame'
 import ExternalConnectPanel from '../components/ExternalConnectPanel'
 import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
+import ProjectColorPicker from '../components/ProjectColorPicker'
 import SharePreviewPanel from '../components/SharePreviewPanel'
 import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
@@ -331,7 +332,7 @@ export default function Studio() {
   const actions = (
     <>
       <span className={`saved-note ${saved ? 'show' : ''}`}><Check weight="bold" /> 저장됨</span>
-      {projectId ? <Link className="header-text-button" to={`/responses/${projectId}`}>응답 {project.responseCount || 0}</Link> : null}
+      {projectId ? <Link className="header-text-button" to={`/responses/${projectId}`}>응답 보기</Link> : null}
       {project.status === 'published' ? (
         <a className="square-button" href={`/s/${project.slug}`} target="_blank" rel="noreferrer" aria-label="공개 폼 열기"><Eye /></a>
       ) : null}
@@ -501,6 +502,7 @@ export default function Studio() {
                 <div className="settings-stack">
                   <div className="inspector-panel">
                     <div className="panel-heading"><span>관리 정보</span><strong>목록에서 알아보기</strong><p>폼 목록에만 보이며 신청자에게는 표시되지 않습니다.</p></div>
+                    <div className="studio-project-color"><span>내 폼 구분 색상</span><ProjectColorPicker value={project.memoColor} onChange={(memoColor) => changeProject({ ...project, memoColor })} /><small>여러 사람이 함께 사용할 때 색으로 폼을 빠르게 구분할 수 있어요.</small></div>
                     <label className="studio-control"><span>분류</span><input value={project.folder || ''} maxLength="80" onChange={(event) => changeProject({ ...project, folder: event.target.value })} placeholder="예: 주식 신청" /></label>
                     <label className="studio-control"><span>한 줄 설명</span><input maxLength="160" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="이 폼이 어떤 용도인지 간단히 적어주세요." /></label>
                   </div>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from '../lib/router'
 import AppFrame from '../components/AppFrame'
 import ExternalConnectPanel from '../components/ExternalConnectPanel'
+import ProjectColorPicker from '../components/ProjectColorPicker'
 import WorkspaceSidebar from '../components/WorkspaceSidebar'
 import { api } from '../lib/api'
 
@@ -16,6 +17,7 @@ export default function Workspace() {
   const [folder, setFolder] = useState('전체')
   const [busyAction, setBusyAction] = useState('')
   const [connectProject, setConnectProject] = useState(null)
+  const [colorMenu, setColorMenu] = useState('')
   const [metaStatus, setMetaStatus] = useState({})
   const projectsRef = useRef([])
   const saveVersionRef = useRef({})
@@ -139,7 +141,7 @@ export default function Workspace() {
         {!loading && projects.length === 0 ? <section className="workspace-empty"><div className="empty-art"><span /><span /><FilePlus /></div><h2>첫 폼을 만들어 볼까요?</h2><p>질문을 구성하고 공개 링크를 만드는 데 몇 분이면 충분합니다.</p><Link className="studio-primary" to="/studio/new"><Plus weight="bold" /> 빈 폼에서 시작</Link></section> : null}
         {!loading && projects.length > 0 ? <div className="project-list">
           <div className="project-list-head"><span>{visible.length}개의 폼</span><span>최근 수정</span><span>응답</span><span /></div>
-          {visible.map((project) => <article className="project-row" key={project.id}>
+          {visible.map((project) => <article className="project-row" data-project-color={project.memoColor || 'lemon'} key={project.id}>
             <button className="project-open" type="button" onClick={() => navigate(`/studio/${project.id}`)}>
               <span className={project.theme?.coverUrl ? 'project-thumb has-cover' : 'project-thumb'} style={project.theme?.coverUrl ? { backgroundImage: `url("${project.theme.coverUrl}")` } : { '--thumb-bg': project.theme?.background, '--thumb-accent': project.theme?.accent }}><i /><i /><b /></span>
               <span className="project-copy">
@@ -152,12 +154,16 @@ export default function Workspace() {
             <section className="project-inline-meta" aria-label={`${project.title} 분류와 한 줄 설명`}>
               <label className="inline-folder-field" title="분류"><Folder weight="fill" /><input list={`folder-list-${project.id}`} maxLength="80" value={project.folder || ''} onChange={(event) => updateLocalMeta(project.id, { folder: event.target.value })} onBlur={(event) => persistMeta(project.id, { folder: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="분류 없음" aria-label={`${project.title} 분류`} /><datalist id={`folder-list-${project.id}`}>{folders.map((item) => <option value={item} key={item} />)}</datalist></label>
               <label className="inline-memo-field" title="한 줄 설명"><NotePencil weight="fill" /><input maxLength="160" value={project.memo || ''} onChange={(event) => updateLocalMeta(project.id, { memo: event.target.value })} onBlur={(event) => persistMeta(project.id, { memo: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }} placeholder="어떤 폼인지 한 줄로 적어두세요" aria-label={`${project.title} 한 줄 설명`} /></label>
+              <div className="project-color-select">
+                <button type="button" className={`project-color-trigger color-${project.memoColor || 'lemon'}`} onClick={() => setColorMenu((current) => current === project.id ? '' : project.id)} aria-label={`${project.title} 구분 색상 변경`} aria-expanded={colorMenu === project.id} title="구분 색상"><span /></button>
+                {colorMenu === project.id ? <div className="project-color-popover"><strong>구분 색상</strong><ProjectColorPicker value={project.memoColor} compact onChange={(memoColor) => { persistMeta(project.id, { memoColor }); setColorMenu('') }} /></div> : null}
+              </div>
               <small className={`project-meta-status ${metaStatus[project.id] || ''}`} aria-live="polite">{metaStatusLabel(project.id)}</small>
             </section>
             <nav className="project-quick-actions" aria-label={`${project.title} 빠른 작업`}>
               <div className="project-main-actions">
                 <button type="button" onClick={() => navigate(`/studio/${project.id}`)}><PencilSimple weight="bold" /> 편집</button>
-                <Link to={`/responses/${project.id}`}><LockKey weight="fill" /> 응답 보기 <b>{project.responseCount.toLocaleString()}</b></Link>
+                <Link to={`/responses/${project.id}`}><LockKey weight="fill" /> 응답 보기</Link>
                 <Link to="/responses"><Eye weight="fill" /> 전체 응답</Link>
                 <button className={project.status === 'published' ? 'published' : ''} type="button" disabled={busyAction === `status-${project.id}`} onClick={() => toggleStatus(project)} title={project.status === 'published' ? '눌러서 비공개로 전환' : '눌러서 공개'}><LockKey weight={project.status === 'published' ? 'regular' : 'fill'} /> {busyAction === `status-${project.id}` ? '변경 중' : project.status === 'published' ? '공개 중' : '비공개'}</button>
               </div>

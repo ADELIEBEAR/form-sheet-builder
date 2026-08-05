@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Copy, Plus, Trash } from '@phosphor-icons/react'
-import { FIELD_TYPES } from '../lib/maker'
+import { changeFieldType, FIELD_TYPES } from '../lib/maker'
 
 export default function FieldInspector({ field, index, total, onChange, onDuplicate, onDelete, onMove }) {
   if (!field) return <div className="inspector-empty"><strong>질문을 선택해 주세요</strong><p>가운데 미리보기에서 수정할 질문을 누르세요.</p></div>
@@ -8,7 +8,7 @@ export default function FieldInspector({ field, index, total, onChange, onDuplic
   return (
     <div className="inspector-panel">
       <div className="inspector-title"><div><span>질문 편집</span><strong>{index + 1}번째 항목</strong></div><div className="inspector-tools"><button type="button" disabled={index === 0} onClick={() => onMove(-1)} aria-label="위로 이동"><ArrowUp /></button><button type="button" disabled={index === total - 1} onClick={() => onMove(1)} aria-label="아래로 이동"><ArrowDown /></button><button type="button" onClick={onDuplicate} aria-label="복제"><Copy /></button><button className="danger" type="button" onClick={onDelete} aria-label="삭제"><Trash /></button></div></div>
-      <label className="studio-control"><span>항목 종류</span><select value={field.type} onChange={(event) => patch({ type: event.target.value })}>{FIELD_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label className="studio-control"><span>항목 종류</span><select value={field.type} onChange={(event) => onChange(changeFieldType(field, event.target.value))}>{FIELD_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       <label className="studio-control"><span>{field.type === 'heading' ? '제목' : '질문'}</span><textarea rows="3" value={field.label} onChange={(event) => patch({ label: event.target.value })} /></label>
       <label className="studio-control"><span>설명</span><textarea rows="3" value={field.description || ''} onChange={(event) => patch({ description: event.target.value })} placeholder="응답자에게 필요한 안내" /></label>
       {!['heading', 'single', 'multi', 'select', 'rating', 'consent'].includes(field.type) ? <label className="studio-control"><span>입력 안내</span><input value={field.placeholder || ''} onChange={(event) => patch({ placeholder: event.target.value })} placeholder="예시 문구" /></label> : null}

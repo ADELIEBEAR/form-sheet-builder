@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { moveItem, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
-import { normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
+import { changeFieldType, moveItem, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
+import { fieldAnswerError, normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
 
@@ -15,6 +15,12 @@ describe('form maker validation', () => {
   it('keeps supported memo colors and falls back safely', () => {
     expect(normalizeMemoColor('mint')).toBe('mint')
     expect(normalizeMemoColor('unknown-color')).toBe('lemon')
+  })
+
+  it('initializes usable settings when a saved question changes type', () => {
+    expect(changeFieldType({ type: 'heading', required: false, options: [] }, 'single')).toMatchObject({ type: 'single', required: true, options: ['선택 1', '선택 2'] })
+    expect(changeFieldType({ type: 'short', required: false, options: [] }, 'consent')).toMatchObject({ type: 'consent', required: true })
+    expect(changeFieldType({ type: 'consent', required: true }, 'heading')).toMatchObject({ type: 'heading', required: false })
   })
 
   it('includes editable stock and crypto themes', () => {
@@ -125,6 +131,24 @@ describe('form maker validation', () => {
 
   it('rejects a missing required response across pages', () => {
     expect(() => validateAnswers(page([{ id: 'q1', type: 'short', label: '이름', required: true }]), {})).toThrow('필수 질문')
+  })
+
+  it('requires an explicit consent value and normalizes an accepted value', () => {
+    const consentPage = page([{ id: 'agree', type: 'consent', label: '개인정보 수집에 동의합니다', required: true }])
+    expect(fieldAnswerError(consentPage[0].fields[0], '')).toBe('동의 항목을 확인해 주세요.')
+    expect(() => validateAnswers(consentPage, { agree: '아니오' })).toThrow('동의 여부')
+    expect(validateAnswers(consentPage, { agree: '동의' }).agree).toBe('동의')
+  })
+
+  it('validates phone, number, date, and choice values consistently', () => {
+    expect(fieldAnswerError({ type: 'phone' }, '123')).toContain('8~15자리')
+    expect(fieldAnswerError({ type: 'number' }, '십')).toContain('숫자')
+    expect(fieldAnswerError({ type: 'date' }, '내일')).toContain('날짜')
+    expect(fieldAnswerError({ type: 'single', options: ['A'] }, 'B')).toContain('목록')
+  })
+
+  it('rejects a choice question that has no usable options', () => {
+    expect(() => sanitizeProject({ title: '빈 선택지 폼', pages: page([{ id: 'q1', type: 'single', label: '선택', options: ['', ' '] }]) })).toThrow('선택 항목을 하나 이상')
   })
 
   it('drops invalid multiple-choice values', () => {

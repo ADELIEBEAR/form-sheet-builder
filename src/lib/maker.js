@@ -173,6 +173,18 @@ export function makeField(type = 'short') {
   }
 }
 
+export function changeFieldType(field, nextType) {
+  const optionType = ['single', 'multi', 'select'].includes(nextType)
+  const currentOptions = Array.isArray(field?.options) ? field.options.filter((option) => String(option).trim()) : []
+  return {
+    ...field,
+    type: nextType,
+    required: nextType === 'heading' ? false : nextType === 'consent' || field?.type === 'heading' ? true : Boolean(field?.required),
+    options: optionType ? (currentOptions.length ? currentOptions : ['선택 1', '선택 2']) : [],
+    scale: nextType === 'rating' ? Math.min(10, Math.max(3, Number(field?.scale) || 5)) : 5,
+  }
+}
+
 export function makePage(index = 0) {
   return {
     id: crypto.randomUUID(),

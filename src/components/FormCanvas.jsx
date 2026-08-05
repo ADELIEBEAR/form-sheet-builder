@@ -21,7 +21,7 @@ function canvasStyle(project, page = null) {
   }
 }
 
-function SuccessScreen({ project, style, focus }) {
+function SuccessScreen({ project, style, focus, onRestart }) {
   const transition = transitionClass(project.theme)
   return (
     <div className={focus ? 'focus-form-canvas focus-success-canvas' : 'form-canvas success-canvas'} style={style}>
@@ -31,6 +31,7 @@ function SuccessScreen({ project, style, focus }) {
         <div className="success-symbol"><CheckCircle weight="fill" /></div>
         <h1>{project.settings?.successTitle}</h1>
         <p>{project.settings?.successMessage}</p>
+        {onRestart && project.settings?.restartLabel !== '' ? <button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button> : null}
       </div>
     </div>
   )
@@ -46,14 +47,14 @@ function FocusBackdrop({ project }) {
   )
 }
 
-function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, errors, preview, submitted, submitting }) {
+function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart, errors, preview, submitted, submitting }) {
   const steps = formSteps(project)
   const total = steps.length
   const isCover = stepIndex === 0
   const current = isCover ? null : steps[Math.min(Math.max(stepIndex - 1, 0), Math.max(total - 1, 0))]
   const style = canvasStyle(project, current?.page)
 
-  if (submitted) return <SuccessScreen project={project} style={canvasStyle(project)} focus />
+  if (submitted) return <SuccessScreen project={project} style={canvasStyle(project)} focus onRestart={onRestart} />
 
   const currentNumber = current ? Math.min(stepIndex, total) : 0
   const canContinue = total > 0
@@ -114,14 +115,14 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, errors, p
   )
 }
 
-function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, errors, preview, selectedFieldId, onSelectField, submitted, submitting }) {
+function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart, errors, preview, selectedFieldId, onSelectField, submitted, submitting }) {
   const page = project.pages?.[pageIndex]
   if (!page) return null
   const style = canvasStyle(project, page)
   const copy = project.settings || {}
   const transition = transitionClass(project.theme)
 
-  if (submitted) return <SuccessScreen project={project} style={style} />
+  if (submitted) return <SuccessScreen project={project} style={style} onRestart={onRestart} />
 
   return (
     <div className="form-canvas" style={style}>
@@ -178,6 +179,7 @@ export default function FormCanvas(props) {
         answers={safeProps.answers}
         onAnswers={safeProps.onAnswers}
         onStep={safeProps.onPage}
+        onRestart={safeProps.onRestart}
         errors={safeProps.errors}
         preview={safeProps.preview}
         submitted={safeProps.submitted}

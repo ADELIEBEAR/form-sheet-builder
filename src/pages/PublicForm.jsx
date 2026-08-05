@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from '../lib/router'
 import FormCanvas from '../components/FormCanvas'
 import { api } from '../lib/api'
+import { fieldAnswerError } from '../lib/validation'
 
 export default function PublicForm() {
   const { slug } = useParams()
@@ -12,7 +13,7 @@ export default function PublicForm() {
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
-  const [startedAt] = useState(Date.now())
+  const [startedAt, setStartedAt] = useState(Date.now())
 
   useEffect(() => {
     api(`/maker/public/${encodeURIComponent(slug)}`).then((data) => { setProject(data.project); setStatus('ready') }).catch((caught) => { setMessage(caught.message); setStatus('error') })
@@ -32,11 +33,16 @@ export default function PublicForm() {
   }, [project])
 
   function answerError(field, value) {
-    if (field.type === 'heading') return ''
-    const empty = value == null || value === '' || (Array.isArray(value) && value.length === 0)
-    if (field.required && empty) return '이 질문에 답해 주세요.'
-    if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())) return '이메일 주소를 확인해 주세요.'
-    return ''
+    return fieldAnswerError(field, value)
+  }
+
+  function restart() {
+    setPageIndex(0)
+    setAnswers({})
+    setErrors({})
+    setMessage('')
+    setStartedAt(Date.now())
+    setStatus('ready')
   }
 
   function changeAnswers(next) {
@@ -111,7 +117,7 @@ export default function PublicForm() {
   return (
     <main className="public-page" style={{ background: project.theme?.background || '#f0edfb' }}>
       <form className="public-form-wrap" onSubmit={submit} noValidate>
-        <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={changeAnswers} onPage={movePage} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
+        <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={changeAnswers} onPage={movePage} onRestart={restart} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} />
         <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
         {message ? <div className="public-submit-error"><WarningCircle /> {message}</div> : null}
       </form>

@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
+import ProjectColorPicker from '../src/components/ProjectColorPicker'
 import { emptyProject, formSteps, makePage } from '../src/lib/maker'
 
 describe('focused form canvas', () => {
@@ -50,5 +51,30 @@ describe('focused form canvas', () => {
     expect(html).toContain('바로 참여')
     expect(html).toContain('form-media-banner')
     expect(html).toContain('transition-slide')
+  })
+
+  it('uses the editable consent question as the checkbox copy without duplicating it', () => {
+    const project = emptyProject()
+    project.pages[0].fields = [{ id: 'agree', type: 'consent', label: '개인정보 수집에 동의합니다', description: '내용을 읽고 확인해 주세요.', required: true, options: [], scale: 5 }]
+    const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={1} answers={{}} preview />)
+
+    expect(html.match(/개인정보 수집에 동의합니다/g)).toHaveLength(2)
+    expect(html).toContain('consent-copy')
+    expect(html).not.toContain('내용을 확인했으며 동의합니다.')
+  })
+
+  it('shows the configured restart action after a successful submission', () => {
+    const project = emptyProject()
+    project.settings.restartLabel = '다시 신청하기'
+    const html = renderToStaticMarkup(<FormCanvas project={project} submitted onRestart={() => {}} />)
+    expect(html).toContain('다시 신청하기')
+  })
+
+  it('renders every form color and marks the current selection', () => {
+    const html = renderToStaticMarkup(<ProjectColorPicker value="mint" onChange={() => {}} />)
+
+    expect(html.match(/project-color-dot/g)).toHaveLength(7)
+    expect(html).toContain('민트 구분 색상')
+    expect(html).toContain('aria-pressed="true"')
   })
 })

@@ -158,6 +158,14 @@ describe('focused form canvas', () => {
     expect(html).toContain('>모바일</em>')
   })
 
+  it('lets blank canvas clicks clear the active design selection', () => {
+    const project = emptyProject()
+    const html = renderToStaticMarkup(<InlineFormCanvas project={project} pageIndex={0} selectedFieldId={COVER_VIEW} onProjectChange={() => {}} onPageChange={() => {}} onNavigate={() => {}} onFieldSelect={() => {}} onFieldChange={() => {}} onFieldAdd={() => {}} onFieldDuplicate={() => {}} onFieldDelete={() => {}} onFieldMove={() => {}} />)
+
+    expect(html).toContain('class="inline-form-canvas maker-editor-canvas')
+    expect(html).toContain('제목 빠른 디자인')
+  })
+
   it('renders customized copy, image placement, and transition choices', () => {
     const project = emptyProject()
     project.settings.coverKicker = 'HELLO'

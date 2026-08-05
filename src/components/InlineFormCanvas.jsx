@@ -90,9 +90,15 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
     ...project,
     theme: { ...project.theme, buttonStyles: { ...buttonStyles, [key]: next } },
   })
+  const clearCanvasSelection = (event) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    if (target.closest('.direct-canvas-text, .direct-canvas-button, input, textarea, select, button, a, label, [role="toolbar"]')) return
+    setActiveText('')
+  }
 
   return (
-    <div className={`inline-form-canvas maker-editor-canvas ${snapToGrid ? 'snap-grid-active' : ''} ${mobilePreview ? 'mobile-canvas-editing' : ''}`} style={style}>
+    <div className={`inline-form-canvas maker-editor-canvas ${snapToGrid ? 'snap-grid-active' : ''} ${mobilePreview ? 'mobile-canvas-editing' : ''}`} style={style} onPointerDown={clearCanvasSelection}>
       <FormMedia theme={project.theme} placement="background" />
       <div className="focus-tint" />
       <FocusEffects theme={project.theme} />

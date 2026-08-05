@@ -19,7 +19,7 @@ describe('public form share metadata', () => {
   })
 
   it('escapes copy before injecting Open Graph tags', () => {
-    const html = injectShareMetadata('<html><head><meta name="description" content="old"><title>old</title></head><body></body></html>', {
+    const html = injectShareMetadata('<html><head><meta name="description" content="old"><meta property="og:site_name" content="폼메이커 · 정석제작"><meta property="og:title" content="old title"><meta property="og:description" content="old description"><meta name="twitter:title" content="old title"><title>old</title></head><body></body></html>', {
       title: '주식 <신청> "안내"',
       description: 'A & B',
       image: '',
@@ -31,6 +31,11 @@ describe('public form share metadata', () => {
     expect(html).toContain('property="og:description" content="A &amp; B"')
     expect(html).not.toContain('property="og:image"')
     expect(html).not.toContain('content="old"')
+    expect(html).not.toContain('old title')
+    expect(html).not.toContain('old description')
+    expect(html).not.toContain('og:site_name')
+    expect(html.match(/property="og:title"/g)).toHaveLength(1)
+    expect(html.match(/property="og:description"/g)).toHaveLength(1)
   })
 
   it('falls back to the form title and description', () => {

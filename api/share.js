@@ -41,7 +41,6 @@ export function injectShareMetadata(indexHtml, metadata) {
   const tags = [
     `<meta name="description" content="${description}" />`,
     '<meta property="og:type" content="website" />',
-    '<meta property="og:site_name" content="폼메이커 · 정석제작" />',
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${description}" />`,
     `<meta property="og:url" content="${pageUrl}" />`,
@@ -55,9 +54,10 @@ export function injectShareMetadata(indexHtml, metadata) {
     tags.push(`<meta name="twitter:image" content="${image}" />`)
   }
 
+  const shareMetaPattern = /\s*<meta\s+(?:name|property)=["'](?:description|og:(?:type|site_name|title|description|url|image|image:alt)|twitter:(?:card|title|description|image))["'][^>]*>/gi
   return String(indexHtml)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`)
-    .replace(/\s*<meta\s+name=["']description["'][^>]*>/i, '')
+    .replace(shareMetaPattern, '')
     .replace('</head>', `    ${tags.join('\n    ')}\n  </head>`)
 }
 

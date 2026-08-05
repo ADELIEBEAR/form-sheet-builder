@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
 import { textEffectCss } from '../lib/textEffects'
 import ColoredText from './ColoredText'
+import { publicButtonVariables } from './DirectCanvasButton'
 import FocusEffects from './FocusEffects'
 import FormField from './FormField'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
@@ -71,6 +72,10 @@ function coloredText(text, desktopStyle, mobileStyle) {
   return <ColoredText text={text} desktopStyle={desktopStyle} mobileStyle={mobileStyle} />
 }
 
+function PublicButtonFrame({ value, fallback, mobileValue, className = '', children }) {
+  return <span className={`public-button-frame ${className}`} style={publicButtonVariables(value, fallback, mobileValue)}>{children}</span>
+}
+
 const CONFETTI_COLORS = ['#7156d9', '#ff6b8a', '#ffb547', '#40bfa5', '#4f83ff', '#f06cb5']
 const CONFETTI_PARTICLES = Array.from({ length: 30 }, (_, index) => ({
   x: ((index * 47) % 330) - 165,
@@ -131,6 +136,7 @@ function SuccessScreen({ project, style, focus, onRestart, closeOnSuccess = fals
   const transition = transitionClass(project.theme)
   const typography = resolvePageTypography(project, null)
   const directStyles = project.theme?.directStyles || {}
+  const buttonStyles = project.theme?.buttonStyles || {}
   return (
     <div className={focus ? 'focus-form-canvas focus-success-canvas' : 'form-canvas success-canvas'} style={style}>
       <CompletionCelebration autoClose={closeOnSuccess} />
@@ -140,7 +146,7 @@ function SuccessScreen({ project, style, focus, onRestart, closeOnSuccess = fals
         <div className="success-symbol"><CheckCircle weight="fill" /></div>
         <h1 className="public-direct-text" style={publicTextStyle(directStyles.successTitle, { font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' }, directStyles.successTitleMobile)}>{coloredText(project.settings?.successTitle, directStyles.successTitle, directStyles.successTitleMobile)}</h1>
         <p className="public-direct-text" style={publicTextStyle(directStyles.successBody, { font: project.theme?.font, size: typography.bodySize, align: 'center' }, directStyles.successBodyMobile)}>{coloredText(project.settings?.successMessage, directStyles.successBody, directStyles.successBodyMobile)}</p>
-        {!closeOnSuccess && onRestart && project.settings?.restartLabel !== '' ? <button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button> : null}
+        {!closeOnSuccess && onRestart && project.settings?.restartLabel !== '' ? <PublicButtonFrame value={buttonStyles.restart} fallback={{ width: 140 }} mobileValue={buttonStyles.restartMobile}><button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button></PublicButtonFrame> : null}
       </div>
     </div>
   )
@@ -172,6 +178,7 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
   const hasBanner = Boolean(project.theme?.coverUrl && mediaMode(project.theme) === 'banner')
   const typography = resolvePageTypography(project, null)
   const directStyles = project.theme?.directStyles || {}
+  const buttonStyles = project.theme?.buttonStyles || {}
 
   return (
     <div className="focus-form-canvas" style={style}>
@@ -191,7 +198,7 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
             {copy.coverKicker !== '' ? <span className="focus-kicker">{copy.coverKicker ?? 'WELCOME'}</span> : null}
             <h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{coloredText(project.title, directStyles.coverTitle, directStyles.coverTitleMobile)}</h1>
             {project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{coloredText(project.description, directStyles.coverBody, directStyles.coverBodyMobile)}</p> : null}
-            <button className="focus-primary" type="button" onClick={() => onStep?.(1)} disabled={preview || !canContinue} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button>
+            <PublicButtonFrame value={buttonStyles.start} fallback={{ width: 128 }} mobileValue={buttonStyles.startMobile}><button className="focus-primary" type="button" onClick={() => onStep?.(1)} disabled={preview || !canContinue} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button></PublicButtonFrame>
           </main>
         ) : current ? (
           <main className={`focus-question-card focus-content-card ${transition}`} key={current.field.id}>
@@ -212,11 +219,11 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
               consentLabel={copy.consentLabel ?? '내용을 확인했으며 동의합니다.'}
             />
             <footer className="focus-actions">
-              <button className="focus-back" type="button" onClick={() => onStep?.(Math.max(0, stepIndex - 1))} aria-label={copy.previousLabel || '이전'}><ArrowLeft /></button>
+              <PublicButtonFrame value={buttonStyles.back} fallback={{ width: 48 }} mobileValue={buttonStyles.backMobile}><button className="focus-back" type="button" onClick={() => onStep?.(Math.max(0, stepIndex - 1))} aria-label={copy.previousLabel || '이전'}><ArrowLeft /></button></PublicButtonFrame>
               {stepIndex < total ? (
-                <button className="focus-primary" type="button" onClick={() => onStep?.(stepIndex + 1)} disabled={preview} aria-label={copy.nextLabel || '다음'}>{copy.nextLabel ?? '다음'} <ArrowRight /></button>
+                <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="focus-primary" type="button" onClick={() => onStep?.(stepIndex + 1)} disabled={preview} aria-label={copy.nextLabel || '다음'}>{copy.nextLabel ?? '다음'} <ArrowRight /></button></PublicButtonFrame>
               ) : (
-                <button className="focus-primary" type="submit" disabled={preview || submitting} aria-label={copy.submitLabel || '제출하기'}>{submitting ? (copy.submitPendingLabel ?? '저장 중') : (copy.submitLabel ?? '제출하기')}</button>
+                <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="focus-primary" type="submit" disabled={preview || submitting} aria-label={copy.submitLabel || '제출하기'}>{submitting ? (copy.submitPendingLabel ?? '저장 중') : (copy.submitLabel ?? '제출하기')}</button></PublicButtonFrame>
               )}
             </footer>
           </main>
@@ -234,6 +241,7 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart,
   const transition = transitionClass(project.theme)
   const typography = resolvePageTypography(project, page)
   const directStyles = project.theme?.directStyles || {}
+  const buttonStyles = project.theme?.buttonStyles || {}
 
   if (submitted) return <SuccessScreen project={project} style={style} onRestart={onRestart} closeOnSuccess={closeOnSuccess} />
 
@@ -268,8 +276,8 @@ function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart,
           ) : <FormField key={field.id} field={field} value={answers[field.id]} onChange={(value) => onAnswers?.({ ...answers, [field.id]: value })} error={errors[field.id]} accent={project.theme?.accent} requiredLabel={copy.requiredLabel ?? '필수'} answerPlaceholder={copy.answerPlaceholder ?? '답변을 입력해 주세요'} selectPlaceholder={copy.selectPlaceholder ?? '선택해 주세요'} consentLabel={copy.consentLabel ?? '내용을 확인했으며 동의합니다.'} />)}
         </div>
         <footer className="canvas-actions">
-          {pageIndex > 0 ? <button className="canvas-secondary" type="button" onClick={() => onPage?.(pageIndex - 1)} aria-label={copy.previousLabel || '이전'}><ArrowLeft /> {copy.previousLabel ?? '이전'}</button> : <span />}
-          {pageIndex < project.pages.length - 1 ? <button className="canvas-primary" type="button" onClick={() => onPage?.(pageIndex + 1)} aria-label={copy.nextLabel || '다음'}>{copy.nextLabel ?? '다음'} <ArrowRight /></button> : <button className="canvas-primary" type="submit" disabled={preview || submitting} aria-label={copy.submitLabel || '제출하기'}>{submitting ? (copy.submitPendingLabel ?? '저장 중') : (copy.submitLabel ?? '제출하기')}</button>}
+          {pageIndex > 0 ? <PublicButtonFrame value={buttonStyles.back} fallback={{ width: 100 }} mobileValue={buttonStyles.backMobile}><button className="canvas-secondary" type="button" onClick={() => onPage?.(pageIndex - 1)} aria-label={copy.previousLabel || '이전'}><ArrowLeft /> {copy.previousLabel ?? '이전'}</button></PublicButtonFrame> : <span />}
+          {pageIndex < project.pages.length - 1 ? <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="canvas-primary" type="button" onClick={() => onPage?.(pageIndex + 1)} aria-label={copy.nextLabel || '다음'}>{copy.nextLabel ?? '다음'} <ArrowRight /></button></PublicButtonFrame> : <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="canvas-primary" type="submit" disabled={preview || submitting} aria-label={copy.submitLabel || '제출하기'}>{submitting ? (copy.submitPendingLabel ?? '저장 중') : (copy.submitLabel ?? '제출하기')}</button></PublicButtonFrame>}
         </footer>
       </div>
     </div>

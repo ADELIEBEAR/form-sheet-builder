@@ -1,4 +1,6 @@
 import {
+  ArrowClockwise,
+  ArrowCounterClockwise,
   ArrowSquareOut,
   Check,
   DeviceMobile,
@@ -27,6 +29,7 @@ import ThemePanel from '../components/ThemePanel'
 import { api } from '../lib/api'
 import { AUTO_SAVE_INTERVAL, canAutoSaveProject } from '../lib/autosave'
 import { emptyProject, makeField, makePage, moveItem, TYPE_LABEL } from '../lib/maker'
+import { createUndoHistory, recordUndoSnapshot, redoSnapshot, undoSnapshot } from '../lib/undoHistory'
 
 const SNAP_GRID_KEY = 'form_maker_snap_to_grid'
 
@@ -62,11 +65,15 @@ export default function Studio() {
   const dirtyRef = useRef(false)
   const savingRef = useRef(false)
   const latestSaveRef = useRef(null)
+  const latestUndoRef = useRef(null)
+  const latestRedoRef = useRef(null)
+  const historyRef = useRef(createUndoHistory())
   const savedTimerRef = useRef(null)
   const skipLoadProjectIdRef = useRef(null)
 
   useEffect(() => {
     if (!projectId) {
+      historyRef.current = createUndoHistory()
       setSelectedFieldId(COVER_VIEW)
       return
     }
@@ -83,6 +90,7 @@ export default function Studio() {
         if (cancelled) return
         setProject(data.project)
         setSelectedFieldId(COVER_VIEW)
+        historyRef.current = createUndoHistory()
         revisionRef.current = 0
         dirtyRef.current = false
         setDirty(false)
@@ -97,6 +105,15 @@ export default function Studio() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         latestSaveRef.current?.()
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) latestRedoRef.current?.()
+        else latestUndoRef.current?.()
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault()
+        latestRedoRef.current?.()
       }
     }
 
@@ -126,7 +143,32 @@ export default function Studio() {
     [project],
   )
 
+  function editorSnapshot() {
+    return { project, pageIndex, selectedFieldId }
+  }
+
+  function restoreEditorSnapshot(snapshot) {
+    if (!snapshot) return
+    revisionRef.current += 1
+    dirtyRef.current = true
+    setProject(snapshot.project)
+    setPageIndex(snapshot.pageIndex)
+    setSelectedFieldId(snapshot.selectedFieldId)
+    setSaved(false)
+    setDirty(true)
+  }
+
+  function undo() {
+    restoreEditorSnapshot(undoSnapshot(historyRef.current, editorSnapshot()))
+  }
+
+  function redo() {
+    restoreEditorSnapshot(redoSnapshot(historyRef.current, editorSnapshot()))
+  }
+
   function changeProject(nextProject) {
+    if (nextProject === project) return
+    recordUndoSnapshot(historyRef.current, editorSnapshot())
     revisionRef.current += 1
     dirtyRef.current = true
     setProject(nextProject)
@@ -174,6 +216,8 @@ export default function Studio() {
   }
 
   latestSaveRef.current = save
+  latestUndoRef.current = undo
+  latestRedoRef.current = redo
 
   function updatePage(nextPage) {
     changeProject({
@@ -531,9 +575,13 @@ export default function Studio() {
           <div className="stage-toolbar">
             <div className="studio-toolbar-copy">
               <strong>화면에서 바로 디자인</strong>
-              <span>글자를 누른 뒤 핸들로 크기와 위치를 조절하세요</span>
+              <span>글자나 버튼의 이동점을 잡아 크기와 위치를 조절하세요</span>
             </div>
             <div className="studio-toolbar-actions">
+              <div className="history-controls" aria-label="실행 취소와 다시 실행">
+                <button type="button" onClick={undo} disabled={!historyRef.current.past.length} aria-label="실행 취소" title="실행 취소 · Ctrl+Z"><ArrowCounterClockwise /></button>
+                <button type="button" onClick={redo} disabled={!historyRef.current.future.length} aria-label="다시 실행" title="다시 실행 · Ctrl+Shift+Z"><ArrowClockwise /></button>
+              </div>
               <div className="device-switch" aria-label="미리보기 화면 크기">
                 <button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => setDevice('desktop')} aria-label="데스크톱 보기"><Desktop /></button>
                 <button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => setDevice('mobile')} aria-label="모바일 보기"><DeviceMobile /></button>

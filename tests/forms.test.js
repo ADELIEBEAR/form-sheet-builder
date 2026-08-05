@@ -132,6 +132,17 @@ describe('form maker validation', () => {
     expect(project.theme.directStyles.coverTitleMobile).toMatchObject({ font: 'jua', size: 48, width: 84, offsetX: 24, offsetY: -16, align: 'center' })
   })
 
+  it('stores button placement with separate desktop and mobile bounds', () => {
+    const project = sanitizeProject({
+      title: '버튼 배치 폼',
+      pages: page([]),
+      theme: { buttonStyles: { start: { width: 420, offsetX: -300, offsetY: 120 }, primaryMobile: { width: 310, offsetX: 120, offsetY: -80 } } },
+    })
+
+    expect(project.theme.buttonStyles.start).toEqual({ width: 360, offsetX: -140, offsetY: 90 })
+    expect(project.theme.buttonStyles.primaryMobile).toEqual({ width: 280, offsetX: 80, offsetY: -48 })
+  })
+
   it('stores supported visual effects and rejects unknown animation settings', () => {
     const supported = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'liquid', motion: 'playful' } })
     const fallback = sanitizeProject({ title: '효과 폼', pages: page([]), theme: { effect: 'webgl-magic', motion: 'fastest' } })

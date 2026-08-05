@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
+import DirectCanvasButton from '../src/components/DirectCanvasButton'
 import DirectCanvasText, { snapToGridValue } from '../src/components/DirectCanvasText'
 import InlineFieldEditor from '../src/components/InlineFieldEditor'
 import InlineFormCanvas, { COVER_VIEW } from '../src/components/InlineFormCanvas'
@@ -85,6 +86,30 @@ describe('focused form canvas', () => {
     expect(html).toContain('--public-direct-shadow:3.3px 5px 12px color-mix(in srgb, #3155aa 60%, transparent)')
     expect(html).toContain('--public-mobile-shadow:none')
     expect(html).toContain('--public-mobile-stroke:1.7px color-mix(in srgb, #aa3355 80%, transparent)')
+  })
+
+  it('shows direct button movement and width controls in the canvas', () => {
+    const html = renderToStaticMarkup(<DirectCanvasButton label="시작 버튼" value={{ width: 144, offsetX: 8, offsetY: -4 }} fallback={{ width: 128 }} selected onSelect={() => {}} onChange={() => {}}><button type="button">시작하기</button></DirectCanvasButton>)
+
+    expect(html).toContain('시작 버튼 위치 조절')
+    expect(html).toContain('시작 버튼 빠른 배치')
+    expect(html).toContain('시작 버튼 너비 조절')
+    expect(html).toContain('--direct-button-width:144px')
+  })
+
+  it('renders separate desktop and mobile button placement for applicants', () => {
+    const project = emptyProject()
+    project.theme.buttonStyles = {
+      start: { width: 180, offsetX: 24, offsetY: -8 },
+      startMobile: { width: 132, offsetX: -12, offsetY: 10 },
+    }
+
+    const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={0} preview />)
+
+    expect(html).toContain('--public-button-width:180px')
+    expect(html).toContain('--public-button-x:24px')
+    expect(html).toContain('--public-mobile-button-width:132px')
+    expect(html).toContain('--public-mobile-button-y:10px')
   })
 
   it('snaps freeform canvas values to the nearest editor grid line', () => {

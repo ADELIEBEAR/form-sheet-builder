@@ -69,6 +69,29 @@ function sanitizeDirectTextGroup(input, roles) {
   return Object.fromEntries(roles.map(([key, fallbackSize, minSize, maxSize]) => [key, sanitizeDirectTextStyle(input[key], fallbackSize, minSize, maxSize)]))
 }
 
+function sanitizeDirectButtonStyle(input, fallbackWidth, minWidth, maxWidth, mobile = false) {
+  if (!input || typeof input !== 'object') return null
+  return {
+    width: safeSize(input.width, fallbackWidth, minWidth, maxWidth),
+    offsetX: safeSize(input.offsetX, 0, mobile ? -80 : -140, mobile ? 80 : 140),
+    offsetY: safeSize(input.offsetY, 0, mobile ? -48 : -90, mobile ? 48 : 90),
+  }
+}
+
+function sanitizeDirectButtonGroup(input) {
+  if (!input || typeof input !== 'object') return null
+  return {
+    start: sanitizeDirectButtonStyle(input.start, 128, 80, 360),
+    primary: sanitizeDirectButtonStyle(input.primary, 128, 80, 360),
+    back: sanitizeDirectButtonStyle(input.back, 48, 40, 180),
+    restart: sanitizeDirectButtonStyle(input.restart, 140, 80, 360),
+    startMobile: sanitizeDirectButtonStyle(input.startMobile, 128, 80, 280, true),
+    primaryMobile: sanitizeDirectButtonStyle(input.primaryMobile, 128, 80, 280, true),
+    backMobile: sanitizeDirectButtonStyle(input.backMobile, 48, 40, 160, true),
+    restartMobile: sanitizeDirectButtonStyle(input.restartMobile, 140, 80, 280, true),
+  }
+}
+
 function safeConsentUrl(value) {
   const input = String(value || '').trim()
   if (!input) return ''
@@ -249,6 +272,7 @@ export function sanitizeProject(input) {
         ['successTitleMobile', defaultTitleSize, 28, 48],
         ['successBodyMobile', defaultBodySize, 12, 22],
       ]),
+      buttonStyles: sanitizeDirectButtonGroup(input?.theme?.buttonStyles),
       effect: allowedEffects.has(input?.theme?.effect) ? input.theme.effect : 'aurora',
       motion: allowedMotions.has(input?.theme?.motion) ? input.theme.motion : 'soft',
       transition: allowedTransitions.has(input?.theme?.transition) ? input.theme.transition : 'rise',

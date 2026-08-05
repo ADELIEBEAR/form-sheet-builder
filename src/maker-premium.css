@@ -775,6 +775,59 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
   background-position: -1px -1px;
 }
+.direct-canvas-button {
+  position: relative;
+  z-index: 3;
+  width: min(100%, var(--direct-button-width, 128px));
+  max-width: 100%;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  transform: translate(var(--direct-button-x, 0), var(--direct-button-y, 0));
+  transition: width .18s cubic-bezier(.2, .8, .2, 1), transform .18s cubic-bezier(.2, .8, .2, 1);
+}
+.canvas-direct-manipulating .direct-canvas-button { transition: none; }
+.direct-canvas-button > .direct-edit-button { width: 100% !important; min-width: 0 !important; max-width: none; }
+.studio-flow-actions .direct-canvas-button { align-self: center; }
+.studio-success-editor .direct-restart-button { align-self: center; }
+.direct-canvas-button.selected { z-index: 18; outline: 1.5px solid var(--preview-accent); outline-offset: 5px; border-radius: calc(var(--preview-radius) * .5); }
+.direct-button-grab {
+  position: absolute;
+  z-index: 27;
+  top: -10px;
+  right: -10px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--preview-card);
+  border-radius: 7px;
+  background: var(--preview-accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--preview-accent) 30%, transparent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  opacity: .82;
+}
+.direct-button-grab:hover,
+.direct-canvas-button.selected .direct-button-grab { opacity: 1; transform: scale(1.05); }
+.direct-button-grab:active { cursor: grabbing; }
+.direct-button-grab svg { width: 12px; height: 12px; }
+.direct-button-toolbar { left: -6px; bottom: calc(100% + 17px); }
+.direct-button-width-handle {
+  position: absolute;
+  z-index: 28;
+  width: 10px;
+  height: 24px;
+  top: 50%;
+  right: -12px;
+  padding: 0;
+  border: 2px solid var(--preview-card);
+  border-radius: 5px;
+  background: var(--preview-accent);
+  box-shadow: 0 0 0 1px var(--preview-accent), 0 3px 8px rgb(38 30 66 / .2);
+  cursor: ew-resize;
+  transform: translateY(-50%);
+}
 .direct-canvas-text {
   position: relative;
   z-index: 2;
@@ -994,6 +1047,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   text-shadow: var(--public-direct-shadow, none);
   -webkit-text-stroke: var(--public-direct-stroke, 0 transparent);
 }
+.public-button-frame {
+  width: var(--public-button-width, fit-content);
+  max-width: 100%;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  display: inline-flex;
+  transform: translate(var(--public-button-x, 0), var(--public-button-y, 0));
+  transform-origin: 0 50%;
+}
+.public-button-frame > button { width: 100% !important; min-width: 0 !important; }
+.focus-actions > .public-button-frame,
+.canvas-actions > .public-button-frame { align-self: center; }
+.focus-success-card > .public-button-frame { align-self: center; }
+.canvas-actions > .public-button-frame { min-width: 80px; }
 .focus-form-canvas .public-direct-text,
 .form-canvas .public-direct-text { font-size: var(--public-direct-size); }
 .focus-form-canvas .render-heading .public-direct-text,
@@ -1015,6 +1082,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     text-align: var(--public-mobile-align, var(--public-direct-align, var(--preview-text-align)));
     text-shadow: var(--public-mobile-shadow, var(--public-direct-shadow, none));
     -webkit-text-stroke: var(--public-mobile-stroke, var(--public-direct-stroke, 0 transparent));
+  }
+  .public-button-frame {
+    width: var(--public-mobile-button-width, var(--public-button-width, fit-content));
+    transform: translate(clamp(-80px, var(--public-mobile-button-x, var(--public-button-x, 0)), 80px), clamp(-48px, var(--public-mobile-button-y, var(--public-button-y, 0)), 48px));
   }
   .public-rich-desktop { display: none; }
   .public-rich-mobile { display: inline; }

@@ -869,6 +869,17 @@ button:focus-visible > .outline-drag-handle { color: var(--app-accent); opacity:
   display: flex;
   gap: 2px;
 }
+.studio-toolbar-actions .history-controls {
+  padding: 3px;
+  border: 1px solid #dedcd6;
+  border-radius: 9px;
+  background: #f3f2ee;
+  display: flex;
+  gap: 2px;
+}
+.stage-toolbar .history-controls button { width: 30px; min-width: 30px; padding: 0; justify-content: center; }
+.stage-toolbar button:disabled { opacity: .32; cursor: default; }
+.stage-toolbar .history-controls button:not(:disabled):hover { background: #e7e3f2; color: var(--app-accent); }
 
 .stage-toolbar button {
   width: auto;

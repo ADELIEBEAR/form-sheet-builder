@@ -252,6 +252,15 @@ export function resolveDirectTextStyle(value, fallback = {}) {
   }
 }
 
+export function resolveDirectButtonStyle(value, fallback = {}) {
+  const source = value && typeof value === 'object' ? value : {}
+  return {
+    width: Number.isFinite(Number(source.width)) ? Number(source.width) : (fallback.width ?? 128),
+    offsetX: Number.isFinite(Number(source.offsetX)) ? Number(source.offsetX) : (fallback.offsetX ?? 0),
+    offsetY: Number.isFinite(Number(source.offsetY)) ? Number(source.offsetY) : (fallback.offsetY ?? 0),
+  }
+}
+
 export function emptyProject() {
   return {
     title: '제목 없는 폼',
@@ -282,6 +291,7 @@ export function emptyProject() {
       bodyTracking: 0,
       textAlign: 'left',
       directStyles: null,
+      buttonStyles: null,
       effect: 'aurora',
       motion: 'soft',
       transition: 'rise',

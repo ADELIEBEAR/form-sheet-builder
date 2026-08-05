@@ -22,6 +22,17 @@ function innerRect(element) {
   }
 }
 
+function insetRect(element, inset = 14) {
+  if (!element) return null
+  const rect = element.getBoundingClientRect()
+  return {
+    left: rect.left + inset,
+    right: rect.right - inset,
+    top: rect.top + inset,
+    bottom: rect.bottom - inset,
+  }
+}
+
 export function directButtonOffsetBounds(frameRect, hostRect, start, fallback) {
   if (!frameRect || !hostRect) return fallback
   const baseLeft = frameRect.left - start.offsetX
@@ -67,8 +78,8 @@ export function publicButtonVariables(value, fallback, mobileValue) {
 export default function DirectCanvasButton({ children, value, fallback, label, selected, onSelect, onChange, snapToGrid = false, mobile = false, minWidth = 80, maxWidth = 360, className = '' }) {
   const frameRef = useRef(null)
   const suppressClickRef = useRef(false)
-  const maxOffsetX = mobile ? 240 : 480
-  const maxOffsetY = mobile ? 280 : 360
+  const maxOffsetX = mobile ? 360 : 720
+  const maxOffsetY = mobile ? 620 : 720
   const source = resolveDirectButtonStyle(value, fallback)
   const resolved = {
     width: clamp(source.width, minWidth, maxWidth),
@@ -83,8 +94,8 @@ export default function DirectCanvasButton({ children, value, fallback, label, s
 
   const bounds = () => {
     const frame = frameRef.current
-    const host = frame?.closest('.focus-content-card')
-    return directButtonOffsetBounds(frame?.getBoundingClientRect(), innerRect(host), resolved, {
+    const canvas = frame?.closest('.maker-editor-canvas')
+    return directButtonOffsetBounds(frame?.getBoundingClientRect(), insetRect(canvas), resolved, {
       minX: -maxOffsetX,
       maxX: maxOffsetX,
       minY: -maxOffsetY,
@@ -114,7 +125,7 @@ export default function DirectCanvasButton({ children, value, fallback, label, s
     const start = resolved
     const limit = bounds()
     const frameRect = frameRef.current?.getBoundingClientRect()
-    const hostRect = innerRect(frameRef.current?.closest('.focus-content-card'))
+    const hostRect = insetRect(frameRef.current?.closest('.maker-editor-canvas'))
     const availableWidth = frameRect && hostRect ? Math.max(minWidth, hostRect.right - frameRect.left) : maxWidth
     let moved = false
 

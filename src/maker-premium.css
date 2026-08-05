@@ -132,7 +132,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   margin: 42px auto 0;
   padding: var(--focus-card-pad-y) var(--focus-card-pad-x);
   align-self: center;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid color-mix(in srgb, var(--preview-card) 72%, transparent);
   border-radius: var(--preview-radius);
   background: color-mix(in srgb, var(--preview-card) 91%, transparent);
@@ -204,7 +204,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @keyframes form-transition-flip { from { opacity: 0; transform: perspective(900px) rotateY(9deg) translateX(16px); } to { opacity: 1; transform: perspective(900px) rotateY(0) translateX(0); } }
 @keyframes form-transition-swing { from { opacity: 0; transform: translateY(-12px) rotateZ(-3.5deg); } 70% { transform: translateY(1px) rotateZ(.7deg); } to { opacity: 1; transform: translateY(0) rotateZ(0); } }
 @keyframes form-transition-blur { from { opacity: 0; filter: blur(12px); transform: scale(.985); } to { opacity: 1; filter: blur(0); transform: scale(1); } }
-@keyframes form-transition-reveal { from { opacity: .2; clip-path: inset(0 100% 0 0 round var(--preview-radius)); transform: translateX(-12px); } to { opacity: 1; clip-path: inset(0 0 0 0 round var(--preview-radius)); transform: translateX(0); } }
+@keyframes form-transition-reveal { from { opacity: .2; clip-path: inset(0 100% 0 0 round var(--preview-radius)); transform: translateX(-12px); } to { opacity: 1; clip-path: inset(-150% -150% -150% -150% round var(--preview-radius)); transform: translateX(0); } }
 @keyframes form-transition-bounce { 0% { opacity: 0; transform: translateY(34px) scale(.96); } 68% { opacity: 1; transform: translateY(-5px) scale(1.01); } 86% { transform: translateY(2px) scale(.997); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 
 .focus-success-canvas { min-height: 700px; padding: 74px 24px; }
@@ -1112,7 +1112,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   }
   .public-button-frame {
     width: var(--public-mobile-button-width, var(--public-button-width, fit-content));
-    transform: translate(clamp(-240px, var(--public-mobile-button-x, var(--public-button-x, 0)), 240px), clamp(-280px, var(--public-mobile-button-y, var(--public-button-y, 0)), 280px));
+    transform: translate(clamp(-360px, var(--public-mobile-button-x, var(--public-button-x, 0)), 360px), clamp(-620px, var(--public-mobile-button-y, var(--public-button-y, 0)), 620px));
   }
   .public-rich-desktop { display: none; }
   .public-rich-mobile { display: inline; }

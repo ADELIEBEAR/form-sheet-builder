@@ -98,12 +98,12 @@ describe('focused form canvas', () => {
     expect(html).toContain('클릭하면 실행 · 끌면 이동')
   })
 
-  it('keeps direct button dragging inside the actual card bounds', () => {
+  it('keeps direct button dragging inside the preview bounds', () => {
     expect(directButtonOffsetBounds(
       { left: 120, right: 248, top: 310, bottom: 358 },
       { left: 80, right: 520, top: 120, bottom: 500 },
       { offsetX: 24, offsetY: -8 },
-      { minX: -480, maxX: 480, minY: -360, maxY: 360 },
+      { minX: -720, maxX: 720, minY: -720, maxY: 720 },
     )).toEqual({ minX: -16, maxX: 296, minY: -198, maxY: 134 })
   })
 

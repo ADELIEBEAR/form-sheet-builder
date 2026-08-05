@@ -81,14 +81,14 @@ function sanitizeDirectButtonStyle(input, fallbackWidth, minWidth, maxWidth, mob
 function sanitizeDirectButtonGroup(input) {
   if (!input || typeof input !== 'object') return null
   return {
-    start: sanitizeDirectButtonStyle(input.start, 128, 80, 360),
-    primary: sanitizeDirectButtonStyle(input.primary, 128, 80, 360),
+    start: sanitizeDirectButtonStyle(input.start, 128, 112, 360),
+    primary: sanitizeDirectButtonStyle(input.primary, 128, 112, 360),
     back: sanitizeDirectButtonStyle(input.back, 48, 40, 180),
-    restart: sanitizeDirectButtonStyle(input.restart, 140, 80, 360),
-    startMobile: sanitizeDirectButtonStyle(input.startMobile, 128, 80, 280, true),
-    primaryMobile: sanitizeDirectButtonStyle(input.primaryMobile, 128, 80, 280, true),
+    restart: sanitizeDirectButtonStyle(input.restart, 140, 112, 360),
+    startMobile: sanitizeDirectButtonStyle(input.startMobile, 128, 112, 280, true),
+    primaryMobile: sanitizeDirectButtonStyle(input.primaryMobile, 128, 112, 280, true),
     backMobile: sanitizeDirectButtonStyle(input.backMobile, 48, 40, 160, true),
-    restartMobile: sanitizeDirectButtonStyle(input.restartMobile, 140, 80, 280, true),
+    restartMobile: sanitizeDirectButtonStyle(input.restartMobile, 140, 112, 280, true),
   }
 }
 

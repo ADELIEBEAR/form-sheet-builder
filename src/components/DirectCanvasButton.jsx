@@ -1,5 +1,5 @@
 import { ArrowCounterClockwise, DotsSixVertical, Minus, Plus } from '@phosphor-icons/react'
-import { Children, cloneElement, isValidElement, useRef } from 'react'
+import { Children, cloneElement, isValidElement, useEffect, useRef } from 'react'
 import { resolveDirectButtonStyle } from '../lib/maker'
 
 function clamp(value, min, max) {
@@ -64,19 +64,20 @@ export function publicButtonVariables(value, fallback, mobileValue) {
     '--public-button-x': `${resolved.offsetX}px`,
     '--public-button-y': `${resolved.offsetY}px`,
   })
-  if (mobileValue && typeof mobileValue === 'object') {
-    const mobile = resolveDirectButtonStyle(mobileValue, resolved || fallback)
-    Object.assign(style, {
-      '--public-mobile-button-width': `${mobile.width}px`,
-      '--public-mobile-button-x': `${mobile.offsetX}px`,
-      '--public-mobile-button-y': `${mobile.offsetY}px`,
-    })
-  }
+  const mobile = mobileValue && typeof mobileValue === 'object'
+    ? resolveDirectButtonStyle(mobileValue, fallback)
+    : resolveDirectButtonStyle(null, fallback)
+  Object.assign(style, {
+    '--public-mobile-button-width': `${mobile.width}px`,
+    '--public-mobile-button-x': `${mobile.offsetX}px`,
+    '--public-mobile-button-y': `${mobile.offsetY}px`,
+  })
   return style
 }
 
 export default function DirectCanvasButton({ children, value, fallback, label, selected, onSelect, onChange, snapToGrid = false, mobile = false, minWidth = 80, maxWidth = 360, className = '' }) {
   const frameRef = useRef(null)
+  const toolbarRef = useRef(null)
   const suppressClickRef = useRef(false)
   const maxOffsetX = mobile ? 360 : 720
   const maxOffsetY = mobile ? 620 : 720
@@ -91,6 +92,43 @@ export default function DirectCanvasButton({ children, value, fallback, label, s
   const editableChild = isValidElement(child) ? cloneElement(child, {
     className: `${child.props.className || ''} direct-edit-button`,
   }) : child
+
+  useEffect(() => {
+    if (!selected) return undefined
+
+    const placeToolbar = () => {
+      const frame = frameRef.current
+      const toolbar = toolbarRef.current
+      const canvas = frame?.closest('.maker-editor-canvas')
+      if (!frame || !toolbar || !canvas) return
+
+      const canvasRect = canvas.getBoundingClientRect()
+      const frameRect = frame.getBoundingClientRect()
+      toolbar.style.maxWidth = `${Math.max(180, Math.floor(canvasRect.width - 16))}px`
+      const toolbarRect = toolbar.getBoundingClientRect()
+      const minLeft = canvasRect.left + 8 - frameRect.left
+      const maxLeft = canvasRect.right - 8 - toolbarRect.width - frameRect.left
+      const preferredLeft = -6
+      const left = minLeft <= maxLeft ? clamp(preferredLeft, minLeft, maxLeft) : minLeft
+      const above = -toolbarRect.height - 14
+      const below = frameRect.height + 14
+      const minTop = canvasRect.top + 8 - frameRect.top
+      const maxTop = canvasRect.bottom - 8 - toolbarRect.height - frameRect.top
+      const preferredTop = frameRect.top + above >= canvasRect.top + 8 ? above : below
+      const top = minTop <= maxTop ? clamp(preferredTop, minTop, maxTop) : minTop
+
+      toolbar.style.left = `${Math.round(left)}px`
+      toolbar.style.top = `${Math.round(top)}px`
+      toolbar.style.bottom = 'auto'
+    }
+
+    const animationFrame = window.requestAnimationFrame(placeToolbar)
+    window.addEventListener('resize', placeToolbar)
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      window.removeEventListener('resize', placeToolbar)
+    }
+  }, [selected, mobile, resolved.width, resolved.offsetX, resolved.offsetY])
 
   const bounds = () => {
     const frame = frameRef.current
@@ -200,7 +238,7 @@ export default function DirectCanvasButton({ children, value, fallback, label, s
       {editableChild}
       <button className="direct-button-grab" type="button" onPointerDown={(event) => beginPointerAction(event, 'move')} onKeyDown={nudgePosition} aria-label={`${label} 위치 조절`} title="잡아서 버튼 이동"><DotsSixVertical weight="bold" /></button>
       {selected ? <>
-        <div className="direct-text-toolbar direct-button-toolbar" role="toolbar" aria-label={`${label} 빠른 배치`} onPointerDown={(event) => event.stopPropagation()}>
+        <div ref={toolbarRef} className="direct-text-toolbar direct-button-toolbar" role="toolbar" aria-label={`${label} 빠른 배치`} onPointerDown={(event) => event.stopPropagation()}>
           <button className="direct-move-button" type="button" onPointerDown={(event) => beginPointerAction(event, 'move')} onKeyDown={nudgePosition} aria-label={`${label} 이동`} title="잡아서 이동"><DotsSixVertical weight="bold" /></button>
           <span>{label}</span>
           <button type="button" onClick={() => patch({ width: clamp(resolved.width - 8, minWidth, maxWidth) })} aria-label={`${label} 너비 줄이기`}><Minus weight="bold" /></button>

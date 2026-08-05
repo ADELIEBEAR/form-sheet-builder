@@ -136,11 +136,12 @@ describe('form maker validation', () => {
     const project = sanitizeProject({
       title: '버튼 배치 폼',
       pages: page([]),
-      theme: { buttonStyles: { start: { width: 420, offsetX: -300, offsetY: 120 }, primaryMobile: { width: 310, offsetX: 120, offsetY: -80 } } },
+      theme: { buttonStyles: { start: { width: 420, offsetX: -300, offsetY: 120 }, primaryMobile: { width: 310, offsetX: 120, offsetY: -80 }, restartMobile: { width: 30, offsetX: 0, offsetY: 0 } } },
     })
 
     expect(project.theme.buttonStyles.start).toEqual({ width: 360, offsetX: -300, offsetY: 120 })
     expect(project.theme.buttonStyles.primaryMobile).toEqual({ width: 280, offsetX: 120, offsetY: -80 })
+    expect(project.theme.buttonStyles.restartMobile).toEqual({ width: 112, offsetX: 0, offsetY: 0 })
   })
 
   it('stores supported visual effects and rejects unknown animation settings', () => {

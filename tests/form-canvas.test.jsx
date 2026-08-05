@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
+import FormCopyPanel from '../src/components/FormCopyPanel'
 import DirectCanvasButton, { directButtonOffsetBounds } from '../src/components/DirectCanvasButton'
 import DirectCanvasText, { snapToGridValue } from '../src/components/DirectCanvasText'
 import InlineFieldEditor from '../src/components/InlineFieldEditor'
@@ -120,6 +121,29 @@ describe('focused form canvas', () => {
     expect(html).toContain('--public-button-x:24px')
     expect(html).toContain('--public-mobile-button-width:132px')
     expect(html).toContain('--public-mobile-button-y:10px')
+  })
+
+  it('keeps desktop-only button placement from spilling into mobile', () => {
+    const project = emptyProject()
+    project.theme.buttonStyles = {
+      start: { width: 360, offsetX: 220, offsetY: 140 },
+    }
+
+    const publicHtml = renderToStaticMarkup(<FormCanvas project={project} pageIndex={0} preview />)
+    const editorHtml = renderToStaticMarkup(<InlineFormCanvas project={project} pageIndex={0} selectedFieldId={COVER_VIEW} device="mobile" onProjectChange={() => {}} onPageChange={() => {}} onNavigate={() => {}} onFieldSelect={() => {}} onFieldChange={() => {}} onFieldAdd={() => {}} onFieldDuplicate={() => {}} onFieldDelete={() => {}} onFieldMove={() => {}} />)
+
+    expect(publicHtml).toContain('--public-button-width:360px')
+    expect(publicHtml).toContain('--public-mobile-button-width:128px')
+    expect(publicHtml).toContain('--public-mobile-button-x:0px')
+    expect(editorHtml).toContain('--direct-button-width:128px')
+    expect(editorHtml).toContain('--direct-button-x:0px')
+  })
+
+  it('keeps consent wording only on each consent question', () => {
+    const html = renderToStaticMarkup(<FormCopyPanel project={emptyProject()} onChange={() => {}} />)
+
+    expect(html).not.toContain('새 동의 항목의 기본 체크박스 문구')
+    expect(html).not.toContain('consent-default-control')
   })
 
   it('snaps freeform canvas values to the nearest editor grid line', () => {

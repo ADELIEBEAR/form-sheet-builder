@@ -41,12 +41,6 @@ export default function FormCopyPanel({ project, onChange }) {
         ))}
       </div>
 
-      <label className="studio-control consent-default-control">
-        <span>새 동의 항목의 기본 체크박스 문구</span>
-        <input value={settings.consentLabel ?? '내용을 확인했으며 동의합니다.'} maxLength="300" onChange={(event) => patch('consentLabel', event.target.value)} />
-        <small>새로 추가하는 동의 항목에만 적용됩니다. 기존 동의 문구는 해당 질문의 체크박스에서 직접 수정하세요.</small>
-      </label>
-
       <label className="studio-control">
         <span>제출 완료 제목</span>
         <input value={settings.successTitle ?? '응답이 접수되었습니다'} maxLength="200" onChange={(event) => patch('successTitle', event.target.value)} />

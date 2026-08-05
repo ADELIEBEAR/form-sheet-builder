@@ -810,7 +810,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   transition: width .18s cubic-bezier(.2, .8, .2, 1), transform .18s cubic-bezier(.2, .8, .2, 1);
 }
 .canvas-direct-manipulating .direct-canvas-button { transition: none; }
-.direct-canvas-button > .direct-edit-button { width: 100% !important; min-width: 0 !important; max-width: none; touch-action: none; }
+.direct-canvas-button > .direct-edit-button { width: 100% !important; min-width: 0 !important; max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; touch-action: none; }
 .direct-canvas-button:hover > .direct-edit-button,
 .direct-canvas-button.selected > .direct-edit-button { cursor: grab; }
 .canvas-direct-manipulating .direct-canvas-button > .direct-edit-button { cursor: grabbing; }
@@ -839,7 +839,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .direct-canvas-button.selected .direct-button-grab { opacity: 1; transform: scale(1.05); }
 .direct-button-grab:active { cursor: grabbing; }
 .direct-button-grab svg { width: 12px; height: 12px; }
-.direct-button-toolbar { left: -6px; bottom: calc(100% + 17px); }
+.direct-button-toolbar { left: -6px; bottom: calc(100% + 17px); box-sizing: border-box; flex-wrap: nowrap; overflow: hidden; }
 .direct-button-width-handle {
   position: absolute;
   z-index: 28;
@@ -1083,7 +1083,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   transform: translate(var(--public-button-x, 0), var(--public-button-y, 0));
   transform-origin: 0 50%;
 }
-.public-button-frame > button { width: 100% !important; min-width: 0 !important; }
+.public-button-frame > button { width: 100% !important; min-width: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.public-button-frame:has(> .focus-primary),
+.public-button-frame:has(> .focus-restart),
+.public-button-frame:has(> .canvas-primary) { min-width: 112px; }
 .focus-actions > .public-button-frame,
 .canvas-actions > .public-button-frame { align-self: center; }
 .focus-success-card > .public-button-frame { align-self: center; }
@@ -1096,6 +1099,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 @media (max-width: 720px) {
   .direct-text-toolbar { max-width: min(300px, calc(100vw - 44px)); padding: 4px; flex-wrap: wrap; gap: 2px; }
+  .direct-button-toolbar { flex-wrap: nowrap; }
   .direct-text-toolbar > span { display: none; }
   .direct-text-toolbar select { width: 78px; }
   .direct-text-toolbar > button { min-width: 26px; padding-inline: 5px; }
@@ -1790,8 +1794,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .consent-row .consent-copy { min-width: 0; flex: 1; }
 .field-invalid .consent-row { border-color: #c0394b; box-shadow: 0 0 0 3px rgb(192 57 75 / .08); }
-.consent-default-control { margin-top: 16px; padding: 14px; border: 1px solid #e5e0ec; border-radius: 12px; background: #faf9fc; }
-.consent-default-control > small { color: var(--app-muted); font-size: 9px; line-height: 1.55; }
 
 /* External site connection */
 .external-connect-panel { display: grid; gap: 14px; }

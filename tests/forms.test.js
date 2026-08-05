@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { changeFieldType, moveItem, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
+import { changeFieldType, moveItem, normalizeConsentFields, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
 import { fieldAnswerError, normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
@@ -21,6 +21,14 @@ describe('form maker validation', () => {
     expect(changeFieldType({ type: 'heading', required: false, options: [] }, 'single')).toMatchObject({ type: 'single', required: true, options: ['선택 1', '선택 2'] })
     expect(changeFieldType({ type: 'short', required: false, options: [] }, 'consent')).toMatchObject({ type: 'consent', required: true })
     expect(changeFieldType({ type: 'consent', required: true }, 'heading')).toMatchObject({ type: 'heading', required: false })
+  })
+
+  it('gives every legacy consent field its own independent checkbox copy', () => {
+    const source = page([{ id: 'agree', type: 'consent', label: '개인정보 동의', required: true }])
+    const normalized = normalizeConsentFields(source, '내용을 읽고 동의합니다.')
+
+    expect(normalized[0].fields[0]).toMatchObject({ consentText: '내용을 읽고 동의합니다.', consentLinkLabel: '', consentLinkUrl: '' })
+    expect(source[0].fields[0].consentText).toBeUndefined()
   })
 
   it('includes editable stock and crypto themes', () => {
@@ -138,6 +146,17 @@ describe('form maker validation', () => {
     expect(fieldAnswerError(consentPage[0].fields[0], '')).toBe('동의 항목을 확인해 주세요.')
     expect(() => validateAnswers(consentPage, { agree: '아니오' })).toThrow('동의 여부')
     expect(validateAnswers(consentPage, { agree: '동의' }).agree).toBe('동의')
+  })
+
+  it('stores independent consent copy and only safe agreement links', () => {
+    const project = sanitizeProject({
+      title: '동의 폼',
+      pages: page([{ id: 'agree', type: 'consent', label: '개인정보 처리 동의', description: '수집 목적을 확인해 주세요.', consentText: '개인정보 수집 및 이용에 동의합니다.', consentLinkLabel: '처리방침 보기', consentLinkUrl: 'https://example.com/privacy', required: true }]),
+    })
+
+    expect(project.pages[0].fields[0]).toMatchObject({ label: '개인정보 처리 동의', consentText: '개인정보 수집 및 이용에 동의합니다.', consentLinkLabel: '처리방침 보기', consentLinkUrl: 'https://example.com/privacy' })
+    expect(() => sanitizeProject({ title: '빈 동의', pages: page([{ id: 'agree', type: 'consent', label: '동의', consentText: ' ' }]) })).toThrow('체크박스 문구')
+    expect(() => sanitizeProject({ title: '위험 링크', pages: page([{ id: 'agree', type: 'consent', label: '동의', consentText: '동의합니다.', consentLinkUrl: 'javascript:alert(1)' }]) })).toThrow('http:// 또는 https://')
   })
 
   it('validates phone, number, date, and choice values consistently', () => {

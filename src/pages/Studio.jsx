@@ -111,6 +111,7 @@ export default function Studio() {
 
   function addField(type) {
     const field = makeField(type)
+    if (type === 'consent') field.consentText = project.settings?.consentLabel || '내용을 확인했으며 동의합니다.'
     updatePage({ ...page, fields: [...page.fields, field] })
     setSelectedFieldId(field.id)
   }

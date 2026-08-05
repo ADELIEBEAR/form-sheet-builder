@@ -38,6 +38,19 @@ function safeText(value, fallback, maxLength) {
   return String(value == null ? fallback : value).slice(0, maxLength)
 }
 
+function safeConsentUrl(value) {
+  const input = String(value || '').trim()
+  if (!input) return ''
+  if (input.length > 1000) throw new ValidationError('동의 안내 링크가 너무 깁니다.')
+  try {
+    const parsed = new URL(input)
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol')
+    return parsed.toString()
+  } catch {
+    throw new ValidationError('동의 안내 링크는 http:// 또는 https:// 주소로 입력해 주세요.')
+  }
+}
+
 function sanitizeField(field) {
   const type = allowedTypes.has(field?.type) ? field.type : 'short'
   const label = String(field?.label || '').trim().slice(0, 300)
@@ -46,6 +59,11 @@ function sanitizeField(field) {
     ? [...new Set((Array.isArray(field.options) ? field.options : []).map((option) => String(option).trim().slice(0, 200)).filter(Boolean))].slice(0, 50)
     : []
   if (['single', 'multi', 'select'].includes(type) && optionValues.length === 0) throw new ValidationError(`선택 항목을 하나 이상 만들어 주세요: ${label}`)
+  const consentText = type === 'consent'
+    ? String(field?.consentText == null ? '내용을 확인했으며 동의합니다.' : field.consentText).trim().slice(0, 500)
+    : ''
+  if (type === 'consent' && !consentText) throw new ValidationError(`동의 체크박스 문구를 입력해 주세요: ${label}`)
+  const consentLinkUrl = type === 'consent' ? safeConsentUrl(field?.consentLinkUrl) : ''
   return {
     id: typeof field.id === 'string' && field.id ? field.id.slice(0, 80) : crypto.randomUUID(),
     type,
@@ -55,6 +73,9 @@ function sanitizeField(field) {
     required: type !== 'heading' && Boolean(field.required),
     options: optionValues,
     scale: type === 'rating' ? Math.min(10, Math.max(3, Number(field.scale) || 5)) : 5,
+    consentText,
+    consentLinkLabel: consentLinkUrl ? String(field?.consentLinkLabel || '자세히 보기').trim().slice(0, 120) || '자세히 보기' : '',
+    consentLinkUrl,
   }
 }
 

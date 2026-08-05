@@ -14,7 +14,6 @@ const COPY_FIELDS = [
   ['restartLabel', '다시 보기 버튼', '처음부터 보기', 80],
   ['answerPlaceholder', '기본 입력 안내', '답변을 입력해 주세요', 120],
   ['selectPlaceholder', '선택 목록 안내', '선택해 주세요', 120],
-  ['consentLabel', '기본 동의 문구', '내용을 확인했으며 동의합니다.', 300],
 ]
 
 export default function FormCopyPanel({ project, onChange }) {
@@ -41,6 +40,12 @@ export default function FormCopyPanel({ project, onChange }) {
           </label>
         ))}
       </div>
+
+      <label className="studio-control consent-default-control">
+        <span>새 동의 항목의 기본 체크박스 문구</span>
+        <input value={settings.consentLabel ?? '내용을 확인했으며 동의합니다.'} maxLength="300" onChange={(event) => patch('consentLabel', event.target.value)} />
+        <small>새로 추가하는 동의 항목에만 적용됩니다. 기존 동의 문구는 해당 질문의 체크박스에서 직접 수정하세요.</small>
+      </label>
 
       <label className="studio-control">
         <span>제출 완료 제목</span>

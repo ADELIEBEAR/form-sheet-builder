@@ -1,6 +1,6 @@
 import { ASSET_BUCKET, supabase } from './supabase'
 import { listResponseAdminSubmissions, lockResponseAdmin, responseAdminRequest } from './admin'
-import { normalizeMemoColor } from './maker'
+import { normalizeConsentFields, normalizeMemoColor } from './maker'
 import { sanitizeProject, validateAnswers, ValidationError } from './validation'
 
 export class ApiError extends Error {
@@ -25,15 +25,16 @@ function bodyOf(options) {
 function serializeProject(row, meta = null) {
   const countRelation = row.form_maker_submissions
   const responseCount = Array.isArray(countRelation) ? Number(countRelation[0]?.count || 0) : Number(row.response_count || 0)
+  const settings = row.settings || {}
   return {
     id: row.id,
     ownerId: row.owner_id,
     title: row.title,
     slug: row.slug,
     description: row.description || '',
-    pages: row.pages || [],
+    pages: normalizeConsentFields(row.pages, settings.consentLabel || '내용을 확인했으며 동의합니다.'),
     theme: row.theme || {},
-    settings: row.settings || {},
+    settings,
     status: row.status || 'draft',
     sheetId: row.sheet_id || '',
     sheetUrl: row.sheet_url || '',

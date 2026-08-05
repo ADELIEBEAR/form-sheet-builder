@@ -9,7 +9,7 @@ export const FIELD_TYPES = [
   ['multi', '여러 개 선택'],
   ['select', '드롭다운'],
   ['rating', '별점'],
-  ['consent', '동의 확인'],
+  ['consent', '동의 체크박스'],
   ['heading', '설명 블록'],
 ]
 
@@ -158,7 +158,7 @@ export function makeField(type = 'short') {
     multi: '해당하는 항목을 모두 선택해 주세요',
     select: '목록에서 선택해 주세요',
     rating: '만족도를 알려주세요',
-    consent: '개인정보 수집 및 이용에 동의합니다',
+    consent: '개인정보 수집 및 이용 동의',
     heading: '안내 제목',
   }
   return {
@@ -170,6 +170,9 @@ export function makeField(type = 'short') {
     required: !['heading'].includes(type),
     options: ['선택 1', '선택 2'],
     scale: 5,
+    consentText: type === 'consent' ? '개인정보 수집 및 이용에 동의합니다.' : '',
+    consentLinkLabel: '',
+    consentLinkUrl: '',
   }
 }
 
@@ -182,7 +185,22 @@ export function changeFieldType(field, nextType) {
     required: nextType === 'heading' ? false : nextType === 'consent' || field?.type === 'heading' ? true : Boolean(field?.required),
     options: optionType ? (currentOptions.length ? currentOptions : ['선택 1', '선택 2']) : [],
     scale: nextType === 'rating' ? Math.min(10, Math.max(3, Number(field?.scale) || 5)) : 5,
+    consentText: nextType === 'consent' ? (field?.consentText || '내용을 확인했으며 동의합니다.') : (field?.consentText || ''),
+    consentLinkLabel: field?.consentLinkLabel || '',
+    consentLinkUrl: field?.consentLinkUrl || '',
   }
+}
+
+export function normalizeConsentFields(pages, defaultConsentText = '내용을 확인했으며 동의합니다.') {
+  return (Array.isArray(pages) ? pages : []).map((page) => ({
+    ...page,
+    fields: (Array.isArray(page?.fields) ? page.fields : []).map((field) => field?.type === 'consent' ? {
+      ...field,
+      consentText: field.consentText == null ? defaultConsentText : field.consentText,
+      consentLinkLabel: field.consentLinkLabel || '',
+      consentLinkUrl: field.consentLinkUrl || '',
+    } : field),
+  }))
 }
 
 export function makePage(index = 0) {

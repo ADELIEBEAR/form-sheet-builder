@@ -169,6 +169,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .focus-question-card .render-field > select { min-height: 56px; margin-top: 28px; padding: 13px 16px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); border-radius: calc(var(--preview-radius) * .52); background: color-mix(in srgb, var(--preview-bg) 42%, var(--preview-card)); font-size: var(--preview-body-size); }
 .focus-question-card .render-field > textarea { min-height: 132px; }
 .focus-question-card .choice-stack { margin-top: 27px; gap: 10px; }
+.focus-question-card .consent-answer { margin-top: 27px; }
 .focus-question-card .choice-stack label,
 .focus-question-card .consent-row { min-height: 54px; padding: 13px 15px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); background: color-mix(in srgb, var(--preview-bg) 30%, var(--preview-card)); font-size: var(--preview-body-size); }
 .focus-question-card .rating-row { margin-top: 27px; }
@@ -1297,8 +1298,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .studio-project-color > small { color: var(--app-muted); font-size: 9px; line-height: 1.5; }
 
 .consent-row .consent-copy { min-width: 0; flex: 1; }
-.consent-row > small { flex: 0 0 auto; padding: 3px 6px; border-radius: 5px; background: color-mix(in srgb, var(--field-accent) 10%, transparent); color: var(--field-accent); font-size: 8px; font-weight: 820; }
 .field-invalid .consent-row { border-color: #c0394b; box-shadow: 0 0 0 3px rgb(192 57 75 / .08); }
+.consent-default-control { margin-top: 16px; padding: 14px; border: 1px solid #e5e0ec; border-radius: 12px; background: #faf9fc; }
+.consent-default-control > small { color: var(--app-muted); font-size: 9px; line-height: 1.55; }
 
 /* External site connection */
 .external-connect-panel { display: grid; gap: 14px; }

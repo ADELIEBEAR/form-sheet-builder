@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import FormCanvas from '../src/components/FormCanvas'
+import InlineFieldEditor from '../src/components/InlineFieldEditor'
 import ProjectColorPicker from '../src/components/ProjectColorPicker'
 import { emptyProject, formSteps, makePage } from '../src/lib/maker'
 
@@ -53,14 +54,25 @@ describe('focused form canvas', () => {
     expect(html).toContain('transition-slide')
   })
 
-  it('uses the editable consent question as the checkbox copy without duplicating it', () => {
+  it('renders consent title, checkbox copy, and policy link as separate content', () => {
     const project = emptyProject()
-    project.pages[0].fields = [{ id: 'agree', type: 'consent', label: '개인정보 수집에 동의합니다', description: '내용을 읽고 확인해 주세요.', required: true, options: [], scale: 5 }]
+    project.pages[0].fields = [{ id: 'agree', type: 'consent', label: '개인정보 처리 동의', description: '내용을 읽고 확인해 주세요.', consentText: '개인정보 수집 및 이용에 동의합니다.', consentLinkLabel: '처리방침 보기', consentLinkUrl: 'https://example.com/privacy', required: true, options: [], scale: 5 }]
     const html = renderToStaticMarkup(<FormCanvas project={project} pageIndex={1} answers={{}} preview />)
 
-    expect(html.match(/개인정보 수집에 동의합니다/g)).toHaveLength(2)
+    expect(html.match(/개인정보 처리 동의/g)).toHaveLength(1)
+    expect(html.match(/개인정보 수집 및 이용에 동의합니다/g)).toHaveLength(1)
     expect(html).toContain('consent-copy')
-    expect(html).not.toContain('내용을 확인했으며 동의합니다.')
+    expect(html).toContain('처리방침 보기')
+    expect(html).toContain('https://example.com/privacy')
+  })
+
+  it('makes the checkbox copy directly editable in the form canvas', () => {
+    const field = { id: 'agree', type: 'consent', label: '개인정보 처리 동의', description: '', consentText: '직접 수정할 문구', required: true, options: [], scale: 5 }
+    const html = renderToStaticMarkup(<InlineFieldEditor field={field} index={0} total={1} selected consentLabel="기본 동의" onSelect={() => {}} onChange={() => {}} onDuplicate={() => {}} onDelete={() => {}} onMove={() => {}} />)
+
+    expect(html).toContain('체크박스 문구 · 눌러서 바로 수정')
+    expect(html).toContain('직접 수정할 문구')
+    expect(html).toContain('안내 링크 주소')
   })
 
   it('shows the configured restart action after a successful submission', () => {

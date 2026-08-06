@@ -60,7 +60,7 @@ export default function FormField({
   const consentText = field.consentText == null ? consentLabel : field.consentText
   const privacyConsent = field.type === 'consent' && field.consentKind === 'privacy'
   return (
-    <fieldset className={`render-field ${error ? 'field-invalid' : ''}`} style={{ '--field-accent': accent }}>
+    <fieldset className={`render-field render-field-${field.type} ${error ? 'field-invalid' : ''}`} style={{ '--field-accent': accent }}>
       <legend className={`${hidePrompt ? 'visually-hidden' : ''} public-direct-text`} style={questionDirect}>{questionText}{!hidePrompt && field.required && requiredLabel ? <span>{requiredLabel}</span> : null}</legend>
       {!hidePrompt && field.description ? <p className="render-help public-direct-text" style={bodyDirect}>{bodyText}</p> : null}
       {['short', 'email', 'phone', 'number', 'date'].includes(field.type) ? <input {...common} type={{ short: 'text', email: 'email', phone: 'tel', number: 'number', date: 'date' }[field.type]} /> : null}

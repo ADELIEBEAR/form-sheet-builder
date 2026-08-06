@@ -227,6 +227,8 @@ describe('focused form canvas', () => {
     expect(html).toContain('체크박스 문구 · 눌러서 바로 수정')
     expect(html).toContain('직접 수정할 문구')
     expect(html).toContain('안내 링크 주소')
+    expect(html).toContain('<details class="inline-privacy-consent">')
+    expect(html).toContain('펼쳐서 수정')
   })
 
   it('shows the configured restart action after a successful submission', () => {

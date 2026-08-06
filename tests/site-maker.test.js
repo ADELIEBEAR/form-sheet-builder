@@ -36,10 +36,24 @@ describe('landing site maker', () => {
   it('applies a full composition without replacing written content', () => {
     const site = emptySite()
     const title = site.content.sections[0].data.title
-    const result = applySiteComposition(site, SITE_COMPOSITION_PRESETS[2].id)
+    const result = applySiteComposition(site, SITE_COMPOSITION_PRESETS.find((preset) => preset.id === 'poster').id)
     expect(result.content.sections[0].data.title).toBe(title)
     expect(result.content.sections[0].style.layout).toBe('poster')
     expect(result.theme.accent).not.toBe(site.theme.accent)
+  })
+
+  it('applies the cinematic finance stage and compact live-form sizing', () => {
+    const site = emptySite()
+    const title = site.content.sections[0].data.title
+    const result = sanitizeSite(applySiteComposition(site, 'cinematic-finance'))
+    const hero = result.content.sections.find((section) => section.type === 'hero')
+    const form = result.content.sections.find((section) => section.type === 'form')
+    expect(hero.data.title).toBe(title)
+    expect(hero.style.layout).toBe('cinematic')
+    expect(hero.data.overlayStrength).toBe(76)
+    expect(hero.data.imageFocus).toBe(52)
+    expect(form.data.questionSize).toBe(14)
+    expect(form.data.inputHeight).toBe(42)
   })
 
   it('stores direct text design safely and clamps oversized values', () => {

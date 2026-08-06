@@ -31,7 +31,9 @@ function textFallback(publicAs, className = '') {
 function Editable({ value, onChange, as = 'input', publicAs, className = '', label }) {
   const context = useContext(SiteEditContext)
   const styleValue = context?.section?.textStyles?.[label]
-  const fallback = textFallback(publicAs, className)
+  const desktopFallback = textFallback(publicAs, className)
+  const mobileSize = className.includes('eyebrow') ? 11 : publicAs === 'h1' ? 42 : publicAs === 'h2' ? 30 : publicAs === 'h3' || publicAs === 'strong' ? 19 : publicAs === 'span' ? 13 : 15
+  const fallback = context?.mobile ? { ...desktopFallback, size: mobileSize } : desktopFallback
   const editorRef = useRef(null)
   useLayoutEffect(() => {
     const element = editorRef.current
@@ -70,6 +72,7 @@ function goToForm() {
 function Hero({ section, edit }) {
   const data = section.data
   const editing = Boolean(edit('title'))
+  const cinematic = section.style?.layout === 'cinematic'
   return (
     <section className={`site-section site-hero ${section.style?.align === 'center' || data.align === 'center' ? 'is-centered' : ''}`}>
       <div className="site-hero-copy">
@@ -78,7 +81,7 @@ function Hero({ section, edit }) {
         <Editable as="textarea" publicAs="p" className="site-hero-description" value={data.description} onChange={edit('description')} label="첫 화면 설명" />
         {editing ? <div className="site-main-cta is-editor-control"><Editable as="span" publicAs="span" value={data.buttonLabel} onChange={edit('buttonLabel')} label="신청 버튼 문구" /><ArrowDown weight="bold" /></div> : <button type="button" className="site-main-cta" onClick={goToForm}><span>{data.buttonLabel}</span><ArrowDown weight="bold" /></button>}
       </div>
-      {data.imageUrl ? <figure className="site-hero-image"><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>}
+      {!cinematic && (data.imageUrl ? <figure className="site-hero-image"><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>)}
     </section>
   )
 }
@@ -233,6 +236,8 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
   const [activeTextLabel, setActiveTextLabel] = useState('')
   const sections = site.content?.sections || []
   const visibleSections = sections.filter((section) => section.enabled !== false)
+  const cinematicHero = visibleSections.find((section) => section.type === 'hero' && section.style?.layout === 'cinematic')
+  const cinematicForm = cinematicHero ? visibleSections.find((section) => section.type === 'form') : null
   const brandName = site.content?.brandName || 'SIGNAL NOTE'
   function change(section, path) {
     if (!onSectionChange) return undefined
@@ -244,34 +249,49 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
     if (selectedSectionId !== sectionId) setActiveTextLabel('')
     onSelectSection?.(sectionId)
   }
+  function renderSection(section, extraClass = '') {
+    const edit = (path) => change(section, path)
+    const selected = selectedSectionId === section.id
+    const sectionIndex = sections.findIndex((item) => item.id === section.id)
+    return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${extraClass} ${selected ? 'is-selected' : ''}`} onClick={(event) => select(event, section.id)}>
+      {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
+      {editing && selected ? <BlockToolbar section={section} index={sectionIndex} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
+      {editing && selected ? <SectionResizeHandles section={section} onStyleChange={onSectionStyleChange} /> : null}
+      {section.type === 'hero' ? <Hero section={section} edit={edit} /> : null}
+      {section.type === 'ticker' ? <Ticker section={section} edit={edit} editing={editing} /> : null}
+      {section.type === 'benefits' ? <Benefits section={section} edit={edit} /> : null}
+      {section.type === 'story' ? <Story section={section} edit={edit} editing={editing} /> : null}
+      {section.type === 'cards' ? <Cards section={section} edit={edit} /> : null}
+      {section.type === 'stats' ? <Stats section={section} edit={edit} /> : null}
+      {section.type === 'steps' ? <Steps section={section} edit={edit} /> : null}
+      {section.type === 'quote' ? <Quote section={section} edit={edit} /> : null}
+      {section.type === 'faq' ? <Faq section={section} edit={edit} editing={editing} /> : null}
+      {section.type === 'form' ? <FormSection section={section} edit={edit} project={project} preview={editing} mobile={mobile} /> : null}
+      {section.type === 'cta' ? <Cta section={section} edit={edit} /> : null}
+      {section.type === 'notice' ? <Notice section={section} edit={edit} /> : null}
+      {section.type === 'divider' ? <Divider section={section} edit={edit} /> : null}
+    </div></SiteEditContext.Provider>
+  }
+  const cinematicImage = cinematicHero?.data?.imageUrl || '/assets/finance-signal-hero-v1.webp'
+  const cinematicStyle = cinematicHero ? {
+    backgroundImage: `url("${String(cinematicImage).replace(/["\\]/g, '\\$&')}")`,
+    '--site-cinematic-overlay': Number(cinematicHero.data?.overlayStrength || 72) / 100,
+    '--site-cinematic-focus': `${Number(cinematicHero.data?.imageFocus ?? 50)}%`,
+  } : undefined
   return (
-    <div className={`site-renderer ${site.theme?.mode === 'light' ? 'is-light' : 'is-dark'} ${editing ? 'is-editing' : ''}`} style={siteThemeStyle(site.theme)} onClick={() => onSelectSection?.('')}>
+    <div className={`site-renderer ${site.theme?.mode === 'light' ? 'is-light' : 'is-dark'} ${editing ? 'is-editing' : ''} ${cinematicHero && cinematicForm ? 'has-cinematic-hero' : ''}`} style={siteThemeStyle(site.theme)} onClick={() => onSelectSection?.('')}>
       <nav className="site-public-nav">
         <strong>{brandName}</strong>
         <a href="#site-application-form">신청하기 <ArrowRight /></a>
       </nav>
       <main>
-        {visibleSections.map((section, index) => {
-          const edit = (path) => change(section, path)
-          const selected = selectedSectionId === section.id
-          return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${selected ? 'is-selected' : ''}`} onClick={(event) => select(event, section.id)}>
-            {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
-            {editing && selected ? <BlockToolbar section={section} index={sections.findIndex((item) => item.id === section.id)} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
-            {editing && selected ? <SectionResizeHandles section={section} onStyleChange={onSectionStyleChange} /> : null}
-            {section.type === 'hero' ? <Hero section={section} edit={edit} /> : null}
-            {section.type === 'ticker' ? <Ticker section={section} edit={edit} editing={editing} /> : null}
-            {section.type === 'benefits' ? <Benefits section={section} edit={edit} /> : null}
-            {section.type === 'story' ? <Story section={section} edit={edit} editing={editing} /> : null}
-            {section.type === 'cards' ? <Cards section={section} edit={edit} /> : null}
-            {section.type === 'stats' ? <Stats section={section} edit={edit} /> : null}
-            {section.type === 'steps' ? <Steps section={section} edit={edit} /> : null}
-            {section.type === 'quote' ? <Quote section={section} edit={edit} /> : null}
-            {section.type === 'faq' ? <Faq section={section} edit={edit} editing={editing} /> : null}
-            {section.type === 'form' ? <FormSection section={section} edit={edit} project={project} preview={editing} mobile={mobile} /> : null}
-            {section.type === 'cta' ? <Cta section={section} edit={edit} /> : null}
-            {section.type === 'notice' ? <Notice section={section} edit={edit} /> : null}
-            {section.type === 'divider' ? <Divider section={section} edit={edit} /> : null}
-          </div></SiteEditContext.Provider>
+        {visibleSections.map((section) => {
+          if (cinematicForm && section.id === cinematicForm.id) return null
+          if (cinematicHero && cinematicForm && section.id === cinematicHero.id) return <div className="site-cinematic-stage" style={cinematicStyle} key={section.id}>
+            {renderSection(cinematicHero, 'site-cinematic-hero-shell')}
+            {renderSection(cinematicForm, 'site-cinematic-form-shell')}
+          </div>
+          return renderSection(section)
         })}
       </main>
       <footer className="site-public-footer">

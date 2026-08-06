@@ -54,12 +54,19 @@ export function applySiteComposition(site, presetId) {
       sections: (site.content?.sections || []).map((section) => ({
         ...section,
         style: { ...section.style, ...(preset.styles[section.type] || {}) },
+        data: { ...section.data, ...(preset.data?.[section.type] || {}) },
       })),
     },
   }
 }
 
 export const SITE_THEME_PRESETS = [
+  {
+    id: 'midnight-cobalt',
+    name: '미드나이트 시그널',
+    description: '깊은 네이비와 전기 블루',
+    theme: { mode: 'dark', accent: '#2f7cf4', background: '#050b14', surface: '#0d1826', text: '#f4f7fb', muted: '#9aabc0', line: '#26384f', radius: 14, font: 'pretendard', displayScale: 1.02, bodyScale: .96, sectionScale: 1 },
+  },
   {
     id: 'signal',
     name: '시그널 다크',
@@ -145,7 +152,7 @@ export const SECTION_STYLE_OPTIONS = {
 }
 
 export const SITE_LAYOUT_OPTIONS = {
-  hero: [['split', '분할'], ['poster', '포스터'], ['minimal', '미니멀']],
+  hero: [['split', '분할'], ['cinematic', '시네마틱'], ['poster', '포스터'], ['minimal', '미니멀']],
   ticker: [['marquee', '흐르기'], ['static', '고정']],
   benefits: [['bento', '벤토'], ['rail', '가로 카드'], ['list', '목록']],
   story: [['split', '분할'], ['overlap', '겹치기'], ['editorial', '에디토리얼']],
@@ -161,6 +168,7 @@ export const SITE_LAYOUT_OPTIONS = {
 }
 
 export const SITE_COMPOSITION_PRESETS = [
+  { id: 'cinematic-finance', name: '시네마틱 금융', description: '배경과 신청 폼이 한 화면에 겹치는 구성', themeId: 'midnight-cobalt', preview: 'cinematic', styles: { hero: { layout: 'cinematic', pattern: 'grain', spacing: 'air' }, form: { layout: 'panel', tone: 'surface', elevation: 'float', spacing: 'compact' }, benefits: { layout: 'list' }, stats: { layout: 'ledger' }, steps: { layout: 'compact' }, notice: { layout: 'panel' } }, data: { hero: { overlayStrength: 76, imageFocus: 52 }, form: { questionSize: 14, descriptionSize: 11, inputSize: 12, inputHeight: 42, fieldSpacing: 7 } } },
   { id: 'editorial', name: '에디토리얼', description: '큰 제목과 겹치는 이미지', themeId: 'coral', preview: 'editorial', styles: { hero: { layout: 'poster', pattern: 'paper' }, benefits: { layout: 'list' }, story: { layout: 'overlap' }, cards: { layout: 'rail' }, stats: { layout: 'ledger' }, quote: { layout: 'edge' } } },
   { id: 'creator', name: '크리에이터', description: '밝은 표면과 부드러운 카드', themeId: 'ice', preview: 'creator', styles: { hero: { layout: 'split', pattern: 'mesh' }, benefits: { layout: 'bento' }, story: { layout: 'split', elevation: 'float' }, cards: { layout: 'mosaic' }, steps: { layout: 'cards' } } },
   { id: 'poster', name: '그래픽 포스터', description: '강한 대비와 굵은 타이포', themeId: 'lime-black', preview: 'poster', styles: { hero: { layout: 'poster', pattern: 'stripes' }, benefits: { layout: 'rail' }, story: { layout: 'editorial' }, cards: { layout: 'stack' }, stats: { layout: 'tiles' }, cta: { layout: 'poster' } } },
@@ -188,6 +196,8 @@ const blockDefaults = {
     buttonLabel: '알림 신청하기',
     imageUrl: '',
     imageAlt: '서비스를 소개하는 대표 이미지',
+    overlayStrength: 72,
+    imageFocus: 50,
     align: 'left',
   },
   ticker: {
@@ -316,7 +326,7 @@ export function orderedSiteFormFields(project, fieldOrder = []) {
 
 export function emptySite() {
   const preset = SITE_THEME_PRESETS[0]
-  return {
+  const site = {
     title: '새 대응알림 사이트',
     slug: '',
     formProjectId: '',
@@ -332,6 +342,7 @@ export function emptySite() {
     },
     status: 'draft',
   }
+  return applySiteComposition(site, 'cinematic-finance')
 }
 
 function text(value, fallback = '', limit = 1000) {
@@ -432,6 +443,8 @@ function sanitizeSection(section) {
     buttonLabel: text(source.buttonLabel, fallback.buttonLabel, 50),
     imageUrl: imageUrl(source.imageUrl),
     imageAlt: text(source.imageAlt, fallback.imageAlt, 180),
+    overlayStrength: boundedNumber(source.overlayStrength, fallback.overlayStrength, 30, 92),
+    imageFocus: boundedNumber(source.imageFocus, fallback.imageFocus, 0, 100),
     align: source.align === 'center' ? 'center' : 'left',
   })
   if (type === 'ticker') Object.assign(data, {

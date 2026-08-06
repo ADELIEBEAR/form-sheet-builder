@@ -133,7 +133,7 @@ export default function LandingFormEmbed({ project, preview = false, mobile = fa
 
   return (
     <form
-      className={`site-embedded-form ${preview ? 'is-order-editing' : ''}`}
+      className={`site-embedded-form ${preview ? 'is-order-editing' : ''} ${mobile ? 'is-mobile-preview' : ''}`}
       style={{
         '--landing-question-size': `${settings.questionSize || 20}px`,
         '--landing-description-size': `${settings.descriptionSize || 13}px`,

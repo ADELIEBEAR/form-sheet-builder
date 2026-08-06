@@ -72,6 +72,7 @@
 .site-form-section > header { max-width: 760px; margin-bottom: 42px; }
 .site-embedded-form { width: min(840px, 100%); padding: clamp(24px, 5vw, 58px); border: 1px solid var(--site-line); border-radius: var(--site-radius); background: var(--site-surface); box-shadow: 0 32px 90px color-mix(in srgb, var(--site-bg) 55%, transparent); }
 .site-embedded-field { --landing-active-scale: var(--landing-item-scale, 1); position: relative; width: var(--landing-item-width, 100%); max-width: 100%; min-width: 0; }
+.site-embedded-form.is-mobile-preview .site-embedded-field { --landing-active-scale: var(--landing-item-mobile-scale, 1); width: var(--landing-item-mobile-width, 100%); }
 .site-embedded-form .site-embedded-field:first-child .render-field { padding-top: 0; }
 .site-embedded-form .render-field { padding: var(--landing-field-spacing, 16px) 0; border-bottom-color: var(--site-line); }
 .site-embedded-form .render-field legend { color: var(--site-text); font-size: var(--landing-question-size, 20px); }

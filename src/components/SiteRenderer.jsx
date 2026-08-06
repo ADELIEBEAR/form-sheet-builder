@@ -145,7 +145,7 @@ function Faq({ section, edit, editing }) {
   return <section className="site-section site-faq"><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="자주 묻는 질문 제목" /><div>{data.items.map((item, index) => editing ? <article key={index}><Editable value={item.question} publicAs="h3" onChange={edit(`items.${index}.question`)} label={`${index + 1}번째 질문`} /><Editable as="textarea" publicAs="p" value={item.answer} onChange={edit(`items.${index}.answer`)} label={`${index + 1}번째 답변`} /></article> : <details key={index} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
 }
 
-function FormSection({ section, edit, project, preview }) {
+function FormSection({ section, edit, project, preview, mobile }) {
   const data = section.data
   const changeFieldStyles = edit('fieldStyles')
   return (
@@ -154,7 +154,7 @@ function FormSection({ section, edit, project, preview }) {
         <Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="신청 폼 제목" />
         <Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="신청 폼 설명" />
       </header>
-      {project ? <LandingFormEmbed project={project} preview={preview} settings={data} onFieldOrderChange={edit('fieldOrder')} onFieldStyleChange={(fieldId, value) => changeFieldStyles?.({ ...(data.fieldStyles || {}), [fieldId]: value })} /> : <div className="site-form-empty"><ShieldCheck weight="fill" /><strong>{data.emptyMessage}</strong></div>}
+      {project ? <LandingFormEmbed project={project} preview={preview} mobile={mobile} settings={data} onFieldOrderChange={edit('fieldOrder')} onFieldStyleChange={(fieldId, value) => changeFieldStyles?.({ ...(data.fieldStyles || {}), [fieldId]: value })} /> : <div className="site-form-empty"><ShieldCheck weight="fill" /><strong>{data.emptyMessage}</strong></div>}
     </section>
   )
 }
@@ -267,7 +267,7 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
             {section.type === 'steps' ? <Steps section={section} edit={edit} /> : null}
             {section.type === 'quote' ? <Quote section={section} edit={edit} /> : null}
             {section.type === 'faq' ? <Faq section={section} edit={edit} editing={editing} /> : null}
-            {section.type === 'form' ? <FormSection section={section} edit={edit} project={project} preview={editing} /> : null}
+            {section.type === 'form' ? <FormSection section={section} edit={edit} project={project} preview={editing} mobile={mobile} /> : null}
             {section.type === 'cta' ? <Cta section={section} edit={edit} /> : null}
             {section.type === 'notice' ? <Notice section={section} edit={edit} /> : null}
             {section.type === 'divider' ? <Divider section={section} edit={edit} /> : null}

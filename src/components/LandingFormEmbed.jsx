@@ -5,7 +5,7 @@ import { orderedSiteFormFields } from '../lib/siteMaker'
 import { fieldAnswerError } from '../lib/validation'
 import FormField from './FormField'
 
-export default function LandingFormEmbed({ project, preview = false, settings = {}, onFieldOrderChange, onFieldStyleChange }) {
+export default function LandingFormEmbed({ project, preview = false, mobile = false, settings = {}, onFieldOrderChange, onFieldStyleChange }) {
   const [answers, setAnswers] = useState({})
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('ready')
@@ -52,8 +52,8 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
     const saved = settings.fieldStyles?.[fieldId] || {}
     const draft = draftFieldStyles[fieldId] || {}
     return {
-      width: Number(draft.width ?? saved.width ?? 100),
-      scale: Number(draft.scale ?? saved.scale ?? 100),
+      width: Number(draft.width ?? (mobile ? saved.mobileWidth : saved.width) ?? 100),
+      scale: Number(draft.scale ?? (mobile ? saved.mobileScale : saved.scale) ?? 100),
     }
   }
 
@@ -89,7 +89,12 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
         delete next[fieldId]
         return next
       })
-      if (latest.width !== start.width || latest.scale !== start.scale) onFieldStyleChange?.(fieldId, latest)
+      if (latest.width !== start.width || latest.scale !== start.scale) {
+        const saved = settings.fieldStyles?.[fieldId] || {}
+        onFieldStyleChange?.(fieldId, mobile
+          ? { ...saved, mobileWidth: latest.width, mobileScale: latest.scale }
+          : { ...saved, width: latest.width, scale: latest.scale })
+      }
     }
     document.body.classList.add(resizeClass)
     window.addEventListener('pointermove', move)
@@ -141,11 +146,17 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
     >
       {fields.map((field, index) => {
         const size = fieldStyle(field.id)
+        const savedSize = settings.fieldStyles?.[field.id] || {}
         const active = activeFieldId === field.id
         return <div
           className={`site-embedded-field ${preview ? 'is-editable' : ''} ${active ? 'is-size-selected' : ''} ${dragFieldId === field.id ? 'is-dragging' : ''}`}
           key={field.id}
-          style={{ '--landing-item-width': `${size.width}%`, '--landing-item-scale': size.scale / 100 }}
+          style={{
+            '--landing-item-width': `${mobile ? (savedSize.width ?? 100) : size.width}%`,
+            '--landing-item-scale': (mobile ? (savedSize.scale ?? 100) : size.scale) / 100,
+            '--landing-item-mobile-width': `${mobile ? size.width : (savedSize.mobileWidth ?? 100)}%`,
+            '--landing-item-mobile-scale': (mobile ? size.scale : (savedSize.mobileScale ?? 100)) / 100,
+          }}
           onClick={preview ? () => setActiveFieldId(field.id) : undefined}
           onDragOver={preview ? (event) => event.preventDefault() : undefined}
           onDrop={preview ? (event) => { event.preventDefault(); event.stopPropagation(); dropField(field.id) } : undefined}
@@ -157,7 +168,7 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
           <button type="button" onClick={() => moveField(field.id, 1)} disabled={index === fields.length - 1} title="아래로 이동" aria-label={`${field.label || '문항'} 아래로 이동`}><ArrowDown /></button>
         </div> : null}
         {preview ? <>
-          <span className="site-field-size-badge">폭 {size.width}% · 크기 {size.scale}%</span>
+          <span className="site-field-size-badge">{mobile ? '모바일 ' : ''}폭 {size.width}% · 크기 {size.scale}%</span>
           <button className="site-field-width-handle" type="button" onPointerDown={(event) => startFieldResize(event, field.id, 'width')} aria-label={`${field.label || '문항'} 폭 드래그 조절`} title="좌우로 드래그해 문항 폭 조절" />
           <button className="site-field-scale-handle" type="button" onPointerDown={(event) => startFieldResize(event, field.id, 'scale')} aria-label={`${field.label || '문항'} 크기 드래그 조절`} title="대각선으로 드래그해 문항 전체 크기 조절" />
         </> : null}

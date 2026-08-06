@@ -409,10 +409,13 @@ function sanitizeFormFieldStyles(source) {
   return Object.fromEntries(Object.entries(source).slice(0, 120).map(([rawId, rawStyle]) => {
     const fieldId = text(rawId, '', 100)
     const style = rawStyle && typeof rawStyle === 'object' && !Array.isArray(rawStyle) ? rawStyle : {}
-    return [fieldId, {
+    const sanitized = {
       width: boundedNumber(style.width, 100, 42, 100),
       scale: boundedNumber(style.scale, 100, 70, 145),
-    }]
+    }
+    if (Number.isFinite(Number(style.mobileWidth))) sanitized.mobileWidth = boundedNumber(style.mobileWidth, 100, 42, 100)
+    if (Number.isFinite(Number(style.mobileScale))) sanitized.mobileScale = boundedNumber(style.mobileScale, 100, 70, 145)
+    return [fieldId, sanitized]
   }).filter(([fieldId]) => fieldId))
 }
 

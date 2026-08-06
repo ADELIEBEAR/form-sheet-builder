@@ -23,6 +23,7 @@ import AppFrame from '../components/AppFrame'
 import ExternalConnectPanel from '../components/ExternalConnectPanel'
 import FormCopyPanel from '../components/FormCopyPanel'
 import InlineFormCanvas, { COVER_VIEW, SUCCESS_VIEW } from '../components/InlineFormCanvas'
+import PersonalSheetPanel from '../components/PersonalSheetPanel'
 import ProjectColorPicker from '../components/ProjectColorPicker'
 import SharePreviewPanel from '../components/SharePreviewPanel'
 import ThemePanel from '../components/ThemePanel'
@@ -641,6 +642,7 @@ export default function Studio() {
                     <label className="studio-control"><span>한 줄 설명</span><input maxLength="160" value={project.memo || ''} onChange={(event) => changeProject({ ...project, memo: event.target.value })} placeholder="이 폼이 어떤 용도인지 간단히 적어주세요." /></label>
                   </div>
                   <SharePreviewPanel project={project} onChange={changeProject} />
+                  <PersonalSheetPanel projectId={projectId} />
                   <ExternalConnectPanel project={project} />
                   <FormCopyPanel project={project} onChange={changeProject} />
                   <div className="inspector-panel">

@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Check, Copy, LinkSimple, Plus, Trash } from '@phosphor-icons/react'
-import { changeFieldType, FIELD_TYPES, resolveDirectTextStyle } from '../lib/maker'
+import { changeFieldType, FIELD_TYPES, PRIVACY_CONSENT_DEFAULTS, resolveDirectTextStyle } from '../lib/maker'
 import DirectCanvasText from './DirectCanvasText'
 import FormField from './FormField'
 
@@ -10,12 +10,22 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
   const hasOptions = OPTION_TYPES.includes(field.type)
   const hasPlaceholder = PLACEHOLDER_TYPES.includes(field.type)
   const isConsent = field.type === 'consent'
+  const privacyConsent = isConsent && field.consentKind !== 'acknowledgement'
   const mobilePreview = device === 'mobile'
   const questionKey = mobilePreview ? 'questionMobile' : 'question'
   const bodyKey = mobilePreview ? 'bodyMobile' : 'body'
   const questionFallback = mobilePreview ? resolveDirectTextStyle(directStyles?.question, directFallbacks?.question || { size: 32 }) : (directFallbacks?.question || { size: 32 })
   const bodyFallback = mobilePreview ? resolveDirectTextStyle(directStyles?.body, directFallbacks?.body || { size: 16 }) : (directFallbacks?.body || { size: 16 })
   const patch = (next) => onChange({ ...field, ...next })
+  const changeConsentKind = (consentKind) => patch({
+    consentKind,
+    ...(consentKind === 'privacy' ? {
+      consentPurpose: field.consentPurpose || PRIVACY_CONSENT_DEFAULTS.consentPurpose,
+      consentItems: field.consentItems || PRIVACY_CONSENT_DEFAULTS.consentItems,
+      consentRetention: field.consentRetention || PRIVACY_CONSENT_DEFAULTS.consentRetention,
+      consentRefusal: field.consentRefusal || PRIVACY_CONSENT_DEFAULTS.consentRefusal,
+    } : {}),
+  })
 
   return (
     <article
@@ -60,6 +70,7 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
       </DirectCanvasText>
 
       {field.type !== 'heading' && hasOptions ? <div className="inline-option-editor">{field.options.map((option, optionIndex) => <div key={`${field.id}-${optionIndex}`}><span className={field.type === 'single' ? 'option-dot' : 'option-box'} /><input value={option} onChange={(event) => patch({ options: field.options.map((item, itemIndex) => itemIndex === optionIndex ? event.target.value : item) })} aria-label={`${optionIndex + 1}번째 선택지`} />{selected ? <button type="button" onClick={() => patch({ options: field.options.filter((_, itemIndex) => itemIndex !== optionIndex) })} disabled={field.options.length === 1} aria-label={`${optionIndex + 1}번째 선택지 삭제`}><Trash /></button> : null}</div>)}<button className="inline-add-option" type="button" onClick={() => patch({ options: [...field.options, `선택 ${field.options.length + 1}`] })}><Plus /> 선택지 추가</button></div> : null}
+      {privacyConsent ? <div className="inline-privacy-consent"><div><strong>개인정보 4개 필수 고지</strong><small>눌러서 바로 수정</small></div><label><span>수집·이용 목적</span><textarea rows="2" value={field.consentPurpose || ''} onChange={(event) => patch({ consentPurpose: event.target.value })} /></label><label><span>수집 항목</span><textarea rows="2" value={field.consentItems || ''} onChange={(event) => patch({ consentItems: event.target.value })} /></label><label><span>보유·이용 기간</span><textarea rows="3" value={field.consentRetention || ''} onChange={(event) => patch({ consentRetention: event.target.value })} /></label><label><span>동의 거부 권리·불이익</span><textarea rows="3" value={field.consentRefusal || ''} onChange={(event) => patch({ consentRefusal: event.target.value })} /></label></div> : null}
       {isConsent ? <div className="inline-consent-editor"><span className="choice-indicator"><Check weight="bold" /></span><label><small>체크박스 문구 · 눌러서 바로 수정</small><textarea rows="2" value={field.consentText == null ? consentLabel : field.consentText} maxLength="500" onChange={(event) => patch({ consentText: event.target.value })} aria-label={`${index + 1}번째 동의 체크박스 문구`} placeholder="응답자가 직접 체크할 동의 문구" /></label></div> : null}
       {field.type !== 'heading' && !hasOptions && !isConsent ? <div className="inline-response-preview"><FormField field={field} preview hidePrompt accent={accent} requiredLabel={requiredLabel} answerPlaceholder={answerPlaceholder} selectPlaceholder={selectPlaceholder} consentLabel={consentLabel} /></div> : null}
 
@@ -67,7 +78,7 @@ export default function InlineFieldEditor({ field, index, total, selected, accen
         <div className="inline-field-settings">
           {hasPlaceholder ? <label><span>응답 입력 안내</span><input value={field.placeholder || ''} onChange={(event) => patch({ placeholder: event.target.value })} placeholder="예시 답변을 보여주세요" /></label> : null}
           {field.type === 'rating' ? <label><span>별점 개수</span><select value={field.scale || 5} onChange={(event) => patch({ scale: Number(event.target.value) })}><option value="5">5개</option><option value="7">7개</option><option value="10">10개</option></select></label> : null}
-          {isConsent ? <div className="inline-consent-link-settings"><p><LinkSimple /> 약관이나 개인정보 처리방침이 따로 있다면 연결하세요. 링크는 새 창에서 열립니다.</p><label><span>안내 링크 주소 <small>선택</small></span><input type="url" value={field.consentLinkUrl || ''} onChange={(event) => patch({ consentLinkUrl: event.target.value })} placeholder="https://example.com/privacy" /></label><label><span>링크 문구</span><input value={field.consentLinkLabel || ''} maxLength="120" disabled={!field.consentLinkUrl} onChange={(event) => patch({ consentLinkLabel: event.target.value })} placeholder={field.consentLinkUrl ? '개인정보 처리방침 보기' : '주소를 먼저 입력하세요'} /></label></div> : null}
+          {isConsent ? <div className="inline-consent-link-settings"><label><span>동의 유형</span><select value={privacyConsent ? 'privacy' : 'acknowledgement'} onChange={(event) => changeConsentKind(event.target.value)}><option value="privacy">개인정보 수집·이용</option><option value="acknowledgement">약관·주의사항 확인</option></select></label><p><LinkSimple /> 약관이나 개인정보 처리방침이 따로 있다면 연결하세요. 링크는 새 창에서 열립니다.</p><label><span>안내 링크 주소 <small>선택</small></span><input type="url" value={field.consentLinkUrl || ''} onChange={(event) => patch({ consentLinkUrl: event.target.value })} placeholder="https://example.com/privacy" /></label><label><span>링크 문구</span><input value={field.consentLinkLabel || ''} maxLength="120" disabled={!field.consentLinkUrl} onChange={(event) => patch({ consentLinkLabel: event.target.value })} placeholder={field.consentLinkUrl ? '개인정보 처리방침 보기' : '주소를 먼저 입력하세요'} /></label></div> : null}
         </div>
       </div> : null}
     </article>

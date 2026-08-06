@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AUTO_SAVE_INTERVAL, canAutoSaveProject } from '../src/lib/autosave'
-import { changeFieldType, moveItem, normalizeConsentFields, normalizeMemoColor, responseRows, THEME_PRESETS } from '../src/lib/maker'
+import { changeFieldType, moveItem, normalizeConsentFields, normalizeMemoColor, PRIVACY_CONSENT_DEFAULTS, responseRows, THEME_PRESETS } from '../src/lib/maker'
 import { fieldAnswerError, normalizeSlug, sanitizeProject, validateAnswers } from '../src/lib/validation'
 
 const page = (fields) => [{ id: 'p1', title: '기본 정보', fields }]
@@ -38,6 +38,17 @@ describe('form maker validation', () => {
 
     expect(normalized[0].fields[0]).toMatchObject({ consentText: '내용을 읽고 동의합니다.', consentLinkLabel: '', consentLinkUrl: '' })
     expect(source[0].fields[0].consentText).toBeUndefined()
+  })
+
+  it('adds all four required privacy notices while keeping acknowledgements separate', () => {
+    const privacy = normalizeConsentFields(page([{ id: 'agree', type: 'consent', label: '개인정보 동의', required: true }]))[0].fields[0]
+    expect(privacy).toMatchObject({ consentKind: 'privacy', ...PRIVACY_CONSENT_DEFAULTS })
+
+    const acknowledgement = sanitizeProject({
+      title: '주의사항',
+      pages: page([{ id: 'notice', type: 'consent', consentKind: 'acknowledgement', label: '투자 위험 확인', consentText: '손실 가능성을 확인했습니다.', required: true }]),
+    }).pages[0].fields[0]
+    expect(acknowledgement).toMatchObject({ consentKind: 'acknowledgement', consentPurpose: '', consentItems: '', consentRetention: '', consentRefusal: '' })
   })
 
   it('includes editable stock and crypto themes', () => {

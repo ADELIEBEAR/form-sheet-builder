@@ -545,6 +545,40 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .sheet-auth-alert button:disabled { opacity: .62; cursor: wait; }
 .sheet-auth-alert button svg { width: 14px; height: 14px; }
 
+.personal-sheet-panel { gap: 12px; }
+.personal-sheet-loading,
+.personal-sheet-empty { min-height: 72px; padding: 13px; border: 1px dashed #d9d4e8; border-radius: 12px; background: #faf9fd; display: flex; align-items: center; gap: 11px; color: #6e687d; font-size: 10px; font-weight: 760; }
+.personal-sheet-empty > svg { width: 25px; height: 25px; flex: 0 0 auto; color: #6b55d8; }
+.personal-sheet-empty > div { min-width: 0; display: grid; gap: 4px; }
+.personal-sheet-empty strong { color: #2a2633; font-size: 11px; }
+.personal-sheet-empty small { color: #7d768b; font-size: 9px; line-height: 1.5; }
+.personal-sheet-card { min-height: 78px; padding: 12px; border: 1px solid #cce7d9; border-radius: 13px; background: linear-gradient(145deg, #f4fbf7, #eef8f3); display: grid; grid-template-columns: 38px minmax(0, 1fr) 32px; gap: 10px; align-items: center; }
+.personal-sheet-card.reauthorize,
+.personal-sheet-card.error { border-color: #efd2b3; background: #fff8ef; }
+.personal-sheet-card-icon { width: 38px; height: 38px; border-radius: 10px; background: #fff; display: grid; place-items: center; color: #23845f; box-shadow: 0 5px 15px rgb(44 112 85 / .10); }
+.personal-sheet-card-icon svg { width: 20px; height: 20px; }
+.personal-sheet-card-copy { min-width: 0; display: grid; gap: 3px; }
+.personal-sheet-card-copy span { display: flex; align-items: center; gap: 4px; color: #21805c; font-size: 8px; font-weight: 850; }
+.personal-sheet-card-copy span svg { width: 11px; height: 11px; }
+.personal-sheet-card-copy strong { overflow: hidden; color: #252130; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.personal-sheet-card-copy small { overflow: hidden; color: #746d80; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.personal-sheet-card > a { width: 32px; height: 32px; border-radius: 8px; background: #fff; display: grid; place-items: center; color: #5544b8; box-shadow: 0 4px 12px rgb(59 44 115 / .10); }
+.personal-sheet-card > a svg { width: 15px; height: 15px; }
+.personal-sheet-warning,
+.personal-sheet-error { padding: 9px 10px; border-radius: 9px; display: flex; align-items: flex-start; gap: 7px; font-size: 9px; font-weight: 700; line-height: 1.5; }
+.personal-sheet-warning { background: #fff7e8; color: #8a5a13; }
+.personal-sheet-error { background: #fff0f2; color: #ad3d51; }
+.personal-sheet-warning svg,
+.personal-sheet-error svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 1px; }
+.personal-sheet-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.personal-sheet-actions button { min-height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 10px; font-weight: 820; cursor: pointer; }
+.personal-sheet-actions button:disabled { opacity: .58; cursor: wait; }
+.personal-sheet-actions button svg { width: 15px; height: 15px; }
+.personal-sheet-connect { grid-column: 1 / -1; border: 0; background: #6650d6; color: #fff; box-shadow: 0 8px 18px rgb(89 67 188 / .18); }
+.personal-sheet-reconnect { border: 1px solid #d8d1f3; background: #f5f2ff; color: #5944c1; }
+.personal-sheet-disconnect { border: 1px solid #ead7dc; background: #fff8fa; color: #a34a5b; }
+.personal-sheet-footnote { color: #8a8396; font-size: 8px; line-height: 1.5; }
+
 /* The studio's mobile preview is a narrow container inside a desktop viewport. */
 .preview-frame.mobile .focus-shell { padding: 20px 16px 34px; }
 .preview-frame.mobile .focus-content-card { --focus-card-pad-x: 22px; --focus-card-pad-y: 32px; min-height: 470px; margin-top: 24px; padding: var(--focus-card-pad-y) var(--focus-card-pad-x); }

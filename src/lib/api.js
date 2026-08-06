@@ -1,4 +1,5 @@
 import { ASSET_BUCKET, supabase } from './supabase'
+import { getEphemeralGoogleTokens } from './auth'
 import { listResponseAdminSubmissions, lockResponseAdmin, responseAdminRequest } from './admin'
 import { normalizeConsentFields, normalizeMemoColor } from './maker'
 import { sanitizeSite } from './siteMaker'
@@ -37,9 +38,6 @@ function serializeProject(row, meta = null) {
     theme: row.theme || {},
     settings,
     status: row.status || 'draft',
-    sheetId: row.sheet_id || '',
-    sheetUrl: row.sheet_url || '',
-    sheetName: row.sheet_name || '응답',
     responseCount,
     folder: meta?.folder || '',
     memo: meta?.memo || '',
@@ -155,17 +153,21 @@ async function edgeFunctionError(error, fallback) {
   return new ApiError(message, status, error)
 }
 
-async function ensureBackupSheet(projectId) {
+async function personalSheetRequest(projectId, action = 'status') {
   await ownedProject(projectId)
-  const providerToken = window.localStorage.getItem('form_maker_google_provider_token') || ''
-  const providerRefreshToken = window.localStorage.getItem('form_maker_google_provider_refresh_token') || ''
+  const { data: { session } } = await supabase.auth.getSession()
+  const ephemeral = getEphemeralGoogleTokens()
   const { data, error } = await supabase.functions.invoke('form-maker-sheet-sync', {
-    body: { action: 'ensure', projectId, providerToken, providerRefreshToken },
+    body: {
+      action,
+      projectId,
+      providerToken: action === 'connect' ? (ephemeral.providerToken || session?.provider_token || '') : '',
+      providerRefreshToken: action === 'connect' ? (ephemeral.providerRefreshToken || session?.provider_refresh_token || '') : '',
+    },
   })
-  if (error) throw await edgeFunctionError(error, '자동 백업시트를 준비하지 못했습니다.')
-  if (!data?.ok || !data?.project) throw new ApiError(data?.error || '자동 백업시트를 준비하지 못했습니다.', 500, data)
-  const meta = await projectMetaMap([projectId])
-  return { project: serializeProject(data.project, meta.get(projectId)) }
+  if (error) throw await edgeFunctionError(error, 'Google 시트 설정을 처리하지 못했습니다.')
+  if (!data?.ok) throw new ApiError(data?.error || 'Google 시트 설정을 처리하지 못했습니다.', 500, data)
+  return data
 }
 
 function assetPath(url) {
@@ -231,10 +233,6 @@ export async function api(path, options = {}) {
       if (error?.code === '23505') throw new ApiError('이미 사용 중인 공개 주소입니다.', 409, error)
       if (error) fail(error)
       const meta = await saveProjectMeta(data.id, body)
-      if (data.status === 'published') {
-        const connected = await ensureBackupSheet(data.id).catch(() => null)
-        if (connected?.project) return connected
-      }
       return { project: serializeProject(data, meta) }
     }
 
@@ -345,8 +343,13 @@ export async function api(path, options = {}) {
       return { submission }
     }
 
+    const personalSheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/personal-sheet$/)
+    if (personalSheetMatch && method === 'GET') return personalSheetRequest(personalSheetMatch[1], 'status')
+    if (personalSheetMatch && method === 'POST') return personalSheetRequest(personalSheetMatch[1], 'connect')
+    if (personalSheetMatch && method === 'DELETE') return personalSheetRequest(personalSheetMatch[1], 'disconnect')
+
     const sheetMatch = path.match(/^\/maker\/projects\/([^/]+)\/sheet$/)
-    if (sheetMatch && method === 'POST') return ensureBackupSheet(sheetMatch[1])
+    if (sheetMatch && method === 'POST') return personalSheetRequest(sheetMatch[1], 'connect')
 
     const duplicateMatch = path.match(/^\/maker\/projects\/([^/]+)\/duplicate$/)
     if (duplicateMatch && method === 'POST') {
@@ -406,12 +409,7 @@ export async function api(path, options = {}) {
       if (error) fail(error)
       const meta = await saveProjectMeta(data.id, body)
       const latestMeta = await projectMetaMap([data.id])
-      let project = serializeProject(data, { ...latestMeta.get(data.id), ...meta })
-      if (project.status === 'published') {
-        const connected = await ensureBackupSheet(project.id).catch(() => null)
-        if (connected?.project) project = connected.project
-      }
-      return { project }
+      return { project: serializeProject(data, { ...latestMeta.get(data.id), ...meta }) }
     }
     if (projectMatch && method === 'DELETE') {
       const current = await ownedProject(projectMatch[1])

@@ -1,4 +1,4 @@
-import { EFFECT_PRESETS, FIELD_TYPES, FONT_PRESETS, MOTION_PRESETS, TRANSITION_PRESETS } from './maker'
+import { consentKindOf, EFFECT_PRESETS, FIELD_TYPES, FONT_PRESETS, MOTION_PRESETS, PRIVACY_CONSENT_DEFAULTS, TRANSITION_PRESETS } from './maker'
 import { TEXT_EFFECT_TYPES } from './textEffects'
 
 const allowedTypes = new Set(FIELD_TYPES.map(([type]) => type))
@@ -117,6 +117,15 @@ function sanitizeField(field) {
     ? String(field?.consentText == null ? '내용을 확인했으며 동의합니다.' : field.consentText).trim().slice(0, 500)
     : ''
   if (type === 'consent' && !consentText) throw new ValidationError(`동의 체크박스 문구를 입력해 주세요: ${label}`)
+  const consentKind = type === 'consent' ? consentKindOf(field) : ''
+  const privacyConsent = type === 'consent' && consentKind === 'privacy'
+  const consentPurpose = privacyConsent ? String(field?.consentPurpose || PRIVACY_CONSENT_DEFAULTS.consentPurpose).trim().slice(0, 1000) : ''
+  const consentItems = privacyConsent ? String(field?.consentItems || PRIVACY_CONSENT_DEFAULTS.consentItems).trim().slice(0, 1000) : ''
+  const consentRetention = privacyConsent ? String(field?.consentRetention || PRIVACY_CONSENT_DEFAULTS.consentRetention).trim().slice(0, 1000) : ''
+  const consentRefusal = privacyConsent ? String(field?.consentRefusal || PRIVACY_CONSENT_DEFAULTS.consentRefusal).trim().slice(0, 1000) : ''
+  if (privacyConsent && [consentPurpose, consentItems, consentRetention, consentRefusal].some((value) => !value)) {
+    throw new ValidationError(`개인정보 동의의 4개 필수 고지를 모두 입력해 주세요: ${label}`)
+  }
   const consentLinkUrl = type === 'consent' ? safeConsentUrl(field?.consentLinkUrl) : ''
   return {
     id: typeof field.id === 'string' && field.id ? field.id.slice(0, 80) : crypto.randomUUID(),
@@ -128,6 +137,11 @@ function sanitizeField(field) {
     options: optionValues,
     scale: type === 'rating' ? Math.min(10, Math.max(3, Number(field.scale) || 5)) : 5,
     consentText,
+    consentKind,
+    consentPurpose,
+    consentItems,
+    consentRetention,
+    consentRefusal,
     consentLinkLabel: consentLinkUrl ? String(field?.consentLinkLabel || '자세히 보기').trim().slice(0, 120) || '자세히 보기' : '',
     consentLinkUrl,
     directStyles: sanitizeDirectTextGroup(field?.directStyles, [

@@ -156,6 +156,19 @@ export const THEME_PRESETS = [
   { id: 'party-confetti', name: '파티 컨페티', tag: '축하', theme: { accent: '#e0547a', background: '#fff0f5', card: '#fffafd', text: '#422633', radius: 32, font: 'jua', effect: 'confetti', motion: 'playful' } },
 ]
 
+export const PRIVACY_CONSENT_DEFAULTS = Object.freeze({
+  consentPurpose: '신청 접수, 본인 확인 및 관련 안내',
+  consentItems: '이름, 연락처 및 폼에 직접 입력한 내용',
+  consentRetention: '수집 목적 달성 후 지체 없이 파기합니다. 단, 관계 법령에 따라 보관이 필요한 경우 해당 기간 동안 보관합니다.',
+  consentRefusal: '동의를 거부할 권리가 있으며, 동의하지 않으면 신청 제출이 제한됩니다.',
+})
+
+export function consentKindOf(field) {
+  if (field?.consentKind === 'privacy' || field?.consentKind === 'acknowledgement') return field.consentKind
+  const copy = `${field?.label || ''} ${field?.description || ''} ${field?.consentText || ''}`
+  return /개인\s*정보|수집|이용|채용|수신\s*동의/.test(copy) ? 'privacy' : 'acknowledgement'
+}
+
 export function makeField(type = 'short') {
   const labels = {
     short: '이름을 입력해 주세요',
@@ -181,6 +194,11 @@ export function makeField(type = 'short') {
     options: ['선택 1', '선택 2'],
     scale: 5,
     consentText: type === 'consent' ? '개인정보 수집 및 이용에 동의합니다.' : '',
+    consentKind: type === 'consent' ? 'privacy' : '',
+    consentPurpose: type === 'consent' ? PRIVACY_CONSENT_DEFAULTS.consentPurpose : '',
+    consentItems: type === 'consent' ? PRIVACY_CONSENT_DEFAULTS.consentItems : '',
+    consentRetention: type === 'consent' ? PRIVACY_CONSENT_DEFAULTS.consentRetention : '',
+    consentRefusal: type === 'consent' ? PRIVACY_CONSENT_DEFAULTS.consentRefusal : '',
     consentLinkLabel: '',
     consentLinkUrl: '',
   }
@@ -189,6 +207,8 @@ export function makeField(type = 'short') {
 export function changeFieldType(field, nextType) {
   const optionType = ['single', 'multi', 'select'].includes(nextType)
   const currentOptions = Array.isArray(field?.options) ? field.options.filter((option) => String(option).trim()) : []
+  const nextConsentKind = nextType === 'consent' ? (field?.type === 'consent' ? consentKindOf(field) : 'privacy') : (field?.consentKind || '')
+  const privacyConsent = nextType === 'consent' && nextConsentKind === 'privacy'
   return {
     ...field,
     type: nextType,
@@ -196,6 +216,11 @@ export function changeFieldType(field, nextType) {
     options: optionType ? (currentOptions.length ? currentOptions : ['선택 1', '선택 2']) : [],
     scale: nextType === 'rating' ? Math.min(10, Math.max(3, Number(field?.scale) || 5)) : 5,
     consentText: nextType === 'consent' ? (field?.consentText || '내용을 확인했으며 동의합니다.') : (field?.consentText || ''),
+    consentKind: nextConsentKind,
+    consentPurpose: privacyConsent ? (field?.consentPurpose || PRIVACY_CONSENT_DEFAULTS.consentPurpose) : (field?.consentPurpose || ''),
+    consentItems: privacyConsent ? (field?.consentItems || PRIVACY_CONSENT_DEFAULTS.consentItems) : (field?.consentItems || ''),
+    consentRetention: privacyConsent ? (field?.consentRetention || PRIVACY_CONSENT_DEFAULTS.consentRetention) : (field?.consentRetention || ''),
+    consentRefusal: privacyConsent ? (field?.consentRefusal || PRIVACY_CONSENT_DEFAULTS.consentRefusal) : (field?.consentRefusal || ''),
     consentLinkLabel: field?.consentLinkLabel || '',
     consentLinkUrl: field?.consentLinkUrl || '',
   }
@@ -204,12 +229,22 @@ export function changeFieldType(field, nextType) {
 export function normalizeConsentFields(pages, defaultConsentText = '내용을 확인했으며 동의합니다.') {
   return (Array.isArray(pages) ? pages : []).map((page) => ({
     ...page,
-    fields: (Array.isArray(page?.fields) ? page.fields : []).map((field) => field?.type === 'consent' ? {
-      ...field,
-      consentText: field.consentText == null ? defaultConsentText : field.consentText,
-      consentLinkLabel: field.consentLinkLabel || '',
-      consentLinkUrl: field.consentLinkUrl || '',
-    } : field),
+    fields: (Array.isArray(page?.fields) ? page.fields : []).map((field) => {
+      if (field?.type !== 'consent') return field
+      const consentKind = consentKindOf(field)
+      const privacy = consentKind === 'privacy'
+      return {
+        ...field,
+        consentKind,
+        consentPurpose: privacy ? (field.consentPurpose || PRIVACY_CONSENT_DEFAULTS.consentPurpose) : (field.consentPurpose || ''),
+        consentItems: privacy ? (field.consentItems || PRIVACY_CONSENT_DEFAULTS.consentItems) : (field.consentItems || ''),
+        consentRetention: privacy ? (field.consentRetention || PRIVACY_CONSENT_DEFAULTS.consentRetention) : (field.consentRetention || ''),
+        consentRefusal: privacy ? (field.consentRefusal || PRIVACY_CONSENT_DEFAULTS.consentRefusal) : (field.consentRefusal || ''),
+        consentText: field.consentText == null ? defaultConsentText : field.consentText,
+        consentLinkLabel: field.consentLinkLabel || '',
+        consentLinkUrl: field.consentLinkUrl || '',
+      }
+    }),
   }))
 }
 

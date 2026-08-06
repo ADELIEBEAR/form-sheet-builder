@@ -218,7 +218,7 @@ const definitions = [
       field('long', '관심 종목이나 산업이 있다면 적어주세요', { required: false }),
       field('select', '한 달 투자 예정 범위를 선택해 주세요', { options: ['10만원 미만', '10~50만원', '50~100만원', '100만원 이상', '응답하지 않음'] }),
       field('single', '손실 가능성에 대한 안내를 확인했나요?', { options: ['네, 확인했습니다', '추가 설명이 필요합니다'] }),
-      field('consent', '투자 안내 확인', { consentText: '본 신청은 투자 권유나 수익 보장이 아님을 확인합니다.' }),
+      field('consent', '투자 안내 확인', { consentKind: 'acknowledgement', consentText: '본 신청은 투자 권유나 수익 보장이 아님을 확인합니다.' }),
     ])],
   },
   {
@@ -236,8 +236,8 @@ const definitions = [
       field('multi', '관심 있는 분야를 골라주세요', { options: ['비트코인', '이더리움', '알트코인', '스테이킹', '블록체인 기술'] }),
       field('single', '참여 목적을 선택해 주세요', { options: ['기초 학습', '시장 정보', '커뮤니티 참여', '프로젝트 소식'] }),
       field('long', '궁금한 점이나 기대하는 내용을 적어주세요', { required: false }),
-      field('consent', '보안 주의사항 확인', { consentText: '시드 문구·개인키·거래소 비밀번호를 절대 제출하지 않겠습니다.' }),
-      field('consent', '투자 위험 확인', { consentText: '가격 변동과 원금 손실 가능성에 대한 안내를 확인했습니다.' }),
+      field('consent', '보안 주의사항 확인', { consentKind: 'acknowledgement', consentText: '시드 문구·개인키·거래소 비밀번호를 절대 제출하지 않겠습니다.' }),
+      field('consent', '투자 위험 확인', { consentKind: 'acknowledgement', consentText: '가격 변동과 원금 손실 가능성에 대한 안내를 확인했습니다.' }),
     ])],
   },
 ]

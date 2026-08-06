@@ -385,9 +385,14 @@ async function sendToHiddenBackup(project: ProjectRow, submission: any) {
 }
 
 async function authUser(supabaseUrl: string, anonKey: string, authorization: string) {
-  if (!authorization) return null
-  const client = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { authorization } } })
-  const { data: { user } } = await client.auth.getUser()
+  const accessToken = authorization.replace(/^Bearer\s+/i, '').trim()
+  if (!accessToken) return null
+  const client = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  // This client has no persisted browser session. Passing the JWT only as a
+  // global fetch header leaves auth.getUser() with no session to inspect and
+  // made every authenticated owner look anonymous inside the Edge Function.
+  const { data: { user }, error } = await client.auth.getUser(accessToken)
+  if (error) return null
   return user || null
 }
 

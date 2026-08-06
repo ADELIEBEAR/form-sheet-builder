@@ -1,4 +1,4 @@
-import { FONT_STACKS } from './maker'
+import { FONT_STACKS, resolveDirectTextStyle } from './maker'
 import { normalizeSlug } from './validation'
 
 export const SITE_BLOCKS = [
@@ -40,6 +40,23 @@ export function removeSiteCollectionItem(section, index) {
   const items = section?.data?.items
   if (!rule || !Array.isArray(items) || items.length <= rule.min || index < 0 || index >= items.length) return section
   return { ...section, data: { ...section.data, items: items.filter((_, itemIndex) => itemIndex !== index) } }
+}
+
+export function applySiteComposition(site, presetId) {
+  const preset = SITE_COMPOSITION_PRESETS.find((item) => item.id === presetId)
+  if (!preset) return site
+  const theme = SITE_THEME_PRESETS.find((item) => item.id === preset.themeId)?.theme
+  return {
+    ...site,
+    theme: theme ? { ...theme } : site.theme,
+    content: {
+      ...site.content,
+      sections: (site.content?.sections || []).map((section) => ({
+        ...section,
+        style: { ...section.style, ...(preset.styles[section.type] || {}) },
+      })),
+    },
+  }
 }
 
 export const SITE_THEME_PRESETS = [
@@ -91,6 +108,30 @@ export const SITE_THEME_PRESETS = [
     description: '부드러운 회색과 코랄',
     theme: { mode: 'light', accent: '#c95445', background: '#efefec', surface: '#fafaf7', text: '#292a2c', muted: '#717276', line: '#d5d5d0', radius: 12, font: 'gowun', displayScale: 1, bodyScale: 1.04, sectionScale: 1.02 },
   },
+  {
+    id: 'violet-ink',
+    name: '바이올렛 잉크',
+    description: '먹색 바탕과 선명한 보라',
+    theme: { mode: 'dark', accent: '#9a7ee8', background: '#121118', surface: '#1d1b25', text: '#f4f1f8', muted: '#aaa4b4', line: '#383442', radius: 16, font: 'pretendard', displayScale: 1.06, bodyScale: 1, sectionScale: 1.03 },
+  },
+  {
+    id: 'ice',
+    name: '아이스 블루',
+    description: '차가운 흰색과 블루 포인트',
+    theme: { mode: 'light', accent: '#2b63c7', background: '#e9eef5', surface: '#f8fafc', text: '#17202c', muted: '#657285', line: '#cad4e1', radius: 20, font: 'noto-sans', displayScale: 1, bodyScale: 1, sectionScale: 1.04 },
+  },
+  {
+    id: 'lime-black',
+    name: '라임 블랙',
+    description: '검정 포스터와 라임 포인트',
+    theme: { mode: 'dark', accent: '#b4d84c', background: '#111312', surface: '#1a1d1b', text: '#f1f4ed', muted: '#a4aba0', line: '#343a35', radius: 4, font: 'black-han', displayScale: 1.08, bodyScale: 1, sectionScale: .96 },
+  },
+  {
+    id: 'sky-paper',
+    name: '스카이 페이퍼',
+    description: '맑은 하늘색과 종이 질감',
+    theme: { mode: 'light', accent: '#356db5', background: '#e8f0f5', surface: '#f7fafb', text: '#1d2b35', muted: '#687985', line: '#cad8df', radius: 10, font: 'gowun', displayScale: 1.02, bodyScale: 1.04, sectionScale: 1.08 },
+  },
 ]
 
 export const SECTION_STYLE_OPTIONS = {
@@ -98,8 +139,35 @@ export const SECTION_STYLE_OPTIONS = {
   spacing: [['compact', '좁게'], ['normal', '보통'], ['air', '넓게']],
   width: [['wide', '넓게'], ['normal', '보통'], ['narrow', '좁게']],
   align: [['left', '왼쪽'], ['center', '가운데']],
-  pattern: [['none', '없음'], ['grid', '그리드'], ['dots', '도트'], ['glow', '빛 번짐'], ['grain', '필름 결']],
+  pattern: [['none', '없음'], ['grid', '그리드'], ['dots', '도트'], ['glow', '빛 번짐'], ['grain', '필름 결'], ['mesh', '메시'], ['stripes', '사선'], ['paper', '종이'], ['waves', '물결']],
+  elevation: [['flat', '평면'], ['soft', '부드럽게'], ['float', '띄우기']],
+  motion: [['none', '없음'], ['fade', '페이드'], ['rise', '떠오르기'], ['scale', '확대']],
 }
+
+export const SITE_LAYOUT_OPTIONS = {
+  hero: [['split', '분할'], ['poster', '포스터'], ['minimal', '미니멀']],
+  ticker: [['marquee', '흐르기'], ['static', '고정']],
+  benefits: [['bento', '벤토'], ['rail', '가로 카드'], ['list', '목록']],
+  story: [['split', '분할'], ['overlap', '겹치기'], ['editorial', '에디토리얼']],
+  cards: [['mosaic', '모자이크'], ['rail', '가로 카드'], ['stack', '세로 카드']],
+  stats: [['row', '가로 수치'], ['tiles', '타일'], ['ledger', '장부']],
+  steps: [['timeline', '타임라인'], ['cards', '카드'], ['compact', '간결하게']],
+  quote: [['center', '가운데'], ['edge', '한쪽 강조']],
+  faq: [['columns', '두 칸'], ['stack', '한 칸']],
+  form: [['panel', '패널'], ['plain', '여백형']],
+  cta: [['banner', '배너'], ['poster', '포스터']],
+  notice: [['inline', '한 줄'], ['panel', '패널']],
+  divider: [['line', '선'], ['label', '라벨']],
+}
+
+export const SITE_COMPOSITION_PRESETS = [
+  { id: 'editorial', name: '에디토리얼', description: '큰 제목과 겹치는 이미지', themeId: 'coral', preview: 'editorial', styles: { hero: { layout: 'poster', pattern: 'paper' }, benefits: { layout: 'list' }, story: { layout: 'overlap' }, cards: { layout: 'rail' }, stats: { layout: 'ledger' }, quote: { layout: 'edge' } } },
+  { id: 'creator', name: '크리에이터', description: '밝은 표면과 부드러운 카드', themeId: 'ice', preview: 'creator', styles: { hero: { layout: 'split', pattern: 'mesh' }, benefits: { layout: 'bento' }, story: { layout: 'split', elevation: 'float' }, cards: { layout: 'mosaic' }, steps: { layout: 'cards' } } },
+  { id: 'poster', name: '그래픽 포스터', description: '강한 대비와 굵은 타이포', themeId: 'lime-black', preview: 'poster', styles: { hero: { layout: 'poster', pattern: 'stripes' }, benefits: { layout: 'rail' }, story: { layout: 'editorial' }, cards: { layout: 'stack' }, stats: { layout: 'tiles' }, cta: { layout: 'poster' } } },
+  { id: 'finance', name: '파이낸스', description: '수치와 기준이 빠르게 보이는 구성', themeId: 'signal', preview: 'finance', styles: { hero: { layout: 'minimal', pattern: 'grid' }, ticker: { layout: 'static' }, benefits: { layout: 'list' }, stats: { layout: 'ledger', tone: 'surface' }, steps: { layout: 'compact' }, notice: { layout: 'panel' } } },
+  { id: 'launch', name: '런칭 페이지', description: '핵심 문장과 신청에 집중', themeId: 'violet-ink', preview: 'launch', styles: { hero: { layout: 'poster', pattern: 'glow' }, benefits: { layout: 'bento' }, cards: { layout: 'rail' }, quote: { layout: 'center' }, form: { layout: 'panel', elevation: 'float' }, cta: { layout: 'poster' } } },
+  { id: 'calm', name: '차분한 안내', description: '긴 글도 편안하게 읽히는 구성', themeId: 'sky-paper', preview: 'calm', styles: { hero: { layout: 'minimal', pattern: 'waves' }, benefits: { layout: 'list' }, story: { layout: 'editorial' }, cards: { layout: 'stack' }, faq: { layout: 'stack' }, form: { layout: 'plain' } } },
+]
 
 const defaultSectionStyle = {
   tone: 'inherit',
@@ -107,6 +175,9 @@ const defaultSectionStyle = {
   width: 'wide',
   align: 'left',
   pattern: 'none',
+  elevation: 'flat',
+  motion: 'rise',
+  layout: '',
 }
 
 const blockDefaults = {
@@ -209,12 +280,13 @@ function initialSectionStyle(type) {
   if (type === 'form') Object.assign(style, { tone: 'surface', width: 'normal' })
   if (type === 'cta') Object.assign(style, { tone: 'accent', width: 'normal', align: 'center' })
   if (type === 'notice' || type === 'divider') Object.assign(style, { spacing: 'compact', width: 'normal' })
+  style.layout = SITE_LAYOUT_OPTIONS[type]?.[0]?.[0] || ''
   return style
 }
 
 export function makeSiteSection(type) {
   const safeType = SITE_BLOCKS.some((block) => block.type === type) ? type : 'story'
-  return { id: id(), type: safeType, enabled: true, style: initialSectionStyle(safeType), data: structuredClone(blockDefaults[safeType]) }
+  return { id: id(), type: safeType, enabled: true, style: initialSectionStyle(safeType), textStyles: {}, data: structuredClone(blockDefaults[safeType]) }
 }
 
 export function emptySite() {
@@ -273,7 +345,38 @@ function sanitizeSectionStyle(source, type) {
   const fallback = initialSectionStyle(type)
   const input = source || {}
   const valid = (key, value) => SECTION_STYLE_OPTIONS[key].some(([id]) => id === value)
-  return Object.fromEntries(Object.keys(SECTION_STYLE_OPTIONS).map((key) => [key, valid(key, input[key]) ? input[key] : fallback[key]]))
+  const style = Object.fromEntries(Object.keys(SECTION_STYLE_OPTIONS).map((key) => [key, valid(key, input[key]) ? input[key] : fallback[key]]))
+  const layouts = SITE_LAYOUT_OPTIONS[type] || []
+  style.layout = layouts.some(([id]) => id === input.layout) ? input.layout : fallback.layout
+  return style
+}
+
+function sanitizeTextStyles(source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {}
+  return Object.fromEntries(Object.entries(source).slice(0, 80).map(([rawKey, rawValue]) => {
+    const key = text(rawKey, '', 100)
+    const value = resolveDirectTextStyle(rawValue)
+    return [key, {
+      font: Object.prototype.hasOwnProperty.call(FONT_STACKS, value.font) ? value.font : 'pretendard',
+      size: boundedNumber(value.size, 16, 8, 180),
+      width: boundedNumber(value.width, 100, 32, 100),
+      offsetX: boundedNumber(value.offsetX, 0, -240, 240),
+      offsetY: boundedNumber(value.offsetY, 0, -180, 180),
+      align: ['left', 'center', 'right'].includes(value.align) ? value.align : 'left',
+      color: color(value.color, ''),
+      colorRanges: (Array.isArray(value.colorRanges) ? value.colorRanges : []).slice(0, 40).map((range) => ({
+        start: Math.max(0, Math.round(Number(range.start) || 0)),
+        end: Math.max(0, Math.round(Number(range.end) || 0)),
+        color: color(range.color, ''),
+      })).filter((range) => range.color && range.end > range.start),
+      colorText: text(value.colorText, '', 2000),
+      textEffect: ['none', 'shadow', 'hard-shadow', 'glow', 'outline', 'depth'].includes(value.textEffect) ? value.textEffect : 'none',
+      effectColor: color(value.effectColor, '#202126'),
+      effectStrength: boundedNumber(value.effectStrength, 45, 10, 100),
+      effectBlur: boundedNumber(value.effectBlur, 8, 0, 32),
+      effectDistance: boundedNumber(value.effectDistance, 4, 0, 18),
+    }]
+  }).filter(([key]) => key))
 }
 
 function sanitizeSection(section) {
@@ -352,6 +455,7 @@ function sanitizeSection(section) {
     type,
     enabled: section?.enabled !== false,
     style: sanitizeSectionStyle(section?.style, type),
+    textStyles: sanitizeTextStyles(section?.textStyles),
     data,
   }
 }

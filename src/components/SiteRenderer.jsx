@@ -9,16 +9,51 @@ import {
   ShieldCheck,
   Trash,
 } from '@phosphor-icons/react'
+import { createContext, useContext, useState } from 'react'
+import { resolveDirectTextStyle } from '../lib/maker'
 import { SITE_BLOCKS, siteThemeStyle } from '../lib/siteMaker'
+import ColoredText from './ColoredText'
+import DirectCanvasText, { directTextVariables } from './DirectCanvasText'
 import LandingFormEmbed from './LandingFormEmbed'
 
+const SiteEditContext = createContext(null)
+
+function textFallback(publicAs, className = '') {
+  if (className.includes('eyebrow')) return { size: 12, width: 100, align: 'left' }
+  if (className.includes('hero-title') || publicAs === 'h1') return { size: 64, width: 100, align: 'left' }
+  if (publicAs === 'h2') return { size: 44, width: 100, align: 'left' }
+  if (publicAs === 'h3') return { size: 22, width: 100, align: 'left' }
+  if (publicAs === 'strong') return { size: 20, width: 100, align: 'left' }
+  if (publicAs === 'span') return { size: 15, width: 100, align: 'left' }
+  return { size: 17, width: 100, align: 'left' }
+}
+
 function Editable({ value, onChange, as = 'input', publicAs, className = '', label }) {
+  const context = useContext(SiteEditContext)
+  const styleValue = context?.section?.textStyles?.[label]
+  const fallback = textFallback(publicAs, className)
   if (!onChange) {
     const Tag = publicAs || (as === 'textarea' ? 'p' : as)
-    return <Tag className={className}>{value}</Tag>
+    if (!styleValue) return <Tag className={className}>{value}</Tag>
+    const resolved = resolveDirectTextStyle(styleValue, fallback)
+    return <Tag className={`site-styled-copy ${className}`} style={directTextVariables(styleValue, fallback)}><ColoredText text={String(value ?? '')} desktopStyle={resolved} /></Tag>
   }
   const Tag = as === 'textarea' ? 'textarea' : 'input'
-  return <Tag className={`site-inline-edit ${className}`} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} rows={as === 'textarea' ? 3 : undefined} />
+  return <DirectCanvasText
+    className="site-direct-copy"
+    value={styleValue}
+    fallback={fallback}
+    minSize={8}
+    maxSize={publicAs === 'h1' ? 120 : publicAs === 'h2' ? 88 : 56}
+    label={label}
+    selected={Boolean(context?.selected && context?.activeTextLabel === label)}
+    onSelect={() => context?.onTextSelect?.(label)}
+    onChange={(next) => context?.onTextStyleChange?.(context.section.id, label, next)}
+    snapToGrid={context?.snapToGrid}
+    mobile={context?.mobile}
+  >
+    <Tag className={`site-inline-edit ${className}`} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} rows={as === 'textarea' ? 3 : undefined} />
+  </DirectCanvasText>
 }
 
 function goToForm() {
@@ -143,12 +178,51 @@ function BlockToolbar({ section, index, count, onMoveSection, onDuplicateSection
   </div>
 }
 
-function sectionClass(section) {
-  const style = section.style || {}
-  return ['site-block-shell', `site-tone-${style.tone || 'inherit'}`, `site-space-${style.spacing || 'normal'}`, `site-width-${style.width || 'wide'}`, `site-align-${style.align || 'left'}`, `site-pattern-${style.pattern || 'none'}`].join(' ')
+function SectionResizeHandles({ section, onStyleChange }) {
+  const widthValues = ['narrow', 'normal', 'wide']
+  const spacingValues = ['compact', 'normal', 'air']
+  function startResize(event, kind) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
+    const startX = event.clientX
+    const startY = event.clientY
+    const values = kind === 'width' ? widthValues : spacingValues
+    const current = kind === 'width' ? (section.style?.width || 'wide') : (section.style?.spacing || 'normal')
+    const startIndex = Math.max(0, values.indexOf(current))
+    let applied = startIndex
+    const move = (moveEvent) => {
+      const distance = kind === 'width' ? moveEvent.clientX - startX : moveEvent.clientY - startY
+      const nextIndex = Math.max(0, Math.min(values.length - 1, startIndex + Math.round(distance / 64)))
+      if (nextIndex === applied) return
+      applied = nextIndex
+      onStyleChange?.(section.id, kind === 'width' ? 'width' : 'spacing', values[nextIndex])
+    }
+    const end = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      document.body.classList.remove('site-section-resizing')
+    }
+    document.body.classList.add('site-section-resizing')
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+  return <>
+    <button className="site-section-resize site-section-resize-width" type="button" onPointerDown={(event) => startResize(event, 'width')} aria-label="블록 너비 드래그 조절" title="좌우로 드래그해 반응형 너비 조절" />
+    <button className="site-section-resize site-section-resize-space" type="button" onPointerDown={(event) => startResize(event, 'spacing')} aria-label="블록 세로 간격 드래그 조절" title="위아래로 드래그해 세로 간격 조절" />
+    <span className="site-section-size-badge">{section.style?.width === 'narrow' ? '좁게' : section.style?.width === 'normal' ? '보통' : '넓게'}</span>
+  </>
 }
 
-export default function SiteRenderer({ site, project, editing = false, selectedSectionId = '', onSelectSection, onSectionChange, onMoveSection, onDuplicateSection, onToggleSection, onDeleteSection }) {
+function sectionClass(section) {
+  const style = section.style || {}
+  return ['site-block-shell', `site-type-${section.type}`, `site-tone-${style.tone || 'inherit'}`, `site-space-${style.spacing || 'normal'}`, `site-width-${style.width || 'wide'}`, `site-align-${style.align || 'left'}`, `site-pattern-${style.pattern || 'none'}`, `site-layout-${style.layout || 'default'}`, `site-elevation-${style.elevation || 'flat'}`, `site-motion-${style.motion || 'none'}`].join(' ')
+}
+
+export default function SiteRenderer({ site, project, editing = false, selectedSectionId = '', snapToGrid = false, mobile = false, onSelectSection, onSectionChange, onSectionStyleChange, onTextStyleChange, onMoveSection, onDuplicateSection, onToggleSection, onDeleteSection }) {
+  const [activeTextLabel, setActiveTextLabel] = useState('')
   const sections = site.content?.sections || []
   const visibleSections = sections.filter((section) => section.enabled !== false)
   const brandName = site.content?.brandName || 'SIGNAL NOTE'
@@ -159,6 +233,7 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
   function select(event, sectionId) {
     if (!editing) return
     event.stopPropagation()
+    if (selectedSectionId !== sectionId) setActiveTextLabel('')
     onSelectSection?.(sectionId)
   }
   return (
@@ -171,9 +246,10 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
         {visibleSections.map((section, index) => {
           const edit = (path) => change(section, path)
           const selected = selectedSectionId === section.id
-          return <div className={`${sectionClass(section)} ${selected ? 'is-selected' : ''}`} key={section.id} onClick={(event) => select(event, section.id)}>
+          return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${selected ? 'is-selected' : ''}`} onClick={(event) => select(event, section.id)}>
             {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
             {editing && selected ? <BlockToolbar section={section} index={sections.findIndex((item) => item.id === section.id)} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
+            {editing && selected ? <SectionResizeHandles section={section} onStyleChange={onSectionStyleChange} /> : null}
             {section.type === 'hero' ? <Hero section={section} edit={edit} /> : null}
             {section.type === 'ticker' ? <Ticker section={section} edit={edit} editing={editing} /> : null}
             {section.type === 'benefits' ? <Benefits section={section} edit={edit} /> : null}
@@ -187,7 +263,7 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
             {section.type === 'cta' ? <Cta section={section} edit={edit} /> : null}
             {section.type === 'notice' ? <Notice section={section} edit={edit} /> : null}
             {section.type === 'divider' ? <Divider section={section} edit={edit} /> : null}
-          </div>
+          </div></SiteEditContext.Provider>
         })}
       </main>
       <footer className="site-public-footer">

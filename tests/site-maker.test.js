@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addSiteCollectionItem,
+  applySiteComposition,
   emptySite,
   makeSiteSection,
   MAX_SITE_SECTIONS,
@@ -8,6 +9,8 @@ import {
   sanitizeSite,
   SITE_BLOCKS,
   SITE_COLLECTION_RULES,
+  SITE_COMPOSITION_PRESETS,
+  SITE_LAYOUT_OPTIONS,
 } from '../src/lib/siteMaker'
 
 describe('landing site maker', () => {
@@ -25,7 +28,41 @@ describe('landing site maker', () => {
       expect(section.data).toBeTruthy()
       expect(section.style.width).toBeTruthy()
       expect(section.style.spacing).toBeTruthy()
+      expect(SITE_LAYOUT_OPTIONS[type].some(([layout]) => layout === section.style.layout)).toBe(true)
     })
+  })
+
+  it('applies a full composition without replacing written content', () => {
+    const site = emptySite()
+    const title = site.content.sections[0].data.title
+    const result = applySiteComposition(site, SITE_COMPOSITION_PRESETS[2].id)
+    expect(result.content.sections[0].data.title).toBe(title)
+    expect(result.content.sections[0].style.layout).toBe('poster')
+    expect(result.theme.accent).not.toBe(site.theme.accent)
+  })
+
+  it('stores direct text design safely and clamps oversized values', () => {
+    const site = emptySite()
+    site.content.sections[0].textStyles = {
+      '첫 화면 제목': {
+        font: 'pretendard',
+        size: 999,
+        width: 4,
+        offsetX: 1000,
+        color: '#7357d6',
+        colorRanges: [{ start: 0, end: 2, color: '#ff4466' }],
+        textEffect: 'glow',
+        effectStrength: 999,
+      },
+    }
+    const result = sanitizeSite(site)
+    const style = result.content.sections[0].textStyles['첫 화면 제목']
+    expect(style.size).toBe(180)
+    expect(style.width).toBe(32)
+    expect(style.offsetX).toBe(240)
+    expect(style.colorRanges).toHaveLength(1)
+    expect(style.textEffect).toBe('glow')
+    expect(style.effectStrength).toBe(100)
   })
 
   it('sanitizes new block content and clamps visual scale settings', () => {

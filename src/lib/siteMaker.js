@@ -17,6 +17,31 @@ export const SITE_BLOCKS = [
   { type: 'divider', label: '구분선', description: '섹션 사이의 호흡을 조절해요', category: '구조' },
 ]
 
+export const MAX_SITE_SECTIONS = 30
+
+export const SITE_COLLECTION_RULES = {
+  ticker: { min: 1, max: 8, label: '알림 문구', create: () => '새 알림 문구' },
+  benefits: { min: 1, max: 4, label: '핵심 안내', create: () => ({ title: '새 핵심 안내', description: '내용을 입력하세요.' }) },
+  cards: { min: 1, max: 6, label: '콘텐츠 카드', create: () => ({ title: '새 카드', description: '내용을 입력하세요.' }) },
+  stats: { min: 1, max: 4, label: '핵심 수치', create: () => ({ value: '새 값', label: '설명을 입력하세요' }) },
+  steps: { min: 1, max: 5, label: '진행 과정', create: () => ({ title: '새 과정', description: '내용을 입력하세요.' }) },
+  faq: { min: 1, max: 8, label: '질문과 답변', create: () => ({ question: '새 질문', answer: '답변을 입력하세요.' }) },
+}
+
+export function addSiteCollectionItem(section) {
+  const rule = SITE_COLLECTION_RULES[section?.type]
+  const items = section?.data?.items
+  if (!rule || !Array.isArray(items) || items.length >= rule.max) return section
+  return { ...section, data: { ...section.data, items: [...items, rule.create()] } }
+}
+
+export function removeSiteCollectionItem(section, index) {
+  const rule = SITE_COLLECTION_RULES[section?.type]
+  const items = section?.data?.items
+  if (!rule || !Array.isArray(items) || items.length <= rule.min || index < 0 || index >= items.length) return section
+  return { ...section, data: { ...section.data, items: items.filter((_, itemIndex) => itemIndex !== index) } }
+}
+
 export const SITE_THEME_PRESETS = [
   {
     id: 'signal',
@@ -336,7 +361,7 @@ export function sanitizeSite(input) {
   const title = text(input?.title, '', 120).trim()
   if (!title) throw new Error('사이트 제목을 입력해 주세요.')
   const rawSections = Array.isArray(input?.content?.sections) ? input.content.sections : base.content.sections
-  const sections = rawSections.slice(0, 30).map(sanitizeSection)
+  const sections = rawSections.slice(0, MAX_SITE_SECTIONS).map(sanitizeSection)
   if (!sections.some((section) => section.type === 'hero')) sections.unshift(makeSiteSection('hero'))
   if (!sections.some((section) => section.type === 'form')) sections.push(makeSiteSection('form'))
   const radius = Number(input?.theme?.radius)

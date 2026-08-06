@@ -41,10 +41,10 @@ function Hero({ section, edit }) {
   )
 }
 
-function Ticker({ section, edit }) {
+function Ticker({ section, edit, editing }) {
   const items = section.data.items || []
-  const repeated = [...items, ...items]
-  return <section className="site-section site-ticker" aria-label="주요 안내"><div className="site-ticker-track">{repeated.map((item, index) => <span key={`${index}-${item}`}><Editable value={item} onChange={index < items.length ? edit(`items.${index}`) : undefined} publicAs="strong" label={`${index + 1}번째 알림 문구`} /></span>)}</div></section>
+  const displayedItems = editing ? items : [...items, ...items]
+  return <section className="site-section site-ticker" aria-label="주요 안내"><div className="site-ticker-track">{displayedItems.map((item, index) => <span key={`${index}-${item}`}><Editable value={item} onChange={editing ? edit(`items.${index}`) : undefined} publicAs="strong" label={`${(index % items.length) + 1}번째 알림 문구`} /></span>)}</div></section>
 }
 
 function Benefits({ section, edit }) {
@@ -175,7 +175,7 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
             {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
             {editing && selected ? <BlockToolbar section={section} index={sections.findIndex((item) => item.id === section.id)} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
             {section.type === 'hero' ? <Hero section={section} edit={edit} /> : null}
-            {section.type === 'ticker' ? <Ticker section={section} edit={edit} /> : null}
+            {section.type === 'ticker' ? <Ticker section={section} edit={edit} editing={editing} /> : null}
             {section.type === 'benefits' ? <Benefits section={section} edit={edit} /> : null}
             {section.type === 'story' ? <Story section={section} edit={edit} editing={editing} /> : null}
             {section.type === 'cards' ? <Cards section={section} edit={edit} /> : null}
@@ -194,6 +194,7 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
         {site.settings?.showBrand !== false ? <strong>{brandName}</strong> : <span />}
         <p>{site.settings?.footerText || ''}</p>
       </footer>
+      {!editing && site.settings?.stickyCta !== false ? <button className="site-mobile-sticky-cta" type="button" onClick={goToForm}>신청하기 <ArrowRight weight="bold" /></button> : null}
     </div>
   )
 }

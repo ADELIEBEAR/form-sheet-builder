@@ -40,7 +40,17 @@ import { AUTO_SAVE_INTERVAL } from '../lib/autosave'
 import { FONT_PRESETS } from '../lib/maker'
 import { useNavigate, useParams } from '../lib/router'
 import { publicSiteUrl } from '../lib/share'
-import { emptySite, makeSiteSection, SECTION_STYLE_OPTIONS, SITE_BLOCKS, SITE_THEME_PRESETS } from '../lib/siteMaker'
+import {
+  addSiteCollectionItem,
+  emptySite,
+  makeSiteSection,
+  MAX_SITE_SECTIONS,
+  removeSiteCollectionItem,
+  SECTION_STYLE_OPTIONS,
+  SITE_BLOCKS,
+  SITE_COLLECTION_RULES,
+  SITE_THEME_PRESETS,
+} from '../lib/siteMaker'
 
 const BLOCK_ICONS = {
   hero: Image,
@@ -97,12 +107,14 @@ export default function SiteStudio() {
   const [leftMode, setLeftMode] = useState('layers')
   const [outlineOpen, setOutlineOpen] = useState(true)
   const [inspectorOpen, setInspectorOpen] = useState(true)
-  const [zoom, setZoom] = useState(75)
+  const [mobilePane, setMobilePane] = useState('canvas')
+  const [zoom, setZoom] = useState('fit')
+  const [fitZoom, setFitZoom] = useState(0.6)
   const [guides, setGuides] = useState(false)
   const [loading, setLoading] = useState(Boolean(siteId))
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
-  const [notice, setNotice] = useState('저장됨')
+  const [notice, setNotice] = useState(siteId ? '저장됨' : '저장 전')
   const [error, setError] = useState('')
   const [dragIndex, setDragIndex] = useState(-1)
   const [historyVersion, setHistoryVersion] = useState(0)
@@ -113,6 +125,7 @@ export default function SiteStudio() {
   const undoRef = useRef([])
   const redoRef = useRef([])
   const sectionClipboardRef = useRef(null)
+  const canvasStageRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -127,6 +140,7 @@ export default function SiteStudio() {
       else if (!siteId) setError(projectResult.reason?.message || '신청 폼 목록을 불러오지 못했습니다.')
       dirtyRef.current = false
       setDirty(false)
+      setNotice(siteId ? '저장됨' : '저장 전')
       setLoading(false)
     })
     return () => { cancelled = true }
@@ -137,6 +151,39 @@ export default function SiteStudio() {
     return () => window.clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    function protectUnsavedWork(event) {
+      if (!dirtyRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    function saveWhenHidden() {
+      if (document.visibilityState === 'hidden') saveRef.current?.(undefined, true)
+    }
+    window.addEventListener('beforeunload', protectUnsavedWork)
+    document.addEventListener('visibilitychange', saveWhenHidden)
+    return () => {
+      window.removeEventListener('beforeunload', protectUnsavedWork)
+      document.removeEventListener('visibilitychange', saveWhenHidden)
+    }
+  }, [])
+
+  useEffect(() => {
+    const stage = canvasStageRef.current
+    if (!stage) return undefined
+    const updateFitZoom = () => {
+      const artboardWidth = device === 'mobile' ? 390 : 1200
+      const horizontalPadding = window.innerWidth <= 720 ? 16 : 56
+      const availableWidth = Math.max(260, stage.clientWidth - horizontalPadding)
+      setFitZoom(Math.min(1, availableWidth / artboardWidth))
+    }
+    updateFitZoom()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(updateFitZoom)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [device, inspectorOpen, outlineOpen])
+
   const selectedSection = useMemo(() => site.content?.sections?.find((section) => section.id === selectedSectionId), [selectedSectionId, site.content?.sections])
   const linkedProject = useMemo(() => projects.find((project) => project.id === site.formProjectId) || null, [projects, site.formProjectId])
   const storageSummary = useMemo(() => {
@@ -144,6 +191,11 @@ export default function SiteStudio() {
     const imageCount = (site.content?.sections || []).filter((section) => section.data?.imageUrl).length
     return { bytes, imageCount }
   }, [site.content, site.settings, site.theme])
+  const appliedZoom = zoom === 'fit' ? fitZoom : Number(zoom) / 100
+
+  useEffect(() => {
+    if (selectedSectionId && !site.content?.sections?.some((section) => section.id === selectedSectionId)) setSelectedSectionId('')
+  }, [selectedSectionId, site.content?.sections])
 
   function markDirty() {
     revisionRef.current += 1
@@ -214,9 +266,34 @@ export default function SiteStudio() {
     updateSectionPatch(selectedSection.id, { style: { ...selectedSection.style, [key]: value } })
   }
 
+  function selectSection(sectionId, { revealCanvas = false } = {}) {
+    setSelectedSectionId(sectionId)
+    if (!sectionId) return
+    setPanel('object')
+    setInspectorOpen(true)
+    if (revealCanvas) setMobilePane('canvas')
+  }
+
+  function changeCollectionItem(action, index) {
+    if (!selectedSection) return
+    const nextSection = action === 'add'
+      ? addSiteCollectionItem(selectedSection)
+      : removeSiteCollectionItem(selectedSection, index)
+    if (nextSection === selectedSection) return
+    updateSectionPatch(selectedSection.id, { data: nextSection.data })
+  }
+
   function addBlock(type) {
+    if (site.content.sections.length >= MAX_SITE_SECTIONS) {
+      setError(`한 페이지에는 블록을 최대 ${MAX_SITE_SECTIONS}개까지 사용할 수 있습니다.`)
+      return
+    }
     if (type === 'form' && site.content.sections.some((section) => section.type === 'form')) {
       setError('신청 폼 블록은 한 개만 사용할 수 있습니다.')
+      return
+    }
+    if (type === 'ticker' && site.content.sections.some((section) => section.type === 'ticker')) {
+      setError('알림 띠는 한 페이지에 한 개만 사용할 수 있습니다.')
       return
     }
     const section = makeSiteSection(type)
@@ -226,14 +303,22 @@ export default function SiteStudio() {
       sections.splice(selectedIndex < 0 ? sections.length : selectedIndex + 1, 0, section)
       return { ...current, content: { ...current.content, sections } }
     })
-    setSelectedSectionId(section.id)
+    selectSection(section.id)
     setPanel('object')
     setLeftMode('layers')
   }
 
   function duplicateSection(sectionId = selectedSectionId) {
+    if (site.content.sections.length >= MAX_SITE_SECTIONS) {
+      setError(`블록은 최대 ${MAX_SITE_SECTIONS}개까지 사용할 수 있습니다.`)
+      return
+    }
     const source = site.content.sections.find((section) => section.id === sectionId)
     if (!source || source.type === 'form') return
+    if (source.type === 'ticker') {
+      setError('알림 띠는 한 페이지에 한 개만 사용할 수 있습니다.')
+      return
+    }
     const copy = { ...structuredClone(source), id: crypto.randomUUID() }
     changeSite((current) => {
       const index = current.content.sections.findIndex((section) => section.id === sectionId)
@@ -286,6 +371,14 @@ export default function SiteStudio() {
   function pasteSection() {
     const source = sectionClipboardRef.current
     if (!source || source.type === 'form') return
+    if (source.type === 'ticker' && site.content.sections.some((section) => section.type === 'ticker')) {
+      setError('알림 띠는 한 페이지에 한 개만 사용할 수 있습니다.')
+      return
+    }
+    if (site.content.sections.length >= MAX_SITE_SECTIONS) {
+      setError(`블록은 최대 ${MAX_SITE_SECTIONS}개까지 사용할 수 있습니다.`)
+      return
+    }
     const copy = { ...structuredClone(source), id: crypto.randomUUID() }
     changeSite((current) => {
       const index = current.content.sections.findIndex((section) => section.id === selectedSectionId)
@@ -376,20 +469,27 @@ export default function SiteStudio() {
   const selectedInfo = SITE_BLOCKS.find((block) => block.type === selectedSection?.type)
   const canUndo = historyVersion >= 0 && undoRef.current.length > 0
   const canRedo = historyVersion >= 0 && redoRef.current.length > 0
-  const availableBlocks = SITE_BLOCKS.filter((block) => block.type !== 'hero' && !(block.type === 'form' && site.content.sections.some((section) => section.type === 'form')))
+  const availableBlocks = SITE_BLOCKS.filter((block) => block.type !== 'hero'
+    && !(block.type === 'form' && site.content.sections.some((section) => section.type === 'form'))
+    && !(block.type === 'ticker' && site.content.sections.some((section) => section.type === 'ticker')))
 
   return (
-    <AppFrame backTo="/sites" center={<div className="site-studio-title"><input value={site.title} onChange={(event) => changeSite({ ...site, title: event.target.value })} aria-label="사이트 관리용 제목" /><span className={dirty ? 'is-dirty' : ''}>{notice}</span></div>} actions={<>
+    <AppFrame backTo="/sites" center={<div className="site-studio-title"><input value={site.title} onChange={(event) => changeSite((current) => ({ ...current, title: event.target.value }))} aria-label="사이트 관리용 제목" /><span className={dirty ? 'is-dirty' : ''}>{notice}</span></div>} actions={<>
       <div className="site-history-tools" role="group" aria-label="편집 기록"><button type="button" onClick={undo} disabled={!canUndo} title="실행 취소 Ctrl+Z"><ArrowCounterClockwise /></button><button type="button" onClick={redo} disabled={!canRedo} title="다시 실행 Ctrl+Shift+Z"><ArrowClockwise /></button></div>
-      <div className="site-device-switch" role="group" aria-label="미리보기 화면"><button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => setDevice('desktop')} aria-label="PC 미리보기"><Desktop /></button><button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => setDevice('mobile')} aria-label="모바일 미리보기"><DeviceMobile /></button></div>
+      <div className="site-device-switch" role="group" aria-label="미리보기 화면"><button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => { setDevice('desktop'); setZoom('fit'); setMobilePane('canvas') }} aria-label="PC 미리보기" aria-pressed={device === 'desktop'}><Desktop /></button><button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => { setDevice('mobile'); setZoom('fit'); setMobilePane('canvas') }} aria-label="모바일 미리보기" aria-pressed={device === 'mobile'}><DeviceMobile /></button></div>
       <button className={`site-top-icon ${outlineOpen ? 'active' : ''}`} type="button" onClick={() => setOutlineOpen((value) => !value)} title="왼쪽 패널"><SidebarSimple /></button>
       <button className={`site-top-icon ${inspectorOpen ? 'active' : ''}`} type="button" onClick={() => setInspectorOpen((value) => !value)} title="속성 패널"><SlidersHorizontal /></button>
       {site.status === 'published' && site.id ? <a className="studio-secondary site-open-public" href={publicSiteUrl(site)} target="_blank" rel="noreferrer"><ArrowSquareOut /> 공개 페이지</a> : null}
       <button className="studio-secondary site-save" type="button" onClick={() => save()} disabled={saving}>{saving ? <SpinnerGap className="spin" /> : <FloppyDisk />} 저장</button>
       <button className="studio-primary site-publish" type="button" onClick={() => save(site.status === 'published' ? 'draft' : 'published')} disabled={saving}><GlobeHemisphereWest weight="fill" /> {site.status === 'published' ? '비공개로 전환' : '공개하기'}</button>
     </>}>
-      <main className={`site-studio ${outlineOpen ? '' : 'outline-closed'} ${inspectorOpen ? '' : 'inspector-closed'}`}>
-        <aside className="site-outline-panel" aria-hidden={!outlineOpen}>
+      <main className={`site-studio ${outlineOpen ? '' : 'outline-closed'} ${inspectorOpen ? '' : 'inspector-closed'} mobile-pane-${mobilePane}`}>
+        <nav className="site-mobile-workspace-tabs" aria-label="모바일 편집 화면">
+          <button className={mobilePane === 'layers' ? 'active' : ''} type="button" onClick={() => setMobilePane('layers')} aria-pressed={mobilePane === 'layers'}><Rows /> 레이어</button>
+          <button className={mobilePane === 'canvas' ? 'active' : ''} type="button" onClick={() => setMobilePane('canvas')} aria-pressed={mobilePane === 'canvas'}><Desktop /> 캔버스</button>
+          <button className={mobilePane === 'inspector' ? 'active' : ''} type="button" onClick={() => setMobilePane('inspector')} aria-pressed={mobilePane === 'inspector'}><SlidersHorizontal /> 속성</button>
+        </nav>
+        <aside className="site-outline-panel" aria-hidden={!outlineOpen && mobilePane !== 'layers'}>
           <nav className="site-left-tabs"><button className={leftMode === 'layers' ? 'active' : ''} type="button" onClick={() => setLeftMode('layers')}><Rows /> 레이어</button><button className={leftMode === 'blocks' ? 'active' : ''} type="button" onClick={() => setLeftMode('blocks')}><Plus /> 블록</button></nav>
           {leftMode === 'layers' ? <>
             <header><div><strong>페이지 구성</strong><span>끌어서 순서를 바꾸거나 캔버스에서 바로 편집하세요</span></div><button type="button" onClick={() => setLeftMode('blocks')} aria-label="블록 추가"><Plus /></button></header>
@@ -397,48 +497,50 @@ export default function SiteStudio() {
               {site.content.sections.map((section, index) => {
                 const info = SITE_BLOCKS.find((block) => block.type === section.type)
                 const Icon = BLOCK_ICONS[section.type] || Rows
-                return <button className={`${selectedSectionId === section.id ? 'active' : ''} ${section.enabled === false ? 'disabled-block' : ''}`} type="button" key={section.id} draggable onDragStart={() => setDragIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => { reorder(dragIndex, index); setDragIndex(-1) }} onClick={() => { setSelectedSectionId(section.id); setPanel('object'); setInspectorOpen(true) }}><DotsSixVertical /><Icon /><span><strong>{info?.label}</strong><small>{section.data?.title || section.data?.eyebrow || section.data?.label || info?.description}</small></span>{section.enabled !== false ? <Eye /> : <EyeSlash />}</button>
+                return <button className={`${selectedSectionId === section.id ? 'active' : ''} ${section.enabled === false ? 'disabled-block' : ''}`} type="button" key={section.id} draggable onDragStart={() => setDragIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => { reorder(dragIndex, index); setDragIndex(-1) }} onClick={() => selectSection(section.id, { revealCanvas: true })}><DotsSixVertical /><Icon /><span><strong>{info?.label}</strong><small>{section.data?.title || section.data?.eyebrow || section.data?.label || info?.description}</small></span>{section.enabled !== false ? <Eye /> : <EyeSlash />}</button>
               })}
             </div>
             <button className="site-add-block-primary" type="button" onClick={() => setLeftMode('blocks')}><Plus /> 블록 추가</button>
           </> : <div className="site-block-library">
             <header><strong>블록 라이브러리</strong><span>선택한 블록 바로 아래에 추가됩니다</span></header>
+            {site.content.sections.length >= MAX_SITE_SECTIONS ? <p className="site-block-limit">블록 {MAX_SITE_SECTIONS}개를 모두 사용했어요. 필요 없는 블록을 지우면 다시 추가할 수 있습니다.</p> : null}
             {Array.from(new Set(availableBlocks.map((block) => block.category))).map((category) => <section key={category}><h3>{category}</h3><div>{availableBlocks.filter((block) => block.category === category).map((block) => {
               const Icon = BLOCK_ICONS[block.type] || Rows
-              return <button type="button" key={block.type} onClick={() => addBlock(block.type)}><span className={`site-block-thumb type-${block.type}`}><Icon /></span><strong>{block.label}</strong><small>{block.description}</small></button>
+              return <button type="button" key={block.type} onClick={() => addBlock(block.type)} disabled={site.content.sections.length >= MAX_SITE_SECTIONS}><span className={`site-block-thumb type-${block.type}`}><Icon /></span><strong>{block.label}</strong><small>{block.description}</small></button>
             })}</div></section>)}
           </div>}
         </aside>
 
-        <section className={`site-canvas-stage device-${device} ${guides ? 'show-guides' : ''}`} onClick={() => setSelectedSectionId('')}>
+        <section ref={canvasStageRef} className={`site-canvas-stage device-${device} ${guides ? 'show-guides' : ''}`} onClick={() => setSelectedSectionId('')}>
           <div className="site-canvas-controls" onClick={(event) => event.stopPropagation()}>
-            <button className={guides ? 'active' : ''} type="button" onClick={() => setGuides((value) => !value)}><GridFour /> 그리드</button>
-            <label><span>확대</span><select value={zoom} onChange={(event) => setZoom(Number(event.target.value))}><option value="60">60%</option><option value="75">75%</option><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option></select></label>
+            <button className={guides ? 'active' : ''} type="button" onClick={() => setGuides((value) => !value)} aria-pressed={guides}><GridFour /> 그리드</button>
+            <label><span>확대</span><select value={zoom} onChange={(event) => setZoom(event.target.value)} aria-label="캔버스 확대"><option value="fit">화면 맞춤</option><option value="50">50%</option><option value="60">60%</option><option value="75">75%</option><option value="90">90%</option><option value="100">100%</option></select></label>
             <span className="site-shortcut-hint">Ctrl+Z 실행 취소 · Ctrl+D 복제 · Alt+↑↓ 이동</span>
           </div>
-          <div className="site-canvas-frame" style={{ '--site-editor-zoom': zoom / 100, '--site-editor-width': device === 'mobile' ? '390px' : `${10000 / zoom}%` }}><SiteRenderer site={site} project={linkedProject} editing selectedSectionId={selectedSectionId} onSelectSection={(id) => { setSelectedSectionId(id); if (id) { setPanel('object'); setInspectorOpen(true) } }} onSectionChange={updateSection} onMoveSection={moveSection} onDuplicateSection={duplicateSection} onToggleSection={toggleSection} onDeleteSection={deleteSection} /></div>
+          <div className="site-canvas-frame" style={{ '--site-editor-zoom': appliedZoom, '--site-artboard-width': device === 'mobile' ? '390px' : '1200px' }}><SiteRenderer site={site} project={linkedProject} editing selectedSectionId={selectedSectionId} onSelectSection={(id) => selectSection(id)} onSectionChange={updateSection} onMoveSection={moveSection} onDuplicateSection={duplicateSection} onToggleSection={toggleSection} onDeleteSection={deleteSection} /></div>
         </section>
 
-        <aside className="site-inspector" aria-hidden={!inspectorOpen}>
+        <aside className="site-inspector" aria-hidden={!inspectorOpen && mobilePane !== 'inspector'}>
           <nav><button className={panel === 'object' ? 'active' : ''} type="button" onClick={() => setPanel('object')}><SlidersHorizontal /> 블록</button><button className={panel === 'theme' ? 'active' : ''} type="button" onClick={() => setPanel('theme')}><PaintBrush /> 테마</button><button className={panel === 'site' ? 'active' : ''} type="button" onClick={() => setPanel('site')}><GlobeHemisphereWest /> 사이트</button></nav>
           {error ? <div className="inline-alert"><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="오류 닫기">×</button></div> : null}
           {panel === 'object' ? <div className="site-inspector-scroll">
             {selectedSection ? <>
               <section className="site-selection-head"><div><span>{selectedInfo?.category}</span><h2>{selectedInfo?.label}</h2><p>{selectedInfo?.description}</p></div><label className="site-switch"><input type="checkbox" checked={selectedSection.enabled !== false} onChange={(event) => updateSectionPatch(selectedSection.id, { enabled: event.target.checked })} /><span /></label></section>
-              <section className="site-setting-group"><h3>레이아웃</h3><div className="site-segment-field"><span>폭</span><div>{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)}>{label}</button>)}</div></div><div className="site-segment-field"><span>간격</span><div>{SECTION_STYLE_OPTIONS.spacing.map(([value, label]) => <button className={selectedSection.style?.spacing === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('spacing', value)}>{label}</button>)}</div></div><div className="site-segment-field"><span>정렬</span><div>{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)}>{label}</button>)}</div></div></section>
-              <section className="site-setting-group"><h3>표면과 효과</h3><div className="site-choice-grid">{SECTION_STYLE_OPTIONS.tone.map(([value, label]) => <button className={`${selectedSection.style?.tone === value ? 'active' : ''} tone-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('tone', value)}><i /><span>{label}</span></button>)}</div><label>배경 패턴<select value={selectedSection.style?.pattern || 'none'} onChange={(event) => updateSelectedStyle('pattern', event.target.value)}>{SECTION_STYLE_OPTIONS.pattern.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label></section>
+              <section className="site-setting-group"><h3>레이아웃</h3><div className="site-segment-field"><span>폭</span><div role="group" aria-label="블록 폭">{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)} aria-pressed={selectedSection.style?.width === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>간격</span><div role="group" aria-label="블록 간격">{SECTION_STYLE_OPTIONS.spacing.map(([value, label]) => <button className={selectedSection.style?.spacing === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('spacing', value)} aria-pressed={selectedSection.style?.spacing === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>정렬</span><div role="group" aria-label="블록 정렬">{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} aria-pressed={selectedSection.style?.align === value}>{label}</button>)}</div></div></section>
+              <section className="site-setting-group"><h3>표면과 효과</h3><div className="site-choice-grid" role="group" aria-label="블록 표면">{SECTION_STYLE_OPTIONS.tone.map(([value, label]) => <button className={`${selectedSection.style?.tone === value ? 'active' : ''} tone-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('tone', value)} aria-pressed={selectedSection.style?.tone === value}><i /><span>{label}</span></button>)}</div><label>배경 패턴<select value={selectedSection.style?.pattern || 'none'} onChange={(event) => updateSelectedStyle('pattern', event.target.value)}>{SECTION_STYLE_OPTIONS.pattern.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label></section>
+              {SITE_COLLECTION_RULES[selectedSection.type] ? <section className="site-setting-group site-item-manager"><div className="site-group-heading"><div><h3>항목 관리</h3><p>글자는 캔버스에서 바로 수정하세요</p></div><button type="button" onClick={() => changeCollectionItem('add')} disabled={selectedSection.data.items.length >= SITE_COLLECTION_RULES[selectedSection.type].max}><Plus /> 추가</button></div><div className="site-item-list">{selectedSection.data.items.map((item, index) => <div key={index}><span>{String(index + 1).padStart(2, '0')} · {typeof item === 'string' ? item : item.title || item.question || item.value || SITE_COLLECTION_RULES[selectedSection.type].label}</span><button type="button" onClick={() => changeCollectionItem('remove', index)} disabled={selectedSection.data.items.length <= SITE_COLLECTION_RULES[selectedSection.type].min} aria-label={`${index + 1}번째 ${SITE_COLLECTION_RULES[selectedSection.type].label} 삭제`}><Trash /></button></div>)}</div></section> : null}
               {['hero', 'story'].includes(selectedSection.type) ? <section className="site-setting-group"><h3>이미지</h3><ImageUpload value={selectedSection.data.imageUrl} formId={site.id} maxEdge={1600} quality={0.76} maxBytes={2 * 1024 * 1024} label="섹션 이미지" onChange={(url) => updateSection(selectedSection.id, 'imageUrl', url)} /><label>이미지 설명<input value={selectedSection.data.imageAlt || ''} onChange={(event) => updateSection(selectedSection.id, 'imageAlt', event.target.value)} /></label>{selectedSection.type === 'story' ? <label>이미지 위치<select value={selectedSection.data.imagePosition || 'right'} onChange={(event) => updateSection(selectedSection.id, 'imagePosition', event.target.value)}><option value="right">오른쪽</option><option value="left">왼쪽</option></select></label> : null}</section> : null}
               <section className="site-setting-group"><h3>빠른 작업</h3><div className="site-section-actions"><button type="button" onClick={() => duplicateSection()} disabled={selectedSection.type === 'form'}><Copy /> 복제</button><button type="button" onClick={() => toggleSection()}>{selectedSection.enabled === false ? <Eye /> : <EyeSlash />} {selectedSection.enabled === false ? '표시' : '숨김'}</button><button className="danger" type="button" onClick={() => deleteSection()} disabled={['hero', 'form'].includes(selectedSection.type)}><Trash /> 삭제</button></div></section>
             </> : <div className="site-no-selection"><SlidersHorizontal /><strong>캔버스에서 블록을 선택하세요</strong><p>글자는 바로 수정하고, 이곳에서는 폭과 간격, 배경 효과를 조절할 수 있습니다.</p><button type="button" onClick={() => { setLeftMode('blocks'); setOutlineOpen(true) }}><Plus /> 블록 추가</button></div>}
           </div> : null}
           {panel === 'theme' ? <div className="site-inspector-scroll">
-            <section className="site-setting-group"><div className="site-group-heading"><div><h3>완성형 테마</h3><p>색, 글꼴, 형태를 한 번에 적용합니다</p></div></div><div className="site-theme-list">{SITE_THEME_PRESETS.map((preset) => <button type="button" key={preset.id} onClick={() => changeSite({ ...site, theme: { ...preset.theme } })}><span style={{ background: preset.theme.background, color: preset.theme.text }}><i style={{ background: preset.theme.accent }} /></span><span><strong>{preset.name}</strong><small>{preset.description}</small></span>{site.theme.accent === preset.theme.accent && site.theme.background === preset.theme.background ? <Check /> : null}</button>)}</div></section>
+            <section className="site-setting-group"><div className="site-group-heading"><div><h3>완성형 테마</h3><p>색, 글꼴, 형태를 한 번에 적용합니다</p></div></div><div className="site-theme-list">{SITE_THEME_PRESETS.map((preset) => { const active = site.theme.accent === preset.theme.accent && site.theme.background === preset.theme.background; return <button type="button" key={preset.id} onClick={() => changeSite((current) => ({ ...current, theme: { ...preset.theme } }))} aria-pressed={active}><span style={{ background: preset.theme.background, color: preset.theme.text }}><i style={{ background: preset.theme.accent }} /></span><span><strong>{preset.name}</strong><small>{preset.description}</small></span>{active ? <Check /> : null}</button> })}</div></section>
             <section className="site-setting-group"><h3>색상</h3><div className="site-color-grid">{[['accent', '강조'], ['background', '배경'], ['surface', '표면'], ['text', '글자']].map(([key, label]) => <label key={key}><span>{label}</span><input type="color" value={site.theme[key]} onChange={(event) => changeSite({ ...site, theme: { ...site.theme, [key]: event.target.value } })} /></label>)}</div></section>
             <section className="site-setting-group"><h3>타이포그래피</h3><label>글꼴<select value={site.theme.font} onChange={(event) => changeSite({ ...site, theme: { ...site.theme, font: event.target.value } })}>{FONT_PRESETS.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>제목 크기 <span>{Math.round((site.theme.displayScale || 1) * 100)}%</span><input type="range" min="75" max="135" value={Math.round((site.theme.displayScale || 1) * 100)} onChange={(event) => changeSite({ ...site, theme: { ...site.theme, displayScale: Number(event.target.value) / 100 } })} /></label><label>본문 크기 <span>{Math.round((site.theme.bodyScale || 1) * 100)}%</span><input type="range" min="80" max="125" value={Math.round((site.theme.bodyScale || 1) * 100)} onChange={(event) => changeSite({ ...site, theme: { ...site.theme, bodyScale: Number(event.target.value) / 100 } })} /></label><label>전체 여백 <span>{Math.round((site.theme.sectionScale || 1) * 100)}%</span><input type="range" min="70" max="135" value={Math.round((site.theme.sectionScale || 1) * 100)} onChange={(event) => changeSite({ ...site, theme: { ...site.theme, sectionScale: Number(event.target.value) / 100 } })} /></label><label>모서리 <span>{site.theme.radius}px</span><input type="range" min="0" max="32" value={site.theme.radius} onChange={(event) => changeSite({ ...site, theme: { ...site.theme, radius: Number(event.target.value) } })} /></label></section>
           </div> : null}
           {panel === 'site' ? <div className="site-inspector-scroll">
             <section className="site-setting-group"><h3>기본 설정</h3><label>브랜드 이름<input value={site.content.brandName} onChange={(event) => changeSite({ ...site, content: { ...site.content, brandName: event.target.value } })} /></label><label>공개 주소<div className="site-slug-input"><span>/p/</span><input value={site.slug} onChange={(event) => changeSite({ ...site, slug: event.target.value })} placeholder="signal-note" /></div></label><label>연결할 신청 폼<select value={site.formProjectId} onChange={(event) => changeSite({ ...site, formProjectId: event.target.value })}><option value="">폼을 선택해 주세요</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.title} {project.status === 'published' ? '(공개)' : '(초안)'}</option>)}</select></label>{linkedProject?.status === 'draft' ? <p className="site-setting-help">사이트를 공개하려면 이 폼도 먼저 공개해야 합니다.</p> : null}</section>
-            <section className="site-setting-group"><h3>하단 안내</h3><label>문구<textarea rows="4" value={site.settings.footerText} onChange={(event) => changeSite({ ...site, settings: { ...site.settings, footerText: event.target.value } })} /></label><label className="site-check-row"><input type="checkbox" checked={site.settings.showBrand !== false} onChange={(event) => changeSite({ ...site, settings: { ...site.settings, showBrand: event.target.checked } })} /><span><strong>하단 브랜드 표시</strong><small>페이지 끝에 브랜드 이름을 보여줍니다.</small></span></label></section>
+            <section className="site-setting-group"><h3>하단 안내</h3><label>문구<textarea rows="4" value={site.settings.footerText} onChange={(event) => changeSite((current) => ({ ...current, settings: { ...current.settings, footerText: event.target.value } }))} /></label><label className="site-check-row"><input type="checkbox" checked={site.settings.showBrand !== false} onChange={(event) => changeSite((current) => ({ ...current, settings: { ...current.settings, showBrand: event.target.checked } }))} /><span><strong>하단 브랜드 표시</strong><small>페이지 끝에 브랜드 이름을 보여줍니다.</small></span></label><label className="site-check-row"><input type="checkbox" checked={site.settings.stickyCta !== false} onChange={(event) => changeSite((current) => ({ ...current, settings: { ...current.settings, stickyCta: event.target.checked } }))} /><span><strong>모바일 신청 버튼 고정</strong><small>작은 화면 아래에 신청 버튼을 계속 보여줍니다.</small></span></label></section>
             <section className="site-storage-card"><div><strong>저장 용량</strong><span>{formatDataSize(storageSummary.bytes)} 설정 · 이미지 {storageSummary.imageCount}개</span></div><p>테마, 패턴, 레이아웃은 작은 설정값으로 저장됩니다. 이미지는 올릴 때 자동으로 WebP 압축하고, 교체하거나 삭제하면 이전 파일도 정리합니다.</p></section>
           </div> : null}
         </aside>

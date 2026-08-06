@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { emptySite, makeSiteSection, sanitizeSite, SITE_BLOCKS } from '../src/lib/siteMaker'
+import {
+  addSiteCollectionItem,
+  emptySite,
+  makeSiteSection,
+  MAX_SITE_SECTIONS,
+  removeSiteCollectionItem,
+  sanitizeSite,
+  SITE_BLOCKS,
+  SITE_COLLECTION_RULES,
+} from '../src/lib/siteMaker'
 
 describe('landing site maker', () => {
   it('keeps code-native design settings compact', () => {
@@ -46,5 +55,26 @@ describe('landing site maker', () => {
     const result = sanitizeSite({ ...base, title: '이전 사이트', content: { ...base.content, sections: legacySections } })
     expect(result.content.sections.every((section) => section.style.pattern)).toBe(true)
     expect(result.content.sections.find((section) => section.type === 'hero').style.pattern).toBe('grid')
+  })
+
+  it('adds and removes repeatable content without exceeding safe limits', () => {
+    Object.entries(SITE_COLLECTION_RULES).forEach(([type, rule]) => {
+      let section = makeSiteSection(type)
+      while (section.data.items.length < rule.max) section = addSiteCollectionItem(section)
+      expect(section.data.items).toHaveLength(rule.max)
+      expect(addSiteCollectionItem(section)).toBe(section)
+      while (section.data.items.length > rule.min) section = removeSiteCollectionItem(section, 0)
+      expect(section.data.items).toHaveLength(rule.min)
+      expect(removeSiteCollectionItem(section, 0)).toBe(section)
+    })
+  })
+
+  it('silently clamps oversized legacy pages instead of storing unbounded JSON', () => {
+    const base = emptySite()
+    const sections = Array.from({ length: MAX_SITE_SECTIONS + 12 }, () => makeSiteSection('story'))
+    sections[0] = makeSiteSection('hero')
+    sections[1] = makeSiteSection('form')
+    const result = sanitizeSite({ ...base, title: '큰 사이트', content: { ...base.content, sections } })
+    expect(result.content.sections).toHaveLength(MAX_SITE_SECTIONS)
   })
 })

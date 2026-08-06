@@ -444,7 +444,7 @@ export default function Studio() {
   const center = (
     <div className="studio-name">
       <strong>{project.title || '제목 없는 폼'}</strong>
-      <span className={project.status}>{project.status === 'published' ? '게시 중' : '초안'}</span>
+      <span className={project.status}>{project.status === 'published' ? '공개됨' : '초안'}</span>
     </div>
   )
 

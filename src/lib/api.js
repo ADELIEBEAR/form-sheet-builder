@@ -197,7 +197,11 @@ async function uploadAsset(formData) {
   if (error) fail(error, '이미지를 업로드하지 못했습니다.')
   const { data } = supabase.storage.from(ASSET_BUCKET).getPublicUrl(path)
   const oldPath = assetPath(formData.get('oldUrl'))
-  if (oldPath?.startsWith(`${user.id}/`)) supabase.storage.from(ASSET_BUCKET).remove([oldPath]).catch(() => {})
+  if (oldPath?.startsWith(`${user.id}/`)) {
+    void supabase.storage.from(ASSET_BUCKET).remove([oldPath]).then(({ error: cleanupError }) => {
+      if (cleanupError) console.warn('Previous image cleanup failed', cleanupError)
+    })
+  }
   return { url: data.publicUrl }
 }
 
@@ -307,7 +311,9 @@ export async function api(path, options = {}) {
       const syncKey = crypto.randomUUID()
       const { error } = await supabase.from('form_maker_submissions').insert({ id: submissionId, project_id: row.id, answers, sync_key: syncKey, sheet_sync_status: 'pending' })
       if (error) fail(error, '응답을 저장하지 못했습니다.')
-      await invokeSheetSync(row.id, submissionId, syncKey).catch(() => {})
+      // The submission is already safely stored. Google Sheets is a backup path,
+      // so never keep the applicant waiting for that slower follow-up request.
+      void invokeSheetSync(row.id, submissionId, syncKey).catch((syncError) => console.warn('Sheet backup delayed', syncError))
       return { ok: true, id: submissionId }
     }
 

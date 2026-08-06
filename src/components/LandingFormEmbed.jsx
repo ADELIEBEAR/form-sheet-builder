@@ -63,7 +63,7 @@ export default function LandingFormEmbed({ project, preview = false }) {
         selectPlaceholder={project.settings?.selectPlaceholder || '선택해 주세요'}
         consentLabel={project.settings?.consentLabel || '내용을 확인했으며 동의합니다.'}
       />)}
-      <label className="honeypot" aria-hidden="true">웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
+      <label className="honeypot" aria-hidden="true" hidden>웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
       {message ? <p className="site-form-error"><WarningCircle weight="fill" />{message}</p> : null}
       <button className="site-submit-button" type="submit" disabled={preview || status === 'submitting'}>
         {status === 'submitting' ? <SpinnerGap className="spin" /> : null}

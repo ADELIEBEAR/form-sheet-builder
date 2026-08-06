@@ -146,7 +146,7 @@ export default function Workspace() {
             <button className="project-open" type="button" onClick={() => navigate(`/studio/${project.id}`)}>
               <span className={project.theme?.coverUrl ? 'project-thumb has-cover' : 'project-thumb'} style={project.theme?.coverUrl ? { backgroundImage: `url("${project.theme.coverUrl}")` } : { '--thumb-bg': project.theme?.background, '--thumb-accent': project.theme?.accent }}><i /><i /><b /></span>
               <span className="project-copy">
-                <span className="project-card-meta"><b>{project.status === 'published' ? '게시 중' : '초안'}</b></span>
+                <span className="project-card-meta"><b>{project.status === 'published' ? '공개됨' : '초안'}</b></span>
                 <strong>{project.title}</strong>
                 <small>/s/{project.slug}</small>
                 <time>{new Date(project.updatedAt).toLocaleDateString('ko-KR')} 수정</time>

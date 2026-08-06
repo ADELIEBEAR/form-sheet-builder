@@ -4,6 +4,7 @@
   },
   "rewrites": [
     { "source": "/s/:slug", "destination": "/api/share?slug=:slug" },
+    { "source": "/p/:slug", "destination": "/api/share?type=site&slug=:slug" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

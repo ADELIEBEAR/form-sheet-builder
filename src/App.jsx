@@ -7,6 +7,9 @@ import PublicForm from './pages/PublicForm'
 import Responses from './pages/Responses'
 import Templates from './pages/Templates'
 import AllResponses from './pages/AllResponses'
+import SiteStudio from './pages/SiteStudio'
+import SiteWorkspace from './pages/SiteWorkspace'
+import PublicSite from './pages/PublicSite'
 
 function Protected({ children }) {
   const { user, loading } = useAuth()
@@ -22,10 +25,14 @@ export default function App() {
       <Route path="/workspace" element={<Protected><Workspace /></Protected>} />
       <Route path="/templates" element={<Protected><Templates /></Protected>} />
       <Route path="/responses" element={<Protected><AllResponses /></Protected>} />
+      <Route path="/sites" element={<Protected><SiteWorkspace /></Protected>} />
+      <Route path="/site/new" element={<Protected><SiteStudio /></Protected>} />
+      <Route path="/site/:siteId" element={<Protected><SiteStudio /></Protected>} />
       <Route path="/studio/new" element={<Protected><Studio /></Protected>} />
       <Route path="/studio/:projectId" element={<Protected><Studio /></Protected>} />
       <Route path="/responses/:projectId" element={<Protected><Responses /></Protected>} />
       <Route path="/s/:slug" element={<PublicForm />} />
+      <Route path="/p/:slug" element={<PublicSite />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

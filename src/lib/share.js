@@ -12,3 +12,13 @@ export function publicFormPath(project) {
 export function publicFormUrl(project, origin = window.location.origin) {
   return new URL(publicFormPath(project), origin).toString()
 }
+
+export function publicSitePath(site) {
+  const slug = encodeURIComponent(String(site?.slug || '').trim())
+  const version = shareVersion(site?.updatedAt)
+  return `/p/${slug}${version ? `?v=${version}` : ''}`
+}
+
+export function publicSiteUrl(site, origin = window.location.origin) {
+  return new URL(publicSitePath(site), origin).toString()
+}

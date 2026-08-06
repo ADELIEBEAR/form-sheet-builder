@@ -1,6 +1,7 @@
 import { ASSET_BUCKET, supabase } from './supabase'
 import { listResponseAdminSubmissions, lockResponseAdmin, responseAdminRequest } from './admin'
 import { normalizeConsentFields, normalizeMemoColor } from './maker'
+import { sanitizeSite } from './siteMaker'
 import { sanitizeProject, validateAnswers, ValidationError } from './validation'
 
 export class ApiError extends Error {
@@ -44,6 +45,23 @@ function serializeProject(row, meta = null) {
     memo: meta?.memo || '',
     memoColor: normalizeMemoColor(meta?.memo_color || meta?.memoColor),
     responseLockEnabled: Boolean(meta?.response_lock_enabled),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function serializeSite(row) {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    formProjectId: row.form_project_id || '',
+    title: row.title,
+    slug: row.slug,
+    content: row.content || {},
+    theme: row.theme || {},
+    settings: row.settings || {},
+    status: row.status || 'draft',
+    publishedAt: row.published_at || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -110,6 +128,20 @@ async function ownedProject(id) {
   const user = await requireUser()
   const { data, error } = await supabase.from('form_maker_projects').select('*').eq('id', id).eq('owner_id', user.id).single()
   if (error || !data) throw new ApiError('폼을 찾을 수 없습니다.', error?.code === 'PGRST116' ? 404 : 500, error)
+  return data
+}
+
+async function ownedSite(id) {
+  const user = await requireUser()
+  const { data, error } = await supabase.from('form_maker_sites').select('*').eq('id', id).eq('owner_id', user.id).single()
+  if (error || !data) throw new ApiError('홍보 사이트를 찾을 수 없습니다.', error?.code === 'PGRST116' ? 404 : 500, error)
+  return data
+}
+
+async function verifyLinkedProject(projectId, userId) {
+  if (!projectId) return null
+  const { data, error } = await supabase.from('form_maker_projects').select('id,status,title').eq('id', projectId).eq('owner_id', userId).single()
+  if (error || !data) throw new ApiError('연결할 폼을 찾을 수 없습니다.', 400, error)
   return data
 }
 
@@ -189,6 +221,23 @@ export async function api(path, options = {}) {
       return { project: serializeProject(data, meta) }
     }
 
+    if (path === '/maker/sites' && method === 'GET') {
+      const user = await requireUser()
+      const { data, error } = await supabase.from('form_maker_sites').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false })
+      if (error) fail(error, '홍보 사이트 목록을 불러오지 못했습니다.')
+      return { sites: (data || []).map(serializeSite) }
+    }
+
+    if (path === '/maker/sites' && method === 'POST') {
+      const user = await requireUser()
+      const input = sanitizeSite(body)
+      await verifyLinkedProject(input.form_project_id, user.id)
+      const { data, error } = await supabase.from('form_maker_sites').insert({ ...input, owner_id: user.id }).select().single()
+      if (error?.code === '23505') throw new ApiError('이미 사용 중인 사이트 주소입니다.', 409, error)
+      if (error) fail(error, '홍보 사이트를 만들지 못했습니다.')
+      return { site: serializeSite(data) }
+    }
+
     if (path === '/maker/submissions' && method === 'GET') {
       await requireUser()
       return { submissions: await listSubmissions() }
@@ -213,6 +262,18 @@ export async function api(path, options = {}) {
       await requireUser()
       await lockResponseAdmin()
       return { ok: true }
+    }
+
+    const publicSiteMatch = path.match(/^\/maker\/public-sites\/([^/]+)$/)
+    if (publicSiteMatch && method === 'GET') {
+      const { data, error } = await supabase.from('form_maker_sites').select('*').eq('slug', decodeURIComponent(publicSiteMatch[1])).eq('status', 'published').single()
+      if (error || !data) throw new ApiError('공개되지 않았거나 존재하지 않는 사이트입니다.', 404, error)
+      let project = null
+      if (data.form_project_id) {
+        const { data: projectRow } = await supabase.from('form_maker_projects').select('*').eq('id', data.form_project_id).eq('status', 'published').maybeSingle()
+        if (projectRow) project = serializeProject(projectRow)
+      }
+      return { site: serializeSite(data), project }
     }
 
     const publicMatch = path.match(/^\/maker\/public\/([^/]+)$/)
@@ -287,6 +348,28 @@ export async function api(path, options = {}) {
       const copiedMeta = currentMeta.get(current.id)
       const meta = await saveProjectMeta(data.id, { folder: copiedMeta?.folder || '', memo: copiedMeta?.memo || '', memoColor: copiedMeta?.memo_color || 'lemon' })
       return { project: serializeProject(data, meta) }
+    }
+
+    const siteMatch = path.match(/^\/maker\/sites\/([^/]+)$/)
+    if (siteMatch && method === 'GET') {
+      return { site: serializeSite(await ownedSite(siteMatch[1])) }
+    }
+    if (siteMatch && method === 'PUT') {
+      const user = await requireUser()
+      await ownedSite(siteMatch[1])
+      const input = sanitizeSite(body)
+      await verifyLinkedProject(input.form_project_id, user.id)
+      const { data, error } = await supabase.from('form_maker_sites').update(input).eq('id', siteMatch[1]).eq('owner_id', user.id).select().single()
+      if (error?.code === '23505') throw new ApiError('이미 사용 중인 사이트 주소입니다.', 409, error)
+      if (error) fail(error, '홍보 사이트를 저장하지 못했습니다.')
+      return { site: serializeSite(data) }
+    }
+    if (siteMatch && method === 'DELETE') {
+      const user = await requireUser()
+      await ownedSite(siteMatch[1])
+      const { error } = await supabase.from('form_maker_sites').delete().eq('id', siteMatch[1]).eq('owner_id', user.id)
+      if (error) fail(error, '홍보 사이트를 삭제하지 못했습니다.')
+      return null
     }
 
     const projectMatch = path.match(/^\/maker\/projects\/([^/]+)$/)

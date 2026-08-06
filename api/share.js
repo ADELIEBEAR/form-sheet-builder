@@ -33,6 +33,16 @@ export function shareMetadata(project, pageUrl) {
   return { title, description, image, pageUrl }
 }
 
+export function siteShareMetadata(site, pageUrl) {
+  const sections = Array.isArray(site?.content?.sections) ? site.content.sections : []
+  const hero = sections.find((section) => section?.type === 'hero')?.data || {}
+  const story = sections.find((section) => section?.type === 'story' && section?.data?.imageUrl)?.data || {}
+  const title = String(site?.title || hero.title || '신청 안내').trim().slice(0, 100)
+  const description = String(hero.description || '').trim().slice(0, 240)
+  const image = safeImageUrl(hero.imageUrl || story.imageUrl)
+  return { title, description, image, pageUrl }
+}
+
 export function injectShareMetadata(indexHtml, metadata) {
   const title = escapeHtml(metadata.title)
   const description = escapeHtml(metadata.description)
@@ -76,6 +86,21 @@ async function loadPublishedProject(slug) {
   return Array.isArray(rows) ? rows[0] || null : null
 }
 
+async function loadPublishedSite(slug) {
+  const params = new URLSearchParams({
+    select: 'slug,title,content,theme,settings',
+    slug: `eq.${slug}`,
+    status: 'eq.published',
+    limit: '1',
+  })
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/form_maker_sites?${params}`, {
+    headers: { apikey: SUPABASE_KEY, accept: 'application/json' },
+  })
+  if (!response.ok) return null
+  const rows = await response.json().catch(() => [])
+  return Array.isArray(rows) ? rows[0] || null : null
+}
+
 async function loadAppShell() {
   const candidates = [join(process.cwd(), 'dist', 'index.html'), join(process.cwd(), 'index.html')]
   for (const path of candidates) {
@@ -90,8 +115,10 @@ async function loadAppShell() {
 export default async function handler(request, response) {
   const rawSlug = Array.isArray(request.query?.slug) ? request.query.slug[0] : request.query?.slug
   const rawVersion = Array.isArray(request.query?.v) ? request.query.v[0] : request.query?.v
+  const rawType = Array.isArray(request.query?.type) ? request.query.type[0] : request.query?.type
   const slug = String(rawSlug || '').normalize('NFKC').slice(0, 64)
   const version = /^[a-z0-9_-]{1,32}$/i.test(String(rawVersion || '')) ? String(rawVersion) : ''
+  const type = rawType === 'site' ? 'site' : 'form'
   try {
     const indexHtml = await loadAppShell()
     if (!/^[\p{L}\p{N}-]{1,64}$/u.test(slug)) {
@@ -99,14 +126,16 @@ export default async function handler(request, response) {
       return response.status(200).send(indexHtml)
     }
 
-    const project = await loadPublishedProject(slug)
-    const pageUrl = `https://form-maker-next.vercel.app/s/${encodeURIComponent(slug)}${version ? `?v=${encodeURIComponent(version)}` : ''}`
-    const html = project ? injectShareMetadata(indexHtml, shareMetadata(project, pageUrl)) : indexHtml
+    const record = type === 'site' ? await loadPublishedSite(slug) : await loadPublishedProject(slug)
+    const route = type === 'site' ? 'p' : 's'
+    const pageUrl = `https://form-maker-next.vercel.app/${route}/${encodeURIComponent(slug)}${version ? `?v=${encodeURIComponent(version)}` : ''}`
+    const metadata = type === 'site' ? siteShareMetadata(record, pageUrl) : shareMetadata(record, pageUrl)
+    const html = record ? injectShareMetadata(indexHtml, metadata) : indexHtml
     response.setHeader('content-type', 'text/html; charset=utf-8')
     response.setHeader('cache-control', 'public, s-maxage=60, stale-while-revalidate=300')
     return response.status(200).send(html)
   } catch {
     response.setHeader('content-type', 'text/html; charset=utf-8')
-    return response.status(500).send('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>폼을 열 수 없습니다</title></head><body><p>잠시 후 다시 시도해 주세요.</p></body></html>')
+    return response.status(500).send('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>페이지를 열 수 없습니다</title></head><body><p>잠시 후 다시 시도해 주세요.</p></body></html>')
   }
 }

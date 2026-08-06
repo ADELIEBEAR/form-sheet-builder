@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { injectShareMetadata, shareMetadata } from '../api/share.js'
-import { publicFormPath, publicFormUrl, shareVersion } from '../src/lib/share.js'
+import { injectShareMetadata, shareMetadata, siteShareMetadata } from '../api/share.js'
+import { publicFormPath, publicFormUrl, publicSitePath, publicSiteUrl, shareVersion } from '../src/lib/share.js'
 
 describe('public form share metadata', () => {
   it('adds a stable edit version so messenger previews refresh after changes', () => {
@@ -56,6 +56,24 @@ describe('public form share metadata', () => {
       title: '예약 신청',
       description: '날짜를 골라주세요.',
       image: '',
+    })
+  })
+
+  it('builds a versioned public site link and uses site copy for messenger previews', () => {
+    const site = {
+      slug: 'semicon-signal',
+      title: '삼성전자 대응알림',
+      updatedAt: '2026-08-06T03:00:00.000Z',
+      content: { sections: [{ type: 'hero', data: { title: '흔들릴 때 확인할 기준', description: '중요한 변화를 빠르게 알려드립니다.', imageUrl: 'https://example.com/site.webp' } }] },
+    }
+    const version = shareVersion(site.updatedAt)
+    expect(publicSitePath(site)).toBe(`/p/semicon-signal?v=${version}`)
+    expect(publicSiteUrl(site, 'https://form-maker-next.vercel.app')).toBe(`https://form-maker-next.vercel.app/p/semicon-signal?v=${version}`)
+    expect(siteShareMetadata(site, 'https://form-maker-next.vercel.app/p/semicon-signal')).toEqual({
+      title: '삼성전자 대응알림',
+      description: '중요한 변화를 빠르게 알려드립니다.',
+      image: 'https://example.com/site.webp',
+      pageUrl: 'https://form-maker-next.vercel.app/p/semicon-signal',
     })
   })
 })

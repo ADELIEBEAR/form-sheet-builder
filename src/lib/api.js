@@ -174,6 +174,19 @@ function assetPath(url) {
   return index < 0 ? '' : decodeURIComponent(String(url).slice(index + marker.length))
 }
 
+async function removeOwnedAssets(urls, ownerId) {
+  const paths = [...new Set((urls || []).map(assetPath).filter((path) => path?.startsWith(`${ownerId}/`)))]
+  if (!paths.length) return
+  const { error } = await supabase.storage.from(ASSET_BUCKET).remove(paths)
+  if (error) fail(error, '이미지 파일을 정리하지 못했습니다.')
+}
+
+async function deleteAsset(url) {
+  const user = await requireUser()
+  await removeOwnedAssets([url], user.id)
+  return { ok: true }
+}
+
 async function uploadAsset(formData) {
   const user = await requireUser()
   const file = formData.get('file')
@@ -299,6 +312,7 @@ export async function api(path, options = {}) {
     }
 
     if (path === '/maker/assets' && method === 'POST') return uploadAsset(body)
+    if (path === '/maker/assets' && method === 'DELETE') return deleteAsset(body?.url)
 
     const metaMatch = path.match(/^\/maker\/projects\/([^/]+)\/meta$/)
     if (metaMatch && method === 'PATCH') {
@@ -365,10 +379,11 @@ export async function api(path, options = {}) {
       return { site: serializeSite(data) }
     }
     if (siteMatch && method === 'DELETE') {
-      const user = await requireUser()
-      await ownedSite(siteMatch[1])
-      const { error } = await supabase.from('form_maker_sites').delete().eq('id', siteMatch[1]).eq('owner_id', user.id)
+      const current = await ownedSite(siteMatch[1])
+      const { error } = await supabase.from('form_maker_sites').delete().eq('id', siteMatch[1]).eq('owner_id', current.owner_id)
       if (error) fail(error, '홍보 사이트를 삭제하지 못했습니다.')
+      const imageUrls = (current.content?.sections || []).map((section) => section?.data?.imageUrl).filter(Boolean)
+      await removeOwnedAssets(imageUrls, current.owner_id).catch(() => {})
       return null
     }
 

@@ -1,5 +1,15 @@
-import { ArrowDown, ArrowRight, ImageSquare, ShieldCheck } from '@phosphor-icons/react'
-import { siteThemeStyle } from '../lib/siteMaker'
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  Copy,
+  DotsSixVertical,
+  EyeSlash,
+  ImageSquare,
+  ShieldCheck,
+  Trash,
+} from '@phosphor-icons/react'
+import { SITE_BLOCKS, siteThemeStyle } from '../lib/siteMaker'
 import LandingFormEmbed from './LandingFormEmbed'
 
 function Editable({ value, onChange, as = 'input', publicAs, className = '', label }) {
@@ -11,14 +21,15 @@ function Editable({ value, onChange, as = 'input', publicAs, className = '', lab
   return <Tag className={`site-inline-edit ${className}`} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} rows={as === 'textarea' ? 3 : undefined} />
 }
 
+function goToForm() {
+  document.getElementById('site-application-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function Hero({ section, edit }) {
   const data = section.data
   const editing = Boolean(edit('title'))
-  function goToForm() {
-    document.getElementById('site-application-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
   return (
-    <section className={`site-section site-hero ${data.align === 'center' ? 'is-centered' : ''}`}>
+    <section className={`site-section site-hero ${section.style?.align === 'center' || data.align === 'center' ? 'is-centered' : ''}`}>
       <div className="site-hero-copy">
         <Editable as="span" publicAs="span" className="site-hero-eyebrow" value={data.eyebrow} onChange={edit('eyebrow')} label="첫 화면 작은 제목" />
         <Editable as="textarea" publicAs="h1" className="site-hero-title" value={data.title} onChange={edit('title')} label="첫 화면 제목" />
@@ -28,6 +39,12 @@ function Hero({ section, edit }) {
       {data.imageUrl ? <figure className="site-hero-image"><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>}
     </section>
   )
+}
+
+function Ticker({ section, edit }) {
+  const items = section.data.items || []
+  const repeated = [...items, ...items]
+  return <section className="site-section site-ticker" aria-label="주요 안내"><div className="site-ticker-track">{repeated.map((item, index) => <span key={`${index}-${item}`}><Editable value={item} onChange={index < items.length ? edit(`items.${index}`) : undefined} publicAs="strong" label={`${index + 1}번째 알림 문구`} /></span>)}</div></section>
 }
 
 function Benefits({ section, edit }) {
@@ -56,9 +73,34 @@ function Story({ section, edit, editing }) {
         <Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="상세 설명 제목" />
         <Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="상세 설명 내용" />
       </div>
-      {data.imageUrl ? <figure><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : editing ? <div className="site-image-placeholder"><ImageSquare /><span>오른쪽 설정에서 이미지를 추가할 수 있어요</span></div> : null}
+      {data.imageUrl ? <figure><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : editing ? <div className="site-image-placeholder"><ImageSquare /><span>속성 패널에서 이미지를 추가할 수 있어요</span></div> : null}
     </section>
   )
+}
+
+function Cards({ section, edit }) {
+  const data = section.data
+  return <section className="site-section site-cards"><header><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="카드 영역 제목" /><Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="카드 영역 설명" /></header><div className="site-card-mosaic">{data.items.map((item, index) => <article key={index}><span>{String(index + 1).padStart(2, '0')}</span><Editable as="textarea" publicAs="h3" value={item.title} onChange={edit(`items.${index}.title`)} label={`${index + 1}번째 카드 제목`} /><Editable as="textarea" publicAs="p" value={item.description} onChange={edit(`items.${index}.description`)} label={`${index + 1}번째 카드 설명`} /></article>)}</div></section>
+}
+
+function Stats({ section, edit }) {
+  const data = section.data
+  return <section className="site-section site-stats"><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="핵심 수치 제목" /><div>{data.items.map((item, index) => <article key={index}><Editable value={item.value} publicAs="strong" onChange={edit(`items.${index}.value`)} label={`${index + 1}번째 강조 값`} /><Editable value={item.label} publicAs="span" onChange={edit(`items.${index}.label`)} label={`${index + 1}번째 강조 설명`} /></article>)}</div></section>
+}
+
+function Steps({ section, edit }) {
+  const data = section.data
+  return <section className="site-section site-steps"><header><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="진행 과정 제목" /><Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="진행 과정 설명" /></header><ol>{data.items.map((item, index) => <li key={index}><span>{index + 1}</span><div><Editable value={item.title} publicAs="h3" onChange={edit(`items.${index}.title`)} label={`${index + 1}번째 과정 제목`} /><Editable as="textarea" publicAs="p" value={item.description} onChange={edit(`items.${index}.description`)} label={`${index + 1}번째 과정 설명`} /></div></li>)}</ol></section>
+}
+
+function Quote({ section, edit }) {
+  const data = section.data
+  return <section className="site-section site-quote"><blockquote><Editable as="textarea" publicAs="p" value={data.quote} onChange={edit('quote')} label="인용 문구" /></blockquote><div><Editable value={data.name} publicAs="strong" onChange={edit('name')} label="인용 이름" /><Editable value={data.role} publicAs="span" onChange={edit('role')} label="인용 설명" /></div></section>
+}
+
+function Faq({ section, edit, editing }) {
+  const data = section.data
+  return <section className="site-section site-faq"><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="자주 묻는 질문 제목" /><div>{data.items.map((item, index) => editing ? <article key={index}><Editable value={item.question} publicAs="h3" onChange={edit(`items.${index}.question`)} label={`${index + 1}번째 질문`} /><Editable as="textarea" publicAs="p" value={item.answer} onChange={edit(`items.${index}.answer`)} label={`${index + 1}번째 답변`} /></article> : <details key={index} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
 }
 
 function FormSection({ section, edit, project, preview }) {
@@ -74,21 +116,41 @@ function FormSection({ section, edit, project, preview }) {
   )
 }
 
-function Notice({ section, edit }) {
+function Cta({ section, edit }) {
   const data = section.data
-  return (
-    <section className="site-section site-notice">
-      <ShieldCheck weight="fill" />
-      <div>
-        <Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="안내사항 제목" />
-        <Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="안내사항 내용" />
-      </div>
-    </section>
-  )
+  const editing = Boolean(edit('title'))
+  return <section className="site-section site-cta"><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="신청 유도 제목" /><Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="신청 유도 설명" />{editing ? <div className="site-main-cta is-editor-control"><Editable value={data.buttonLabel} onChange={edit('buttonLabel')} publicAs="span" label="신청 유도 버튼" /><ArrowRight /></div> : <button type="button" className="site-main-cta" onClick={goToForm}><span>{data.buttonLabel}</span><ArrowRight /></button>}</section>
 }
 
-export default function SiteRenderer({ site, project, editing = false, selectedSectionId = '', onSelectSection, onSectionChange }) {
+function Notice({ section, edit }) {
+  const data = section.data
+  return <section className="site-section site-notice"><ShieldCheck weight="fill" /><div><Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="안내사항 제목" /><Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="안내사항 내용" /></div></section>
+}
+
+function Divider({ section, edit }) {
+  return <section className="site-section site-divider"><span /><Editable value={section.data.label} publicAs="strong" onChange={edit('label')} label="구분선 문구" /><span /></section>
+}
+
+function BlockToolbar({ section, index, count, onMoveSection, onDuplicateSection, onToggleSection, onDeleteSection }) {
+  const locked = ['hero', 'form'].includes(section.type)
+  return <div className="site-block-toolbar" role="toolbar" aria-label="선택한 블록 도구" onClick={(event) => event.stopPropagation()}>
+    <span className="site-toolbar-grip"><DotsSixVertical weight="bold" /></span>
+    <button type="button" onClick={() => onMoveSection?.(section.id, -1)} disabled={index === 0} title="위로 이동" aria-label="위로 이동"><ArrowUp /></button>
+    <button type="button" onClick={() => onMoveSection?.(section.id, 1)} disabled={index === count - 1} title="아래로 이동" aria-label="아래로 이동"><ArrowDown /></button>
+    <button type="button" onClick={() => onDuplicateSection?.(section.id)} disabled={section.type === 'form'} title="복제" aria-label="블록 복제"><Copy /></button>
+    <button type="button" onClick={() => onToggleSection?.(section.id)} title="숨기기" aria-label="블록 숨기기"><EyeSlash /></button>
+    <button className="danger" type="button" onClick={() => onDeleteSection?.(section.id)} disabled={locked} title="삭제" aria-label="블록 삭제"><Trash /></button>
+  </div>
+}
+
+function sectionClass(section) {
+  const style = section.style || {}
+  return ['site-block-shell', `site-tone-${style.tone || 'inherit'}`, `site-space-${style.spacing || 'normal'}`, `site-width-${style.width || 'wide'}`, `site-align-${style.align || 'left'}`, `site-pattern-${style.pattern || 'none'}`].join(' ')
+}
+
+export default function SiteRenderer({ site, project, editing = false, selectedSectionId = '', onSelectSection, onSectionChange, onMoveSection, onDuplicateSection, onToggleSection, onDeleteSection }) {
   const sections = site.content?.sections || []
+  const visibleSections = sections.filter((section) => section.enabled !== false)
   const brandName = site.content?.brandName || 'SIGNAL NOTE'
   function change(section, path) {
     if (!onSectionChange) return undefined
@@ -106,16 +168,27 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
         <a href="#site-application-form">신청하기 <ArrowRight /></a>
       </nav>
       <main>
-        {sections.filter((section) => section.enabled !== false).map((section) => (
-          <div className={`site-block-shell ${selectedSectionId === section.id ? 'is-selected' : ''}`} key={section.id} onClick={(event) => select(event, section.id)}>
-            {editing ? <span className="site-block-label">{section.type === 'hero' ? '첫 화면' : section.type === 'benefits' ? '핵심 안내' : section.type === 'story' ? '상세 설명' : section.type === 'form' ? '신청 폼' : '안내사항'}</span> : null}
-            {section.type === 'hero' ? <Hero section={section} edit={(path) => change(section, path)} /> : null}
-            {section.type === 'benefits' ? <Benefits section={section} edit={(path) => change(section, path)} /> : null}
-            {section.type === 'story' ? <Story section={section} edit={(path) => change(section, path)} editing={editing} /> : null}
-            {section.type === 'form' ? <FormSection section={section} edit={(path) => change(section, path)} project={project} preview={editing} /> : null}
-            {section.type === 'notice' ? <Notice section={section} edit={(path) => change(section, path)} /> : null}
+        {visibleSections.map((section, index) => {
+          const edit = (path) => change(section, path)
+          const selected = selectedSectionId === section.id
+          return <div className={`${sectionClass(section)} ${selected ? 'is-selected' : ''}`} key={section.id} onClick={(event) => select(event, section.id)}>
+            {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
+            {editing && selected ? <BlockToolbar section={section} index={sections.findIndex((item) => item.id === section.id)} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
+            {section.type === 'hero' ? <Hero section={section} edit={edit} /> : null}
+            {section.type === 'ticker' ? <Ticker section={section} edit={edit} /> : null}
+            {section.type === 'benefits' ? <Benefits section={section} edit={edit} /> : null}
+            {section.type === 'story' ? <Story section={section} edit={edit} editing={editing} /> : null}
+            {section.type === 'cards' ? <Cards section={section} edit={edit} /> : null}
+            {section.type === 'stats' ? <Stats section={section} edit={edit} /> : null}
+            {section.type === 'steps' ? <Steps section={section} edit={edit} /> : null}
+            {section.type === 'quote' ? <Quote section={section} edit={edit} /> : null}
+            {section.type === 'faq' ? <Faq section={section} edit={edit} editing={editing} /> : null}
+            {section.type === 'form' ? <FormSection section={section} edit={edit} project={project} preview={editing} /> : null}
+            {section.type === 'cta' ? <Cta section={section} edit={edit} /> : null}
+            {section.type === 'notice' ? <Notice section={section} edit={edit} /> : null}
+            {section.type === 'divider' ? <Divider section={section} edit={edit} /> : null}
           </div>
-        ))}
+        })}
       </main>
       <footer className="site-public-footer">
         {site.settings?.showBrand !== false ? <strong>{brandName}</strong> : <span />}

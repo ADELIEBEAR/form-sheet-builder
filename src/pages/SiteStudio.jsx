@@ -45,6 +45,7 @@ import { useNavigate, useParams } from '../lib/router'
 import { publicSiteUrl } from '../lib/share'
 import {
   addSiteCollectionItem,
+  alignSiteSection,
   applySiteComposition,
   emptySite,
   makeSiteSection,
@@ -109,7 +110,7 @@ export default function SiteStudio() {
   const [site, setSite] = useState(emptySite)
   const [projects, setProjects] = useState([])
   const [selectedSectionId, setSelectedSectionId] = useState('')
-  const [device, setDevice] = useState('desktop')
+  const [device, setDevice] = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 'mobile' : 'desktop'))
   const [panel, setPanel] = useState('object')
   const [leftMode, setLeftMode] = useState('layers')
   const [outlineOpen, setOutlineOpen] = useState(true)
@@ -123,6 +124,7 @@ export default function SiteStudio() {
   const [dirty, setDirty] = useState(false)
   const [notice, setNotice] = useState(siteId ? '저장됨' : '저장 전')
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [dragIndex, setDragIndex] = useState(-1)
   const [dragFormFieldId, setDragFormFieldId] = useState('')
   const [historyVersion, setHistoryVersion] = useState(0)
@@ -137,13 +139,14 @@ export default function SiteStudio() {
 
   useEffect(() => {
     let cancelled = false
+    setLoadError('')
     const siteRequest = siteId ? api(`/maker/sites/${siteId}`) : Promise.resolve({ site: emptySite() })
     Promise.allSettled([siteRequest, api('/maker/projects')]).then(([siteResult, projectResult]) => {
       if (cancelled) return
       if (siteResult.status === 'fulfilled') {
         setSite(siteResult.value.site)
         setSelectedSectionId(siteResult.value.site.content?.sections?.[0]?.id || '')
-      } else setError(siteResult.reason?.message || '사이트를 불러오지 못했습니다.')
+      } else setLoadError(siteResult.reason?.message || '사이트를 불러오지 못했습니다.')
       if (projectResult.status === 'fulfilled') setProjects(projectResult.value.projects)
       else if (!siteId) setError(projectResult.reason?.message || '신청 폼 목록을 불러오지 못했습니다.')
       dirtyRef.current = false
@@ -181,16 +184,24 @@ export default function SiteStudio() {
     if (!stage) return undefined
     const updateFitZoom = () => {
       const artboardWidth = device === 'mobile' ? 390 : 1200
-      const horizontalPadding = window.innerWidth <= 720 ? 16 : 56
-      const availableWidth = Math.max(260, stage.clientWidth - horizontalPadding)
-      setFitZoom(Math.min(1, availableWidth / artboardWidth))
+      const stageStyle = window.getComputedStyle(stage)
+      const horizontalPadding = (Number.parseFloat(stageStyle.paddingLeft) || 0) + (Number.parseFloat(stageStyle.paddingRight) || 0)
+      const safetyGutter = window.innerWidth <= 720 ? 12 : 40
+      const availableWidth = Math.max(260, stage.clientWidth - horizontalPadding - safetyGutter)
+      setFitZoom(Math.min(1, (availableWidth - 2) / artboardWidth))
     }
     updateFitZoom()
-    if (typeof ResizeObserver === 'undefined') return undefined
+    let fitFrame = window.requestAnimationFrame(() => {
+      fitFrame = window.requestAnimationFrame(updateFitZoom)
+    })
+    if (typeof ResizeObserver === 'undefined') return () => window.cancelAnimationFrame(fitFrame)
     const observer = new ResizeObserver(updateFitZoom)
     observer.observe(stage)
-    return () => observer.disconnect()
-  }, [device, inspectorOpen, outlineOpen])
+    return () => {
+      window.cancelAnimationFrame(fitFrame)
+      observer.disconnect()
+    }
+  }, [device, inspectorOpen, outlineOpen, loading, projects, error])
 
   const selectedSection = useMemo(() => site.content?.sections?.find((section) => section.id === selectedSectionId), [selectedSectionId, site.content?.sections])
   const linkedProject = useMemo(() => projects.find((project) => project.id === site.formProjectId) || null, [projects, site.formProjectId])
@@ -303,6 +314,16 @@ export default function SiteStudio() {
 
   function updateSelectedStyle(key, value) {
     if (!selectedSection) return
+    if (key === 'align') {
+      changeSite((current) => ({
+        ...current,
+        content: {
+          ...current.content,
+          sections: current.content.sections.map((section) => section.id === selectedSection.id ? alignSiteSection(section, value) : section),
+        },
+      }))
+      return
+    }
     updateSectionStyle(selectedSection.id, key, value)
   }
 
@@ -532,6 +553,15 @@ export default function SiteStudio() {
   saveRef.current = save
 
   if (loading) return <div className="public-loading"><SpinnerGap className="spin" /><span>사이트 편집기를 준비하는 중입니다</span></div>
+  if (loadError) return <AppFrame backTo="/sites" center={<strong>사이트를 열 수 없습니다</strong>}>
+    <main className="site-load-failure">
+      <ShieldCheck weight="fill" />
+      <strong>저장된 사이트를 불러오지 못했어요</strong>
+      <p>{loadError}</p>
+      <span>다른 계정으로 만든 사이트라면 그 계정으로 로그인했는지 확인해 주세요. 빈 편집기를 대신 보여주거나 덮어쓰지는 않습니다.</span>
+      <button type="button" onClick={() => navigate('/sites')}>내 사이트로 돌아가기</button>
+    </main>
+  </AppFrame>
 
   const selectedInfo = SITE_BLOCKS.find((block) => block.type === selectedSection?.type)
   const canUndo = historyVersion >= 0 && undoRef.current.length > 0
@@ -592,6 +622,7 @@ export default function SiteStudio() {
         <section ref={canvasStageRef} className={`site-canvas-stage device-${device} ${guides ? 'show-guides' : ''}`} onClick={() => setSelectedSectionId('')}>
           <div className="site-canvas-controls" onClick={(event) => event.stopPropagation()}>
             <span className="site-canvas-context"><b>{selectedInfo?.label || '페이지 전체'}</b><small>{selectedSection ? '선택됨' : '빈 곳을 눌러 선택 해제'}</small></span>
+            <div className="site-canvas-device-quick" role="group" aria-label="캔버스 화면 기준"><button className={device === 'desktop' ? 'active' : ''} type="button" onClick={() => { setDevice('desktop'); setZoom('fit') }} aria-label="PC 기준 편집" aria-pressed={device === 'desktop'}><Desktop /></button><button className={device === 'mobile' ? 'active' : ''} type="button" onClick={() => { setDevice('mobile'); setZoom('fit') }} aria-label="모바일 기준 편집" aria-pressed={device === 'mobile'}><DeviceMobile /></button></div>
             <button className={guides ? 'active' : ''} type="button" onClick={() => setGuides((value) => !value)} aria-pressed={guides}><GridFour /> 그리드</button>
             <label><span>확대</span><select value={zoom} onChange={(event) => setZoom(event.target.value)} aria-label="캔버스 확대"><option value="fit">화면 맞춤</option><option value="50">50%</option><option value="60">60%</option><option value="75">75%</option><option value="90">90%</option><option value="100">100%</option></select></label>
             <span className="site-shortcut-hint">Ctrl+Z 실행 취소 · Ctrl+D 복제 · Alt+↑↓ 이동</span>
@@ -600,7 +631,7 @@ export default function SiteStudio() {
           {selectedSection ? <div className="site-selection-dock" onClick={(event) => event.stopPropagation()}>
             <div><span>{selectedInfo?.category}</span><strong>{selectedInfo?.label}</strong></div>
             <fieldset><legend>폭</legend>{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)}>{label}</button>)}</fieldset>
-            <fieldset><legend>정렬</legend>{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)}>{label}</button>)}</fieldset>
+            <fieldset><legend>내용 전체 정렬</legend>{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} title={`블록 안의 모든 내용을 ${label} 정렬`}>{label}</button>)}</fieldset>
             <button className="dock-icon" type="button" onClick={() => { setPanel('object'); setInspectorOpen(true) }} title="세부 디자인"><SlidersHorizontal /></button>
             <button className="dock-icon" type="button" onClick={() => duplicateSection()} disabled={selectedSection.type === 'form'} title="복제"><Copy /></button>
           </div> : <button className="site-empty-canvas-add" type="button" onClick={(event) => { event.stopPropagation(); setLeftMode('blocks'); setOutlineOpen(true) }}><Plus /> 요소 추가</button>}
@@ -612,7 +643,7 @@ export default function SiteStudio() {
           {panel === 'object' ? <div className="site-inspector-scroll">
             {selectedSection ? <>
               <section className="site-selection-head"><div><span>{selectedInfo?.category}</span><h2>{selectedInfo?.label}</h2><p>{selectedInfo?.description}</p></div><label className="site-switch"><input type="checkbox" checked={selectedSection.enabled !== false} onChange={(event) => updateSectionPatch(selectedSection.id, { enabled: event.target.checked })} /><span /></label></section>
-              <section className="site-setting-group"><h3>레이아웃</h3><div className="site-segment-field"><span>폭</span><div role="group" aria-label="블록 폭">{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)} aria-pressed={selectedSection.style?.width === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>간격</span><div role="group" aria-label="블록 간격">{SECTION_STYLE_OPTIONS.spacing.map(([value, label]) => <button className={selectedSection.style?.spacing === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('spacing', value)} aria-pressed={selectedSection.style?.spacing === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>정렬</span><div role="group" aria-label="블록 정렬">{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} aria-pressed={selectedSection.style?.align === value}>{label}</button>)}</div></div></section>
+              <section className="site-setting-group"><h3>레이아웃</h3><div className="site-segment-field"><span>폭</span><div role="group" aria-label="블록 폭">{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)} aria-pressed={selectedSection.style?.width === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>간격</span><div role="group" aria-label="블록 간격">{SECTION_STYLE_OPTIONS.spacing.map(([value, label]) => <button className={selectedSection.style?.spacing === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('spacing', value)} aria-pressed={selectedSection.style?.spacing === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>내용 전체 정렬</span><div role="group" aria-label="블록 안의 모든 내용 정렬">{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} aria-pressed={selectedSection.style?.align === value}>{label}</button>)}</div></div><p className="site-setting-help">여기서는 제목·설명·버튼을 한 번에 맞춥니다. 글자 하나만 다르게 맞추려면 캔버스에서 그 글자를 누르세요.</p></section>
               {SITE_LAYOUT_OPTIONS[selectedSection.type]?.length ? <section className="site-setting-group"><div className="site-group-heading"><div><h3>블록 구성</h3><p>내용은 그대로 두고 배치만 바꿉니다</p></div></div><div className="site-layout-choice-grid" role="group" aria-label={`${selectedInfo?.label || '블록'} 구성`}>{SITE_LAYOUT_OPTIONS[selectedSection.type].map(([value, label]) => <button className={`${selectedSection.style?.layout === value ? 'active' : ''} preview-${selectedSection.type}-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('layout', value)} aria-pressed={selectedSection.style?.layout === value}><i><span /><span /><span /></i><strong>{label}</strong></button>)}</div></section> : null}
               <section className="site-setting-group"><h3>표면과 효과</h3><div className="site-choice-grid" role="group" aria-label="블록 표면">{SECTION_STYLE_OPTIONS.tone.map(([value, label]) => <button className={`${selectedSection.style?.tone === value ? 'active' : ''} tone-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('tone', value)} aria-pressed={selectedSection.style?.tone === value}><i /><span>{label}</span></button>)}</div><label>배경 패턴<select value={selectedSection.style?.pattern || 'none'} onChange={(event) => updateSelectedStyle('pattern', event.target.value)}>{SECTION_STYLE_OPTIONS.pattern.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><div className="site-segment-field"><span>입체감</span><div role="group" aria-label="블록 입체감">{SECTION_STYLE_OPTIONS.elevation.map(([value, label]) => <button className={selectedSection.style?.elevation === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('elevation', value)} aria-pressed={selectedSection.style?.elevation === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>등장 모션</span><div role="group" aria-label="블록 등장 모션">{SECTION_STYLE_OPTIONS.motion.map(([value, label]) => <button className={selectedSection.style?.motion === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('motion', value)} aria-pressed={selectedSection.style?.motion === value}>{label}</button>)}</div></div></section>
               {SITE_COLLECTION_RULES[selectedSection.type] ? <section className="site-setting-group site-item-manager"><div className="site-group-heading"><div><h3>항목 관리</h3><p>글자는 캔버스에서 바로 수정하세요</p></div><button type="button" onClick={() => changeCollectionItem('add')} disabled={selectedSection.data.items.length >= SITE_COLLECTION_RULES[selectedSection.type].max}><Plus /> 추가</button></div><div className="site-item-list">{selectedSection.data.items.map((item, index) => <div key={index}><span>{String(index + 1).padStart(2, '0')} · {typeof item === 'string' ? item : item.title || item.question || item.value || SITE_COLLECTION_RULES[selectedSection.type].label}</span><button type="button" onClick={() => changeCollectionItem('remove', index)} disabled={selectedSection.data.items.length <= SITE_COLLECTION_RULES[selectedSection.type].min} aria-label={`${index + 1}번째 ${SITE_COLLECTION_RULES[selectedSection.type].label} 삭제`}><Trash /></button></div>)}</div></section> : null}
@@ -631,7 +662,7 @@ export default function SiteStudio() {
                   </div>})}</div> : <p className="site-setting-help">먼저 사이트 설정에서 신청 폼을 연결해 주세요.</p>}
                 </section>
               </> : null}
-              {['hero', 'story'].includes(selectedSection.type) ? <section className="site-setting-group"><h3>이미지</h3><ImageUpload value={selectedSection.data.imageUrl} formId={site.id} maxEdge={1600} quality={0.76} maxBytes={2 * 1024 * 1024} label="섹션 이미지" onChange={(url) => updateSection(selectedSection.id, 'imageUrl', url)} /><label>이미지 설명<input value={selectedSection.data.imageAlt || ''} onChange={(event) => updateSection(selectedSection.id, 'imageAlt', event.target.value)} /></label>{selectedSection.type === 'hero' && selectedSection.style?.layout === 'cinematic' ? <><label>배경 어둡기 <strong>{selectedSection.data.overlayStrength || 72}%</strong><input type="range" min="30" max="92" step="1" value={selectedSection.data.overlayStrength || 72} onChange={(event) => updateSection(selectedSection.id, 'overlayStrength', Number(event.target.value))} /></label><label>이미지 초점 <strong>{selectedSection.data.imageFocus ?? 50}%</strong><input type="range" min="0" max="100" step="1" value={selectedSection.data.imageFocus ?? 50} onChange={(event) => updateSection(selectedSection.id, 'imageFocus', Number(event.target.value))} /></label><p className="site-setting-help">이미지를 비워두면 기본 금융 배경이 사용됩니다. 파일은 사이트 정적 자산으로 제공되어 Supabase 용량을 쓰지 않습니다.</p></> : null}{selectedSection.type === 'story' ? <label>이미지 위치<select value={selectedSection.data.imagePosition || 'right'} onChange={(event) => updateSection(selectedSection.id, 'imagePosition', event.target.value)}><option value="right">오른쪽</option><option value="left">왼쪽</option></select></label> : null}</section> : null}
+              {['hero', 'story'].includes(selectedSection.type) ? <section className="site-setting-group site-image-settings"><div className="site-group-heading"><div><h3>이미지</h3><p>올린 뒤에도 자르기와 초점을 바꿀 수 있어요</p></div></div><ImageUpload value={selectedSection.data.imageUrl} formId={site.id} maxEdge={1600} quality={0.76} maxBytes={2 * 1024 * 1024} label="섹션 이미지" onChange={(url) => updateSection(selectedSection.id, 'imageUrl', url)} /><label>이미지 설명<input value={selectedSection.data.imageAlt || ''} onChange={(event) => updateSection(selectedSection.id, 'imageAlt', event.target.value)} /></label>{selectedSection.type === 'hero' && selectedSection.style?.layout === 'cinematic' ? <label>배경 어둡기 <strong>{selectedSection.data.overlayStrength || 72}%</strong><input type="range" min="30" max="92" step="1" value={selectedSection.data.overlayStrength || 72} onChange={(event) => updateSection(selectedSection.id, 'overlayStrength', Number(event.target.value))} /></label> : <div className="site-segment-field"><span>이미지 비율</span><div role="group" aria-label="이미지 비율">{[['landscape', '가로'], ['square', '정사각'], ['portrait', '세로']].map(([value, label]) => <button className={selectedSection.data.imageRatio === value ? 'active' : ''} type="button" key={value} onClick={() => updateSection(selectedSection.id, 'imageRatio', value)} aria-pressed={selectedSection.data.imageRatio === value}>{label}</button>)}</div></div>}<label>가로 초점 <strong>{selectedSection.data.imageFocus ?? 50}%</strong><input type="range" min="0" max="100" step="1" value={selectedSection.data.imageFocus ?? 50} onChange={(event) => updateSection(selectedSection.id, 'imageFocus', Number(event.target.value))} /></label><label>세로 초점 <strong>{selectedSection.data.imagePositionY ?? 50}%</strong><input type="range" min="0" max="100" step="1" value={selectedSection.data.imagePositionY ?? 50} onChange={(event) => updateSection(selectedSection.id, 'imagePositionY', Number(event.target.value))} /></label>{selectedSection.style?.layout !== 'cinematic' ? <label>이미지 확대 <strong>{selectedSection.data.imageScale ?? 100}%</strong><input type="range" min="100" max="160" step="1" value={selectedSection.data.imageScale ?? 100} onChange={(event) => updateSection(selectedSection.id, 'imageScale', Number(event.target.value))} /></label> : null}{selectedSection.type === 'story' ? <label>이미지 위치<select value={selectedSection.data.imagePosition || 'right'} onChange={(event) => updateSection(selectedSection.id, 'imagePosition', event.target.value)}><option value="right">오른쪽</option><option value="left">왼쪽</option></select></label> : null}<p className="site-setting-help">이미지를 비워두면 기본 그래픽을 사용합니다. 업로드 파일은 자동 압축됩니다.</p></section> : null}
               <section className="site-setting-group"><h3>빠른 작업</h3><div className="site-section-actions"><button type="button" onClick={() => duplicateSection()} disabled={selectedSection.type === 'form'}><Copy /> 복제</button><button type="button" onClick={() => toggleSection()}>{selectedSection.enabled === false ? <Eye /> : <EyeSlash />} {selectedSection.enabled === false ? '표시' : '숨김'}</button><button className="danger" type="button" onClick={() => deleteSection()} disabled={['hero', 'form'].includes(selectedSection.type)}><Trash /> 삭제</button></div></section>
             </> : <div className="site-no-selection"><SlidersHorizontal /><strong>캔버스에서 블록을 선택하세요</strong><p>글자는 바로 수정하고, 이곳에서는 폭과 간격, 배경 효과를 조절할 수 있습니다.</p><button type="button" onClick={() => { setLeftMode('blocks'); setOutlineOpen(true) }}><Plus /> 블록 추가</button></div>}
           </div> : null}

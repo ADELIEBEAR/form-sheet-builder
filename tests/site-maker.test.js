@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addSiteCollectionItem,
+  alignSiteSection,
   applySiteComposition,
   emptySite,
   makeSiteSection,
@@ -80,6 +81,23 @@ describe('landing site maker', () => {
     expect(style.effectStrength).toBe(100)
   })
 
+  it('aligns a whole block without keeping conflicting per-text alignment', () => {
+    const section = makeSiteSection('hero')
+    section.textStyles = {
+      '첫 화면 제목': { size: 72, width: 70, align: 'left', mobile: { size: 38, width: 90, align: 'right' } },
+      '첫 화면 설명': { size: 17, align: 'right' },
+    }
+    const aligned = alignSiteSection(section, 'center')
+    expect(aligned.style.align).toBe('center')
+    expect(aligned.textStyles['첫 화면 제목']).toEqual({ size: 72, width: 70, mobile: { size: 38, width: 90 } })
+    expect(aligned.textStyles['첫 화면 설명']).toEqual({ size: 17 })
+
+    const sanitized = sanitizeSite({ ...emptySite(), content: { ...emptySite().content, sections: [aligned, makeSiteSection('form')] } })
+    expect(sanitized.content.sections[0].textStyles['첫 화면 제목']).not.toHaveProperty('align')
+    expect(sanitized.content.sections[0].textStyles['첫 화면 제목'].mobile).not.toHaveProperty('align')
+    expect(sanitized.content.sections[0].textStyles['첫 화면 제목'].mobile.size).toBe(38)
+  })
+
   it('sanitizes new block content and clamps visual scale settings', () => {
     const base = emptySite()
     const stats = makeSiteSection('stats')
@@ -99,6 +117,21 @@ describe('landing site maker', () => {
     expect(result.theme.displayScale).toBe(1.35)
     expect(result.theme.bodyScale).toBe(0.8)
     expect(result.theme.sectionScale).toBe(1.35)
+  })
+
+  it('keeps image crop controls inside safe bounds', () => {
+    const site = emptySite()
+    const hero = site.content.sections.find((section) => section.type === 'hero')
+    hero.data.imageFocus = -50
+    hero.data.imagePositionY = 500
+    hero.data.imageScale = 999
+    hero.data.imageRatio = 'unknown'
+    const result = sanitizeSite(site)
+    const savedHero = result.content.sections.find((section) => section.type === 'hero')
+    expect(savedHero.data.imageFocus).toBe(0)
+    expect(savedHero.data.imagePositionY).toBe(100)
+    expect(savedHero.data.imageScale).toBe(160)
+    expect(savedHero.data.imageRatio).toBe('portrait')
   })
 
   it('upgrades old sections that do not have style settings', () => {

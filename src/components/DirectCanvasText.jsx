@@ -160,9 +160,10 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
           <button type="button" onClick={() => patch({ size: clamp(resolved.size - (snapToGrid ? 2 : 1), minSize, maxSize) })} aria-label={`${label} 글자 줄이기`}><Minus weight="bold" /></button>
           <output aria-label={`${label} 현재 크기`}>{Math.round(resolved.size)}px</output>
           <button type="button" onClick={() => patch({ size: clamp(resolved.size + (snapToGrid ? 2 : 1), minSize, maxSize) })} aria-label={`${label} 글자 키우기`}><Plus weight="bold" /></button>
-          <div className="direct-align-buttons" aria-label={`${label} 정렬`}>
-            <button className={resolved.align === 'left' ? 'active' : ''} type="button" onClick={() => patch({ align: 'left' })}>좌</button>
-            <button className={resolved.align === 'center' ? 'active' : ''} type="button" onClick={() => patch({ align: 'center' })}>중</button>
+          <div className="direct-align-buttons" role="group" aria-label={`${label} 글자만 정렬`}>
+            <button className={resolved.align === 'left' ? 'active' : ''} type="button" onClick={() => patch({ align: 'left' })} aria-label={`${label} 글자만 왼쪽 정렬`} title="이 글자만 왼쪽 정렬">좌</button>
+            <button className={resolved.align === 'center' ? 'active' : ''} type="button" onClick={() => patch({ align: 'center' })} aria-label={`${label} 글자만 가운데 정렬`} title="이 글자만 가운데 정렬">중</button>
+            <button className={resolved.align === 'right' ? 'active' : ''} type="button" onClick={() => patch({ align: 'right' })} aria-label={`${label} 글자만 오른쪽 정렬`} title="이 글자만 오른쪽 정렬">우</button>
           </div>
           <button className="direct-reset-button" type="button" onClick={() => onChange?.(null)} aria-label={`${label} 위치와 글자 설정 초기화`} title="초기화"><ArrowCounterClockwise /></button>
           {effectOpen ? <div className="direct-effect-panel" role="group" aria-label={`${label} 글자 효과 설정`}>

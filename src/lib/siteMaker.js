@@ -145,7 +145,7 @@ export const SECTION_STYLE_OPTIONS = {
   tone: [['inherit', '기본'], ['surface', '표면'], ['accent', '강조'], ['soft', '옅은 강조']],
   spacing: [['compact', '좁게'], ['normal', '보통'], ['air', '넓게']],
   width: [['wide', '넓게'], ['normal', '보통'], ['narrow', '좁게']],
-  align: [['left', '왼쪽'], ['center', '가운데']],
+  align: [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']],
   pattern: [['none', '없음'], ['grid', '그리드'], ['dots', '도트'], ['glow', '빛 번짐'], ['grain', '필름 결'], ['mesh', '메시'], ['stripes', '사선'], ['paper', '종이'], ['waves', '물결']],
   elevation: [['flat', '평면'], ['soft', '부드럽게'], ['float', '띄우기']],
   motion: [['none', '없음'], ['fade', '페이드'], ['rise', '떠오르기'], ['scale', '확대']],
@@ -198,6 +198,9 @@ const blockDefaults = {
     imageAlt: '서비스를 소개하는 대표 이미지',
     overlayStrength: 72,
     imageFocus: 50,
+    imagePositionY: 50,
+    imageScale: 100,
+    imageRatio: 'portrait',
     align: 'left',
   },
   ticker: {
@@ -218,6 +221,10 @@ const blockDefaults = {
     imageUrl: '',
     imageAlt: '상세 내용을 설명하는 이미지',
     imagePosition: 'right',
+    imageFocus: 50,
+    imagePositionY: 50,
+    imageScale: 100,
+    imageRatio: 'landscape',
   },
   cards: {
     title: '한눈에 확인하는 핵심 내용',
@@ -306,6 +313,24 @@ export function makeSiteSection(type) {
   return { id: id(), type: safeType, enabled: true, style: initialSectionStyle(safeType), textStyles: {}, data: structuredClone(blockDefaults[safeType]) }
 }
 
+export function alignSiteSection(section, align) {
+  const nextAlign = ['left', 'center', 'right'].includes(align) ? align : 'left'
+  const textStyles = Object.fromEntries(Object.entries(section?.textStyles || {}).map(([label, value]) => {
+    if (!value || typeof value !== 'object') return [label, value]
+    const { align: _individualAlign, ...inheritedStyle } = value
+    if (inheritedStyle.mobile && typeof inheritedStyle.mobile === 'object') {
+      const { align: _mobileAlign, ...mobileStyle } = inheritedStyle.mobile
+      inheritedStyle.mobile = mobileStyle
+    }
+    return [label, inheritedStyle]
+  }))
+  return {
+    ...section,
+    style: { ...section?.style, align: nextAlign },
+    textStyles,
+  }
+}
+
 export function orderedSiteFormFields(project, fieldOrder = []) {
   const fields = (project?.pages || []).flatMap((page) => page?.fields || [])
   const byId = new Map(fields.map((field) => [field.id, field]))
@@ -387,18 +412,14 @@ function sanitizeSectionStyle(source, type) {
   return style
 }
 
-function sanitizeTextStyles(source) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return {}
-  return Object.fromEntries(Object.entries(source).slice(0, 80).map(([rawKey, rawValue]) => {
-    const key = text(rawKey, '', 100)
-    const value = resolveDirectTextStyle(rawValue)
-    return [key, {
+function sanitizeTextStyle(rawValue) {
+  const value = resolveDirectTextStyle(rawValue)
+  const sanitized = {
       font: Object.prototype.hasOwnProperty.call(FONT_STACKS, value.font) ? value.font : 'pretendard',
       size: boundedNumber(value.size, 16, 8, 180),
       width: boundedNumber(value.width, 100, 32, 100),
       offsetX: boundedNumber(value.offsetX, 0, -240, 240),
       offsetY: boundedNumber(value.offsetY, 0, -180, 180),
-      align: ['left', 'center', 'right'].includes(value.align) ? value.align : 'left',
       color: color(value.color, ''),
       colorRanges: (Array.isArray(value.colorRanges) ? value.colorRanges : []).slice(0, 40).map((range) => ({
         start: Math.max(0, Math.round(Number(range.start) || 0)),
@@ -411,7 +432,18 @@ function sanitizeTextStyles(source) {
       effectStrength: boundedNumber(value.effectStrength, 45, 10, 100),
       effectBlur: boundedNumber(value.effectBlur, 8, 0, 32),
       effectDistance: boundedNumber(value.effectDistance, 4, 0, 18),
-    }]
+  }
+  if (Object.prototype.hasOwnProperty.call(rawValue || {}, 'align')) sanitized.align = ['left', 'center', 'right'].includes(value.align) ? value.align : 'left'
+  return sanitized
+}
+
+function sanitizeTextStyles(source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {}
+  return Object.fromEntries(Object.entries(source).slice(0, 80).map(([rawKey, rawValue]) => {
+    const key = text(rawKey, '', 100)
+    const sanitized = sanitizeTextStyle(rawValue)
+    if (rawValue?.mobile && typeof rawValue.mobile === 'object' && !Array.isArray(rawValue.mobile)) sanitized.mobile = sanitizeTextStyle(rawValue.mobile)
+    return [key, sanitized]
   }).filter(([key]) => key))
 }
 
@@ -445,6 +477,9 @@ function sanitizeSection(section) {
     imageAlt: text(source.imageAlt, fallback.imageAlt, 180),
     overlayStrength: boundedNumber(source.overlayStrength, fallback.overlayStrength, 30, 92),
     imageFocus: boundedNumber(source.imageFocus, fallback.imageFocus, 0, 100),
+    imagePositionY: boundedNumber(source.imagePositionY, fallback.imagePositionY, 0, 100),
+    imageScale: boundedNumber(source.imageScale, fallback.imageScale, 100, 160),
+    imageRatio: ['portrait', 'square', 'landscape'].includes(source.imageRatio) ? source.imageRatio : fallback.imageRatio,
     align: source.align === 'center' ? 'center' : 'left',
   })
   if (type === 'ticker') Object.assign(data, {
@@ -461,6 +496,10 @@ function sanitizeSection(section) {
     imageUrl: imageUrl(source.imageUrl),
     imageAlt: text(source.imageAlt, fallback.imageAlt, 180),
     imagePosition: source.imagePosition === 'left' ? 'left' : 'right',
+    imageFocus: boundedNumber(source.imageFocus, fallback.imageFocus, 0, 100),
+    imagePositionY: boundedNumber(source.imagePositionY, fallback.imagePositionY, 0, 100),
+    imageScale: boundedNumber(source.imageScale, fallback.imageScale, 100, 160),
+    imageRatio: ['portrait', 'square', 'landscape'].includes(source.imageRatio) ? source.imageRatio : fallback.imageRatio,
   })
   if (type === 'cards') Object.assign(data, {
     title: text(source.title, fallback.title, 180),

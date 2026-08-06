@@ -28,17 +28,50 @@ function textFallback(publicAs, className = '') {
   return { size: 17, width: 100, align: 'left' }
 }
 
+function responsiveTextVariables(desktopValue, desktopFallback, mobileValue, mobileFallback) {
+  const variables = directTextVariables(desktopValue, desktopFallback)
+  Object.entries(directTextVariables(mobileValue, mobileFallback)).forEach(([key, value]) => {
+    variables[key.replace('--direct-', '--mobile-direct-')] = value
+  })
+  return variables
+}
+
 function Editable({ value, onChange, as = 'input', publicAs, className = '', label }) {
   const context = useContext(SiteEditContext)
-  const styleValue = context?.section?.textStyles?.[label]
-  const desktopFallback = textFallback(publicAs, className)
+  const storedStyle = context?.section?.textStyles?.[label]
+  const sectionAlign = ['left', 'center', 'right'].includes(context?.section?.style?.align) ? context.section.style.align : 'left'
+  const desktopFallback = { ...textFallback(publicAs, className), align: sectionAlign }
   const mobileSize = className.includes('eyebrow') ? 11 : publicAs === 'h1' ? 42 : publicAs === 'h2' ? 30 : publicAs === 'h3' || publicAs === 'strong' ? 19 : publicAs === 'span' ? 13 : 15
-  const fallback = context?.mobile ? { ...desktopFallback, size: mobileSize } : desktopFallback
+  const mobileFallback = { ...desktopFallback, size: mobileSize }
+  const desktopStyle = storedStyle ? (() => { const { mobile: _mobile, ...style } = storedStyle; return style })() : undefined
+  const inheritedMobileStyle = desktopStyle ? {
+    ...desktopStyle,
+    size: Math.min(Number(desktopStyle.size || mobileSize), mobileSize),
+    width: publicAs === 'h1' ? Math.max(Number(desktopStyle.width || 100), 78) : publicAs === 'h2' ? Math.max(Number(desktopStyle.width || 100), 70) : desktopStyle.width,
+    offsetX: Math.min(28, Math.max(-28, Number(desktopStyle.offsetX || 0))),
+    offsetY: Math.min(48, Math.max(-48, Number(desktopStyle.offsetY || 0))),
+  } : undefined
+  const mobileStyle = storedStyle?.mobile || inheritedMobileStyle
+  const styleValue = context?.mobile ? mobileStyle : desktopStyle
+  const fallback = context?.mobile ? mobileFallback : desktopFallback
   if (!onChange) {
     const Tag = publicAs || (as === 'textarea' ? 'p' : as)
-    if (!styleValue) return <Tag className={className}>{value}</Tag>
-    const resolved = resolveDirectTextStyle(styleValue, fallback)
-    return <Tag className={`site-styled-copy ${className}`} style={directTextVariables(styleValue, fallback)}><ColoredText text={String(value ?? '')} desktopStyle={resolved} /></Tag>
+    if (!storedStyle) return <Tag className={className}>{value}</Tag>
+    const resolvedDesktop = resolveDirectTextStyle(desktopStyle, desktopFallback)
+    const resolvedMobile = resolveDirectTextStyle(mobileStyle, mobileFallback)
+    return <Tag className={`site-styled-copy ${className}`} style={responsiveTextVariables(desktopStyle, desktopFallback, mobileStyle, mobileFallback)}><ColoredText text={String(value ?? '')} desktopStyle={resolvedDesktop} mobileStyle={resolvedMobile} /></Tag>
+  }
+  const commitStyle = (next) => {
+    if (context?.mobile) {
+      if (next) context?.onTextStyleChange?.(context.section.id, label, { ...(storedStyle || {}), mobile: next })
+      else {
+        const { mobile: _mobile, ...desktopOnly } = storedStyle || {}
+        context?.onTextStyleChange?.(context.section.id, label, Object.keys(desktopOnly).length ? desktopOnly : null)
+      }
+      return
+    }
+    if (next) context?.onTextStyleChange?.(context.section.id, label, { ...next, ...(storedStyle?.mobile ? { mobile: storedStyle.mobile } : {}) })
+    else context?.onTextStyleChange?.(context.section.id, label, storedStyle?.mobile ? { mobile: storedStyle.mobile } : null)
   }
   const Tag = as === 'textarea' ? 'textarea' : 'input'
   return <DirectCanvasText
@@ -50,7 +83,7 @@ function Editable({ value, onChange, as = 'input', publicAs, className = '', lab
     label={label}
     selected={Boolean(context?.selected && context?.activeTextLabel === label)}
     onSelect={() => context?.onTextSelect?.(label)}
-    onChange={(next) => context?.onTextStyleChange?.(context.section.id, label, next)}
+    onChange={commitStyle}
     snapToGrid={context?.snapToGrid}
     mobile={context?.mobile}
   >
@@ -62,19 +95,29 @@ function goToForm() {
   document.getElementById('site-application-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+function imageFrameStyle(data) {
+  const ratio = { portrait: '4 / 5', square: '1 / 1', landscape: '16 / 9' }[data?.imageRatio] || '4 / 5'
+  return {
+    '--site-image-x': `${Number(data?.imageFocus ?? 50)}%`,
+    '--site-image-y': `${Number(data?.imagePositionY ?? 50)}%`,
+    '--site-image-scale': Number(data?.imageScale ?? 100) / 100,
+    aspectRatio: ratio,
+  }
+}
+
 function Hero({ section, edit }) {
   const data = section.data
   const editing = Boolean(edit('title'))
   const cinematic = section.style?.layout === 'cinematic'
   return (
-    <section className={`site-section site-hero ${section.style?.align === 'center' || data.align === 'center' ? 'is-centered' : ''}`}>
+    <section className="site-section site-hero">
       <div className="site-hero-copy">
         <Editable as="span" publicAs="span" className="site-hero-eyebrow" value={data.eyebrow} onChange={edit('eyebrow')} label="첫 화면 작은 제목" />
         <Editable as="textarea" publicAs="h1" className="site-hero-title" value={data.title} onChange={edit('title')} label="첫 화면 제목" />
         <Editable as="textarea" publicAs="p" className="site-hero-description" value={data.description} onChange={edit('description')} label="첫 화면 설명" />
         {editing ? <div className="site-main-cta is-editor-control"><Editable as="span" publicAs="span" value={data.buttonLabel} onChange={edit('buttonLabel')} label="신청 버튼 문구" /><ArrowDown weight="bold" /></div> : <button type="button" className="site-main-cta" onClick={goToForm}><span>{data.buttonLabel}</span><ArrowDown weight="bold" /></button>}
       </div>
-      {!cinematic && (data.imageUrl ? <figure className="site-hero-image"><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>)}
+      {!cinematic && (data.imageUrl ? <figure className="site-hero-image" style={imageFrameStyle(data)}><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>)}
     </section>
   )
 }
@@ -111,7 +154,7 @@ function Story({ section, edit, editing }) {
         <Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="상세 설명 제목" />
         <Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="상세 설명 내용" />
       </div>
-      {data.imageUrl ? <figure><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : editing ? <div className="site-image-placeholder"><ImageSquare /><span>속성 패널에서 이미지를 추가할 수 있어요</span></div> : null}
+      {data.imageUrl ? <figure style={imageFrameStyle(data)}><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : editing ? <div className="site-image-placeholder"><ImageSquare /><span>속성 패널에서 이미지를 추가할 수 있어요</span></div> : null}
     </section>
   )
 }
@@ -269,7 +312,8 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
   const cinematicStyle = cinematicHero ? {
     backgroundImage: `url("${String(cinematicImage).replace(/["\\]/g, '\\$&')}")`,
     '--site-cinematic-overlay': Number(cinematicHero.data?.overlayStrength || 72) / 100,
-    '--site-cinematic-focus': `${Number(cinematicHero.data?.imageFocus ?? 50)}%`,
+    '--site-cinematic-focus-x': `${Number(cinematicHero.data?.imageFocus ?? 50)}%`,
+    '--site-cinematic-focus-y': `${Number(cinematicHero.data?.imagePositionY ?? 50)}%`,
   } : undefined
   return (
     <div className={`site-renderer ${site.theme?.mode === 'light' ? 'is-light' : 'is-dark'} ${editing ? 'is-editing' : ''} ${cinematicHero && cinematicForm ? 'has-cinematic-hero' : ''}`} style={siteThemeStyle(site.theme)} onClick={() => onSelectSection?.('')}>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
 import { textEffectCss } from '../lib/textEffects'
 import ColoredText from './ColoredText'
+import BrandMark from './BrandMark'
 import { publicButtonVariables } from './DirectCanvasButton'
 import FocusEffects from './FocusEffects'
 import FormField from './FormField'
@@ -185,7 +186,7 @@ function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart
       <FocusBackdrop project={project} />
       <div className={`focus-shell ${hasBanner ? 'has-banner' : ''}`}>
         <header className="focus-topbar">
-          <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onStep?.(0)} aria-label="처음 화면으로"><i /><i /><i /></button>
+          <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onStep?.(0)} aria-label="처음 화면으로"><BrandMark /></button>
           {project.theme?.showProgress !== false && !isCover ? <div className="focus-progress"><span style={{ width: `${(currentNumber / Math.max(total, 1)) * 100}%` }} /></div> : <span />}
           <small>{isCover ? (copy.startStatusLabel ?? '시작') : `${currentNumber} / ${total}`}</small>
         </header>

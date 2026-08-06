@@ -1,4 +1,5 @@
 import { ArrowRight, Check, CheckCircle, FileXls, FolderOpen, GoogleLogo, LockKey, MagicWand, PencilSimple, Sparkle, WarningOctagon } from '@phosphor-icons/react'
+import BrandMark from '../components/BrandMark'
 import FormCanvas from '../components/FormCanvas'
 import { useAuth } from '../lib/auth'
 import { Navigate } from '../lib/router'
@@ -29,7 +30,7 @@ export default function Landing() {
     <main className="new-landing">
       <a className="landing-skip" href="#landing-main">본문으로 바로가기</a>
       <nav className="landing-bar" aria-label="메인 메뉴">
-        <a className="maker-logo landing-logo" href="/" aria-label="폼메이커 홈"><span className="maker-glyph"><i /><i /><i /></span><span><strong>폼메이커</strong><small>정석제작</small></span></a>
+        <a className="maker-logo landing-logo" href="/" aria-label="폼메이커 홈"><BrandMark /><span className="maker-wordmark"><strong>폼메이커</strong></span></a>
         <div className="landing-nav-actions">
           <button className="landing-login" type="button" onClick={() => login()} disabled={loading}>로그인</button>
           <button className="landing-nav-cta" type="button" onClick={begin} disabled={loading}>무료로 시작하기 <ArrowRight weight="bold" /></button>
@@ -123,7 +124,7 @@ export default function Landing() {
         <div><p>Google 계정으로 시작하고, 완성될 때까지 무료로 테스트하세요.</p><button className="landing-cta final" type="button" onClick={begin} disabled={loading}><GoogleLogo weight="bold" /> 폼메이커 시작하기 <ArrowRight weight="bold" /></button></div>
       </section>
 
-      <footer className="landing-footer"><a className="maker-logo landing-logo" href="/"><span className="maker-glyph"><i /><i /><i /></span><span><strong>폼메이커</strong><small>정석제작</small></span></a><p>폼 제작과 응답 정리를 더 단순하게.</p><small>© 2026 정석제작</small></footer>
+      <footer className="landing-footer"><a className="maker-logo landing-logo" href="/"><BrandMark /><span className="maker-wordmark"><strong>폼메이커</strong></span></a><p>폼 제작과 응답 정리를 더 단순하게.</p><small>© 2026 폼메이커</small></footer>
     </main>
   )
 }

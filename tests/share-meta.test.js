@@ -32,7 +32,7 @@ describe('public form share metadata', () => {
   })
 
   it('escapes copy before injecting Open Graph tags', () => {
-    const html = injectShareMetadata('<html><head><meta name="description" content="old"><meta property="og:site_name" content="폼메이커 · 정석제작"><meta property="og:title" content="old title"><meta property="og:description" content="old description"><meta name="twitter:title" content="old title"><title>old</title></head><body></body></html>', {
+    const html = injectShareMetadata('<html><head><meta name="description" content="old"><meta property="og:site_name" content="폼메이커"><meta property="og:title" content="old title"><meta property="og:description" content="old description"><meta name="twitter:title" content="old title"><title>old</title></head><body></body></html>', {
       title: '주식 <신청> "안내"',
       description: 'A & B',
       image: '',

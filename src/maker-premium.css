@@ -16,7 +16,6 @@ body { background: var(--app-bg); }
 button, a, input, textarea, select { transition: border-color .2s ease, background-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline-color: rgb(113 86 217 / .28); }
 .maker-header { border-bottom-color: rgb(224 221 232 / .86); background: rgb(255 255 255 / .88); }
-.maker-glyph { background: var(--app-accent); }
 .studio-primary { box-shadow: 0 9px 22px rgb(113 86 217 / .2); }
 
 /* Focused form experience */
@@ -109,13 +108,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .focus-topbar { width: min(720px, 100%); margin: 0 auto; display: grid; grid-template-columns: 40px 1fr 48px; align-items: center; gap: 16px; color: color-mix(in srgb, var(--preview-text) 64%, transparent); }
 .focus-form-canvas:has(.form-media-background) .focus-topbar,
 .maker-editor-canvas:has(.form-media-background) .focus-topbar { color: #fff; }
-.focus-brand-mark { width: 31px; height: 31px; padding: 8px 7px; border: 0; border-radius: 11px; background: color-mix(in srgb, var(--preview-card) 84%, transparent); box-shadow: 0 7px 22px rgb(30 25 48 / .12); display: flex; align-items: flex-end; gap: 2px; }
+.focus-brand-mark { width: 31px; height: 31px; padding: 0; border: 0; border-radius: 11px; background: transparent; box-shadow: 0 7px 22px rgb(30 25 48 / .12); display: grid; place-items: center; }
+.focus-brand-mark .brand-mark { width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
 .focus-brand-button { cursor: pointer; }
 .focus-brand-button:hover { transform: translateY(-1px) rotate(-3deg); box-shadow: 0 10px 26px rgb(30 25 48 / .17); }
-.focus-brand-mark i { width: 4px; border-radius: 3px; background: var(--preview-accent); }
-.focus-brand-mark i:nth-child(1) { height: 7px; }
-.focus-brand-mark i:nth-child(2) { height: 15px; }
-.focus-brand-mark i:nth-child(3) { height: 11px; }
 .focus-progress { height: 5px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); }
 .focus-progress span { display: block; height: 100%; border-radius: inherit; background: var(--preview-accent); transition: width .35s ease; }
 .focus-topbar small { text-align: right; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
@@ -756,10 +752,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 /* Persistent creator tools */
-.maker-wordmark { display: grid; gap: 1px; line-height: 1; }
-.maker-wordmark small { color: var(--app-muted); font-size: 7px; font-weight: 750; letter-spacing: .08em; }
-.public-brand > span:last-child { display: grid; gap: 1px; }
-.public-brand small { font-size: 7px; font-weight: 750; letter-spacing: .06em; }
 
 .studio-drawer.studio-drawer-docked {
   position: relative;

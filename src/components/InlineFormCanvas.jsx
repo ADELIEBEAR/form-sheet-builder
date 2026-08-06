@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { FIELD_GROUPS, FONT_STACKS, TYPE_LABEL, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
 import DirectCanvasButton from './DirectCanvasButton'
 import DirectCanvasText from './DirectCanvasText'
+import BrandMark from './BrandMark'
 import { CompletionCelebration } from './FormCanvas'
 import FocusEffects from './FocusEffects'
 import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
@@ -104,7 +105,7 @@ export default function InlineFormCanvas({ project, pageIndex, selectedFieldId, 
       <FocusEffects theme={project.theme} />
       <div className={`focus-shell studio-focus-shell ${hasBanner ? 'has-banner' : ''}`}>
         <header className="focus-topbar">
-          <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onNavigate?.(0, COVER_VIEW)} aria-label="시작 화면으로"><i /><i /><i /></button>
+          <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onNavigate?.(0, COVER_VIEW)} aria-label="시작 화면으로"><BrandMark /></button>
           {project.theme?.showProgress !== false ? <div className="focus-progress"><span style={{ width: isCover ? '0%' : isSuccess ? '100%' : `${((globalIndex + 1) / Math.max(steps.length, 1)) * 100}%` }} /></div> : <span />}
           <small>{isCover ? (copy.startStatusLabel ?? '시작') : isSuccess ? (copy.completeStatusLabel ?? '완료') : `${globalIndex + 1} / ${steps.length}`}</small>
         </header>

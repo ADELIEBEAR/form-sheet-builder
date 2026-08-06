@@ -1,6 +1,7 @@
 import { SpinnerGap, WarningCircle } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { useParams } from '../lib/router'
+import BrandMark from '../components/BrandMark'
 import FormCanvas from '../components/FormCanvas'
 import { api } from '../lib/api'
 import { fieldAnswerError } from '../lib/validation'
@@ -115,13 +116,13 @@ export default function PublicForm() {
   if (status === 'error') return <main className="public-error"><WarningCircle /><h1>폼을 열 수 없습니다</h1><p>{message}</p></main>
 
   return (
-    <main className="public-page" style={{ background: project.theme?.background || '#f0edfb' }}>
+    <main className="public-page" style={{ background: project.theme?.background || '#f0edfb', '--public-brand-color': project.theme?.text || '#222131' }}>
       <form className="public-form-wrap" onSubmit={submit} noValidate>
         <FormCanvas project={project} pageIndex={pageIndex} answers={answers} onAnswers={changeAnswers} onPage={movePage} onRestart={restart} errors={errors} submitted={status === 'success'} submitting={status === 'submitting'} closeOnSuccess />
         <label className="honeypot" aria-hidden="true" hidden>웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
         {message ? <div className="public-submit-error"><WarningCircle /> {message}</div> : null}
       </form>
-      <footer className="public-brand"><span className="maker-glyph small"><i /><i /><i /></span><span>폼메이커<small>정석제작</small></span></footer>
+      <footer className="public-brand"><BrandMark className="small" /><strong>폼메이커</strong></footer>
     </main>
   )
 }

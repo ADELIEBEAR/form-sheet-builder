@@ -13,6 +13,33 @@ function answerPreview(answers) {
   return values.slice(0, 3).join(' · ') || '응답 내용 없음'
 }
 
+function answerText(value) {
+  return Array.isArray(value) ? value.filter(Boolean).join(', ') : String(value || '').trim()
+}
+
+export function responseIdentity(project, answers) {
+  const fields = (project?.pages || []).flatMap((page) => page.fields || [])
+  const answered = (field) => answerText(answers?.[field?.id])
+  const phoneField = fields.find((field) => field.type === 'phone' && answered(field))
+    || fields.find((field) => /(연락처|전화번호|휴대폰|핸드폰|전화|연락 가능한 번호)/.test(field.label || '') && answered(field))
+  const exactNameField = fields.find((field) => /^(이름|성함|신청자 이름|예약자 이름|고객명)$/.test((field.label || '').trim()) && answered(field))
+  const nameField = exactNameField
+    || fields.find((field) => /(이름|성함|닉네임|신청자|예약자|담당자)/.test(field.label || '') && answered(field))
+  return {
+    name: answered(nameField) || '—',
+    phone: answered(phoneField) || '—',
+  }
+}
+
+export function submissionTimeParts(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return { date: '—', time: '' }
+  return {
+    date: new Intl.DateTimeFormat('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }).format(date),
+    time: new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(date),
+  }
+}
+
 export default function AllResponses() {
   const [projects, setProjects] = useState([])
   const [submissions, setSubmissions] = useState([])
@@ -46,11 +73,12 @@ export default function AllResponses() {
   const accessibleSubmissions = submissions
   const filtered = useMemo(() => accessibleSubmissions.filter((submission) => {
     const project = projectMap[submission.projectId]
+    const identity = responseIdentity(project, submission.answers)
     const matchesFolder = folderFilter === 'all' || (folderFilter === 'unfiled' ? !project?.folder : project?.folder === folderFilter)
     const matchesMemo = memoFilter === 'all' || (memoFilter === 'none' ? !project?.memo : project?.memo === memoFilter)
     const matchesProject = projectFilter === 'all' || submission.projectId === projectFilter
     const matchesQuality = qualityFilter === 'all' || submission.qualityStatus === qualityFilter
-    const text = `${project?.title || ''} ${project?.folder || ''} ${project?.memo || ''} ${answerPreview(submission.answers)}`.toLowerCase()
+    const text = `${project?.title || ''} ${project?.folder || ''} ${project?.memo || ''} ${identity.name} ${identity.phone} ${Object.values(submission.answers || {}).flat().join(' ')}`.toLowerCase()
     return matchesFolder && matchesMemo && matchesProject && matchesQuality && text.includes(query.trim().toLowerCase())
   }), [accessibleSubmissions, folderFilter, memoFilter, projectFilter, projectMap, qualityFilter, query])
   const qualityCounts = useMemo(() => countQuality(accessibleSubmissions), [accessibleSubmissions])
@@ -100,9 +128,10 @@ export default function AllResponses() {
   }
 
   const hasFilters = Boolean(query.trim()) || folderFilter !== 'all' || memoFilter !== 'all' || projectFilter !== 'all' || qualityFilter !== 'all'
-  const exportRows = [['제출 시각', '폼', '폴더', '메모', 'DB 판정', '판정 사유', '응답 미리보기'], ...filtered.map((submission) => {
+  const exportRows = [['번호', '제출 시각', '이름', '연락처', '폼', '폴더', '메모', 'DB 판정', '판정 사유', '응답 미리보기'], ...filtered.map((submission, index) => {
     const project = projectMap[submission.projectId]
-    return [new Date(submission.submittedAt).toLocaleString('ko-KR'), project?.title || '삭제된 폼', project?.folder || '', project?.memo || '', qualityLabel(submission.qualityStatus), qualityReasonText(submission.qualityReasons), answerPreview(submission.answers)]
+    const identity = responseIdentity(project, submission.answers)
+    return [filtered.length - index, new Date(submission.submittedAt).toLocaleString('ko-KR'), identity.name, identity.phone, project?.title || '삭제된 폼', project?.folder || '', project?.memo || '', qualityLabel(submission.qualityStatus), qualityReasonText(submission.qualityReasons), answerPreview(submission.answers)]
   })]
 
   const actions = adminReady ? <div className="response-export-actions"><button className="studio-secondary response-admin-lock" type="button" onClick={lockAdminResponses}><LockKey /> 관리자 잠그기</button>{filtered.length ? <><button className="studio-secondary" type="button" onClick={() => downloadCsv('전체-응답.csv', exportRows)}><FileCsv /> CSV</button><button className="studio-primary" type="button" onClick={() => downloadXlsx('전체-응답.xlsx', exportRows)}><FileXls /> Excel</button></> : null}</div> : null
@@ -125,7 +154,7 @@ export default function AllResponses() {
           <section className="all-response-panel">
             <header className="all-response-tools">
               <div className="response-filter-primary">
-                <label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="폼·폴더·메모·답변 검색" /></label>
+                <label className="workspace-search"><MagnifyingGlass /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·연락처·폼·답변 검색" /></label>
                 <span className="response-filter-count"><strong>{filtered.length.toLocaleString()}</strong>개 표시</span>
               </div>
               <div className="response-filter-groups">
@@ -136,10 +165,32 @@ export default function AllResponses() {
               </div>
             </header>
             {filtered.length === 0 ? <div className="response-empty compact"><h2>{accessibleSubmissions.length ? '조건에 맞는 응답이 없습니다' : '표시할 응답이 없습니다'}</h2><p>{accessibleSubmissions.length ? '폴더·메모·검색 조건을 바꾸거나 초기화해 보세요.' : '새 응답이 들어오면 이곳에서 모든 폼을 함께 볼 수 있습니다.'}</p>{hasFilters ? <button className="response-empty-reset" type="button" onClick={resetFilters}>필터 초기화</button> : null}</div> : null}
-            {visible.length ? <div className="response-table-wrap all-response-table"><table><thead><tr><th>제출 시각</th><th>폼</th><th>DB 판정</th><th>응답 미리보기</th><th /></tr></thead><tbody>{visible.map((submission) => { const project = projectMap[submission.projectId]; return <tr key={submission.id}><td className="date-cell">{new Date(submission.submittedAt).toLocaleString('ko-KR')}</td><td><div className="response-project-cell"><strong>{project?.title || '삭제된 폼'}</strong>{project?.folder ? <span><Folder weight="fill" />{project.folder}</span> : null}{project?.memo ? <small>{project.memo}</small> : null}</div></td><td><span className={`quality-badge ${submission.qualityStatus}`} title={qualityReasonText(submission.qualityReasons)}>{qualityLabel(submission.qualityStatus)}</span></td><td className="answer-preview">{answerPreview(submission.answers)}</td><td>{project ? <Link className="response-detail-link" to={`/responses/${project.id}`} aria-label={`${project.title} 응답 상세 보기`}><ArrowRight /></Link> : null}</td></tr> })}</tbody></table></div> : null}
-            {visible.length ? <div className="mobile-all-response-list" aria-label="모바일 응답 목록">{visible.map((submission) => {
+            {visible.length ? <div className="response-table-wrap all-response-table"><table>
+              <colgroup><col className="response-col-index" /><col className="response-col-date" /><col className="response-col-project" /><col className="response-col-name" /><col className="response-col-phone" /><col className="response-col-quality" /><col className="response-col-preview" /><col className="response-col-action" /></colgroup>
+              <thead><tr><th aria-label="번호">#</th><th>제출 시각</th><th>폼</th><th>이름</th><th>연락처</th><th>DB 판정</th><th>응답 미리보기</th><th /></tr></thead>
+              <tbody>{visible.map((submission, index) => {
+                const project = projectMap[submission.projectId]
+                const identity = responseIdentity(project, submission.answers)
+                const submitted = submissionTimeParts(submission.submittedAt)
+                const rowNumber = filtered.length - ((page - 1) * pageSize + index)
+                return <tr key={submission.id}>
+                  <td className="response-index-cell">{rowNumber}</td>
+                  <td className="date-cell"><time className="response-submitted-time" dateTime={submission.submittedAt}><span>{submitted.date}</span><small>{submitted.time}</small></time></td>
+                  <td><div className="response-project-cell"><strong title={project?.title || '삭제된 폼'}>{project?.title || '삭제된 폼'}</strong>{project?.folder ? <span><Folder weight="fill" />{project.folder}</span> : null}{project?.memo ? <small title={project.memo}>{project.memo}</small> : null}</div></td>
+                  <td className="response-name-cell" title={identity.name}>{identity.name}</td>
+                  <td className="response-phone-cell" title={identity.phone}>{identity.phone}</td>
+                  <td><span className={`quality-badge ${submission.qualityStatus}`} title={qualityReasonText(submission.qualityReasons)}>{qualityLabel(submission.qualityStatus)}</span></td>
+                  <td className="answer-preview">{answerPreview(submission.answers)}</td>
+                  <td>{project ? <Link className="response-detail-link" to={`/responses/${project.id}`} aria-label={`${project.title} 응답 상세 보기`}><ArrowRight /></Link> : null}</td>
+                </tr>
+              })}</tbody>
+            </table></div> : null}
+            {visible.length ? <div className="mobile-all-response-list" aria-label="모바일 응답 목록">{visible.map((submission, index) => {
               const project = projectMap[submission.projectId]
-              const content = <><span className="mobile-response-topline"><strong>{project?.title || '삭제된 폼'}</strong><span className={`quality-badge ${submission.qualityStatus}`}>{qualityLabel(submission.qualityStatus)}</span></span>{project?.folder || project?.memo ? <span className="mobile-response-project-meta">{project?.folder ? <b><Folder weight="fill" />{project.folder}</b> : null}{project?.memo ? <small>{project.memo}</small> : null}</span> : null}<p>{answerPreview(submission.answers)}</p><small className="mobile-quality-reason">{qualityReasonText(submission.qualityReasons)}</small><span className="mobile-response-meta"><time>{new Date(submission.submittedAt).toLocaleString('ko-KR')}</time>{project ? <span>자세히 보기 <ArrowRight /></span> : null}</span></>
+              const identity = responseIdentity(project, submission.answers)
+              const submitted = submissionTimeParts(submission.submittedAt)
+              const rowNumber = filtered.length - ((page - 1) * pageSize + index)
+              const content = <><span className="mobile-response-topline"><span className="mobile-response-person"><b>#{rowNumber}</b><strong>{identity.name === '—' ? '이름 없음' : identity.name}</strong></span><span className={`quality-badge ${submission.qualityStatus}`}>{qualityLabel(submission.qualityStatus)}</span></span><span className="mobile-response-contact"><b>{identity.phone === '—' ? '연락처 없음' : identity.phone}</b><small>{project?.title || '삭제된 폼'}</small></span>{project?.folder || project?.memo ? <span className="mobile-response-project-meta">{project?.folder ? <b><Folder weight="fill" />{project.folder}</b> : null}{project?.memo ? <small>{project.memo}</small> : null}</span> : null}<p>{answerPreview(submission.answers)}</p><small className="mobile-quality-reason">{qualityReasonText(submission.qualityReasons)}</small><span className="mobile-response-meta"><time dateTime={submission.submittedAt}>{submitted.date} · {submitted.time}</time>{project ? <span>자세히 보기 <ArrowRight /></span> : null}</span></>
               return project ? <Link key={submission.id} to={`/responses/${project.id}`}>{content}</Link> : <article key={submission.id}>{content}</article>
             })}</div> : null}
             {pageCount > 1 ? <footer className="response-pagination"><button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>이전</button><span>{page} / {pageCount}</span><button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={page === pageCount}>다음</button></footer> : null}

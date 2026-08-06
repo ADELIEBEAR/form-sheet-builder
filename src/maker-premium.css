@@ -166,8 +166,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .focus-question-card .render-field > textarea { min-height: 132px; }
 .focus-question-card .choice-stack { margin-top: 27px; gap: 10px; }
 .focus-question-card .consent-answer { margin-top: 27px; }
+.focus-question-card .consent-answer:has(.privacy-consent-notice) { width: min(100%, 880px); margin-top: 16px; gap: 6px; }
 .focus-question-card .choice-stack label,
 .focus-question-card .consent-row { min-height: 54px; padding: 13px 15px; border-color: color-mix(in srgb, var(--preview-text) 14%, transparent); background: color-mix(in srgb, var(--preview-bg) 30%, var(--preview-card)); font-size: var(--preview-body-size); }
+.focus-question-card .consent-answer:has(.privacy-consent-notice) .consent-row { min-height: 42px; padding: 8px 11px; font-size: clamp(12px, calc(var(--preview-body-size) * .72), 14px); line-height: 1.45; }
 .focus-question-card .rating-row { margin-top: 27px; }
 .focus-question-card .rating-row button { width: 48px; height: 48px; border-radius: 13px; }
 .focus-question-card .render-heading { padding: 4px 0; }

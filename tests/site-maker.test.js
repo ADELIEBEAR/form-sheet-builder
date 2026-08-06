@@ -104,6 +104,7 @@ describe('landing site maker', () => {
     form.data.inputHeight = 999
     form.data.fieldSpacing = -10
     form.data.fieldOrder = ['field-c', 'field-a', 'field-c', '', 123]
+    form.data.fieldStyles = { 'field-a': { width: 1, scale: 300 }, 'field-b': { width: 76, scale: 115 }, '': { width: 80 } }
     const result = sanitizeSite({ ...base, title: '폼 크기 테스트' })
     const sanitized = result.content.sections.find((section) => section.type === 'form').data
     expect(sanitized.questionSize).toBe(34)
@@ -112,6 +113,10 @@ describe('landing site maker', () => {
     expect(sanitized.inputHeight).toBe(76)
     expect(sanitized.fieldSpacing).toBe(6)
     expect(sanitized.fieldOrder).toEqual(['field-c', 'field-a'])
+    expect(sanitized.fieldStyles).toEqual({
+      'field-a': { width: 42, scale: 145 },
+      'field-b': { width: 76, scale: 115 },
+    })
   })
 
   it('reorders landing questions by stable field id and appends new questions', () => {

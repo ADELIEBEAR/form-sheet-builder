@@ -259,6 +259,7 @@ const blockDefaults = {
     inputHeight: 48,
     fieldSpacing: 16,
     fieldOrder: [],
+    fieldStyles: {},
   },
   cta: {
     title: '지금 필요한 안내를 신청하세요',
@@ -403,6 +404,18 @@ function sanitizeTextStyles(source) {
   }).filter(([key]) => key))
 }
 
+function sanitizeFormFieldStyles(source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {}
+  return Object.fromEntries(Object.entries(source).slice(0, 120).map(([rawId, rawStyle]) => {
+    const fieldId = text(rawId, '', 100)
+    const style = rawStyle && typeof rawStyle === 'object' && !Array.isArray(rawStyle) ? rawStyle : {}
+    return [fieldId, {
+      width: boundedNumber(style.width, 100, 42, 100),
+      scale: boundedNumber(style.scale, 100, 70, 145),
+    }]
+  }).filter(([fieldId]) => fieldId))
+}
+
 function sanitizeSection(section) {
   const type = SITE_BLOCKS.some((block) => block.type === section?.type) ? section.type : 'story'
   const source = section?.data || {}
@@ -470,6 +483,7 @@ function sanitizeSection(section) {
       .filter((fieldId) => typeof fieldId === 'string')
       .map((fieldId) => text(fieldId, '', 100))
       .filter((fieldId, index, values) => fieldId && values.indexOf(fieldId) === index),
+    fieldStyles: sanitizeFormFieldStyles(source.fieldStyles),
   })
   if (type === 'cta') Object.assign(data, {
     title: text(source.title, fallback.title, 180),

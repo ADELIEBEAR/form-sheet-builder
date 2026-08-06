@@ -5,13 +5,15 @@ import { orderedSiteFormFields } from '../lib/siteMaker'
 import { fieldAnswerError } from '../lib/validation'
 import FormField from './FormField'
 
-export default function LandingFormEmbed({ project, preview = false, settings = {}, onFieldOrderChange }) {
+export default function LandingFormEmbed({ project, preview = false, settings = {}, onFieldOrderChange, onFieldStyleChange }) {
   const [answers, setAnswers] = useState({})
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('ready')
   const [message, setMessage] = useState('')
   const [startedAt, setStartedAt] = useState(Date.now())
   const [dragFieldId, setDragFieldId] = useState('')
+  const [activeFieldId, setActiveFieldId] = useState('')
+  const [draftFieldStyles, setDraftFieldStyles] = useState({})
   const fields = useMemo(() => orderedSiteFormFields(project, settings.fieldOrder), [project, settings.fieldOrder])
 
   if (!project) return <div className="site-form-empty"><strong>연결된 폼이 없습니다</strong><p>사이트 편집기에서 신청받을 폼을 선택해 주세요.</p></div>
@@ -44,6 +46,55 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
     const [field] = next.splice(from, 1)
     next.splice(to, 0, field)
     applyOrder(next)
+  }
+
+  function fieldStyle(fieldId) {
+    const saved = settings.fieldStyles?.[fieldId] || {}
+    const draft = draftFieldStyles[fieldId] || {}
+    return {
+      width: Number(draft.width ?? saved.width ?? 100),
+      scale: Number(draft.scale ?? saved.scale ?? 100),
+    }
+  }
+
+  function startFieldResize(event, fieldId, kind) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
+    setActiveFieldId(fieldId)
+    const startX = event.clientX
+    const startY = event.clientY
+    const start = fieldStyle(fieldId)
+    const resizeClass = `site-field-resizing-${kind}`
+    const formWidth = event.currentTarget.closest('.site-embedded-form')?.getBoundingClientRect().width || 1
+    let latest = start
+    const move = (moveEvent) => {
+      if (kind === 'width') {
+        const width = Math.max(42, Math.min(100, Math.round((start.width + ((moveEvent.clientX - startX) / formWidth) * 100) / 2) * 2))
+        latest = { ...start, width }
+      } else {
+        const distance = ((moveEvent.clientX - startX) + (moveEvent.clientY - startY)) / 2
+        const scale = Math.max(70, Math.min(145, Math.round((start.scale + distance * .55) / 5) * 5))
+        latest = { ...start, scale }
+      }
+      setDraftFieldStyles((current) => ({ ...current, [fieldId]: latest }))
+    }
+    const end = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      document.body.classList.remove(resizeClass)
+      setDraftFieldStyles((current) => {
+        const next = { ...current }
+        delete next[fieldId]
+        return next
+      })
+      if (latest.width !== start.width || latest.scale !== start.scale) onFieldStyleChange?.(fieldId, latest)
+    }
+    document.body.classList.add(resizeClass)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
   }
 
   async function submit(event) {
@@ -88,18 +139,28 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
       onSubmit={submit}
       noValidate
     >
-      {fields.map((field, index) => <div
-        className={`site-embedded-field ${preview ? 'is-editable' : ''} ${dragFieldId === field.id ? 'is-dragging' : ''}`}
-        key={field.id}
-        onDragOver={preview ? (event) => event.preventDefault() : undefined}
-        onDrop={preview ? (event) => { event.preventDefault(); event.stopPropagation(); dropField(field.id) } : undefined}
-      >
+      {fields.map((field, index) => {
+        const size = fieldStyle(field.id)
+        const active = activeFieldId === field.id
+        return <div
+          className={`site-embedded-field ${preview ? 'is-editable' : ''} ${active ? 'is-size-selected' : ''} ${dragFieldId === field.id ? 'is-dragging' : ''}`}
+          key={field.id}
+          style={{ '--landing-item-width': `${size.width}%`, '--landing-item-scale': size.scale / 100 }}
+          onClick={preview ? () => setActiveFieldId(field.id) : undefined}
+          onDragOver={preview ? (event) => event.preventDefault() : undefined}
+          onDrop={preview ? (event) => { event.preventDefault(); event.stopPropagation(); dropField(field.id) } : undefined}
+        >
         {preview ? <div className="site-field-order-tools" role="toolbar" aria-label={`${field.label || '문항'} 순서`} onClick={(event) => event.stopPropagation()}>
           <button type="button" className="site-field-drag-handle" draggable onDragStart={(event) => { event.stopPropagation(); setDragFieldId(field.id); event.dataTransfer.effectAllowed = 'move' }} onDragEnd={() => setDragFieldId('')} title="끌어서 문항 순서 변경" aria-label={`${field.label || '문항'} 끌어서 이동`}><DotsSixVertical weight="bold" /></button>
           <span>{String(index + 1).padStart(2, '0')}</span>
           <button type="button" onClick={() => moveField(field.id, -1)} disabled={index === 0} title="위로 이동" aria-label={`${field.label || '문항'} 위로 이동`}><ArrowUp /></button>
           <button type="button" onClick={() => moveField(field.id, 1)} disabled={index === fields.length - 1} title="아래로 이동" aria-label={`${field.label || '문항'} 아래로 이동`}><ArrowDown /></button>
         </div> : null}
+        {preview ? <>
+          <span className="site-field-size-badge">폭 {size.width}% · 크기 {size.scale}%</span>
+          <button className="site-field-width-handle" type="button" onPointerDown={(event) => startFieldResize(event, field.id, 'width')} aria-label={`${field.label || '문항'} 폭 드래그 조절`} title="좌우로 드래그해 문항 폭 조절" />
+          <button className="site-field-scale-handle" type="button" onPointerDown={(event) => startFieldResize(event, field.id, 'scale')} aria-label={`${field.label || '문항'} 크기 드래그 조절`} title="대각선으로 드래그해 문항 전체 크기 조절" />
+        </> : null}
         <FormField
           field={field}
           value={answers[field.id]}
@@ -112,7 +173,7 @@ export default function LandingFormEmbed({ project, preview = false, settings = 
           selectPlaceholder={project.settings?.selectPlaceholder || '선택해 주세요'}
           consentLabel={project.settings?.consentLabel || '내용을 확인했으며 동의합니다.'}
         />
-      </div>)}
+      </div>})}
       <label className="honeypot" aria-hidden="true" hidden>웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
       {message ? <p className="site-form-error"><WarningCircle weight="fill" />{message}</p> : null}
       <button className="site-submit-button" type="submit" disabled={preview || status === 'submitting'}>

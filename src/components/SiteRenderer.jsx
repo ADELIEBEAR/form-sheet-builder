@@ -147,13 +147,14 @@ function Faq({ section, edit, editing }) {
 
 function FormSection({ section, edit, project, preview }) {
   const data = section.data
+  const changeFieldStyles = edit('fieldStyles')
   return (
     <section className="site-section site-form-section" id="site-application-form">
       <header>
         <Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="신청 폼 제목" />
         <Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="신청 폼 설명" />
       </header>
-      {project ? <LandingFormEmbed project={project} preview={preview} settings={data} onFieldOrderChange={edit('fieldOrder')} /> : <div className="site-form-empty"><ShieldCheck weight="fill" /><strong>{data.emptyMessage}</strong></div>}
+      {project ? <LandingFormEmbed project={project} preview={preview} settings={data} onFieldOrderChange={edit('fieldOrder')} onFieldStyleChange={(fieldId, value) => changeFieldStyles?.({ ...(data.fieldStyles || {}), [fieldId]: value })} /> : <div className="site-form-empty"><ShieldCheck weight="fill" /><strong>{data.emptyMessage}</strong></div>}
     </section>
   )
 }

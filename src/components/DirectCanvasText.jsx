@@ -1,5 +1,5 @@
 import { ArrowCounterClockwise, DotsSixVertical, MagicWand, Minus, Plus } from '@phosphor-icons/react'
-import { Children, cloneElement, isValidElement, useRef, useState } from 'react'
+import { Children, cloneElement, isValidElement, useLayoutEffect, useRef, useState } from 'react'
 import { FONT_PRESETS, FONT_STACKS, resolveDirectTextStyle } from '../lib/maker'
 import { applyTextColorRange, effectiveTextColorRanges, textColorSegments } from '../lib/richText'
 import { TEXT_EFFECT_PRESETS, textEffectCss } from '../lib/textEffects'
@@ -53,6 +53,12 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
   const patch = (next) => onChange?.({ ...resolved, ...next })
   const child = Children.only(children)
   const text = String(isValidElement(child) ? (child.props.value ?? '') : '')
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    if (!input || input.tagName !== 'TEXTAREA') return
+    input.style.height = 'auto'
+    input.style.height = `${Math.ceil(input.scrollHeight)}px`
+  }, [mobile, resolved.font, resolved.size, resolved.width, text])
   const effectiveRanges = effectiveTextColorRanges(resolved, text)
   const hasRichColor = effectiveRanges.length > 0
   const rememberSelection = (event) => {
@@ -95,7 +101,8 @@ export default function DirectCanvasText({ children, value, fallback, minSize, m
     const startX = event.clientX
     const startY = event.clientY
     const start = resolved
-    const hostWidth = event.currentTarget.closest('.focus-content-card')?.getBoundingClientRect().width || 640
+    const directHost = event.currentTarget.closest('.direct-canvas-text')
+    const hostWidth = directHost?.parentElement?.getBoundingClientRect().width || event.currentTarget.closest('.focus-content-card')?.getBoundingClientRect().width || 640
 
     const move = (moveEvent) => {
       const deltaX = moveEvent.clientX - startX

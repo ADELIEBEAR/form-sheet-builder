@@ -921,11 +921,14 @@ body.site-field-resizing-scale { cursor: nwse-resize; user-select: none; }
   -webkit-text-stroke: var(--direct-text-stroke, 0 transparent);
 }
 .site-direct-copy textarea.site-inline-edit {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
   height: auto;
   min-height: calc(var(--direct-size) * 1.16) !important;
   max-height: none;
+  overflow-x: hidden;
   overflow-y: hidden;
-  field-sizing: content;
 }
 .site-direct-copy textarea.site-hero-title,
 .site-direct-copy textarea.site-hero-description,

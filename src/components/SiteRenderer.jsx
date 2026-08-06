@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   Trash,
 } from '@phosphor-icons/react'
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useRef, useState } from 'react'
 import { resolveDirectTextStyle } from '../lib/maker'
 import { SITE_BLOCKS, siteThemeStyle } from '../lib/siteMaker'
 import ColoredText from './ColoredText'
@@ -32,6 +32,13 @@ function Editable({ value, onChange, as = 'input', publicAs, className = '', lab
   const context = useContext(SiteEditContext)
   const styleValue = context?.section?.textStyles?.[label]
   const fallback = textFallback(publicAs, className)
+  const editorRef = useRef(null)
+  useLayoutEffect(() => {
+    const element = editorRef.current
+    if (!element || element.tagName !== 'TEXTAREA') return
+    element.style.height = 'auto'
+    element.style.height = `${Math.ceil(element.scrollHeight)}px`
+  }, [context?.mobile, context?.section?.style?.width, styleValue, value])
   if (!onChange) {
     const Tag = publicAs || (as === 'textarea' ? 'p' : as)
     if (!styleValue) return <Tag className={className}>{value}</Tag>
@@ -52,7 +59,7 @@ function Editable({ value, onChange, as = 'input', publicAs, className = '', lab
     snapToGrid={context?.snapToGrid}
     mobile={context?.mobile}
   >
-    <Tag className={`site-inline-edit ${className}`} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} rows={as === 'textarea' ? 3 : undefined} />
+    <Tag ref={as === 'textarea' ? editorRef : undefined} className={`site-inline-edit ${className}`} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} rows={as === 'textarea' ? 1 : undefined} />
   </DirectCanvasText>
 }
 

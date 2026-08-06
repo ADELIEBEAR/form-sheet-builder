@@ -860,6 +860,19 @@
   text-shadow: var(--direct-text-shadow, none);
   -webkit-text-stroke: var(--direct-text-stroke, 0 transparent);
 }
+.site-direct-copy textarea.site-inline-edit {
+  height: auto;
+  min-height: calc(var(--direct-size) * 1.16) !important;
+  max-height: none;
+  overflow-y: hidden;
+  field-sizing: content;
+}
+.site-direct-copy textarea.site-hero-title,
+.site-direct-copy textarea.site-hero-description,
+.site-benefits header .site-direct-copy textarea.site-inline-edit:first-child,
+.site-story-copy .site-direct-copy textarea.site-inline-edit:first-child,
+.site-form-section header .site-direct-copy textarea.site-inline-edit:first-child,
+.site-benefit-grid .site-direct-copy textarea.site-inline-edit:last-child { min-height: calc(var(--direct-size) * 1.16) !important; }
 .site-direct-copy.has-custom-color .site-inline-edit, .site-direct-copy.has-custom-color .direct-rich-color-layer { color: var(--direct-color) !important; }
 .site-direct-copy .direct-rich-color-layer { white-space: pre-wrap; }
 .site-direct-copy.selected .site-inline-edit { border-color: transparent; outline: 0; background: transparent; }

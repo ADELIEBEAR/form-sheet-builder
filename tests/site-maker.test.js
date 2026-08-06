@@ -5,6 +5,7 @@ import {
   emptySite,
   makeSiteSection,
   MAX_SITE_SECTIONS,
+  orderedSiteFormFields,
   removeSiteCollectionItem,
   sanitizeSite,
   SITE_BLOCKS,
@@ -92,6 +93,34 @@ describe('landing site maker', () => {
     const result = sanitizeSite({ ...base, title: '이전 사이트', content: { ...base.content, sections: legacySections } })
     expect(result.content.sections.every((section) => section.style.pattern)).toBe(true)
     expect(result.content.sections.find((section) => section.type === 'hero').style.pattern).toBe('grid')
+  })
+
+  it('keeps landing form sizing safe and stores a compact question order', () => {
+    const base = emptySite()
+    const form = base.content.sections.find((section) => section.type === 'form')
+    form.data.questionSize = 200
+    form.data.descriptionSize = 1
+    form.data.inputSize = 40
+    form.data.inputHeight = 999
+    form.data.fieldSpacing = -10
+    form.data.fieldOrder = ['field-c', 'field-a', 'field-c', '', 123]
+    const result = sanitizeSite({ ...base, title: '폼 크기 테스트' })
+    const sanitized = result.content.sections.find((section) => section.type === 'form').data
+    expect(sanitized.questionSize).toBe(34)
+    expect(sanitized.descriptionSize).toBe(10)
+    expect(sanitized.inputSize).toBe(24)
+    expect(sanitized.inputHeight).toBe(76)
+    expect(sanitized.fieldSpacing).toBe(6)
+    expect(sanitized.fieldOrder).toEqual(['field-c', 'field-a'])
+  })
+
+  it('reorders landing questions by stable field id and appends new questions', () => {
+    const project = { pages: [
+      { fields: [{ id: 'field-a', label: '이름' }, { id: 'field-b', label: '연락처' }] },
+      { fields: [{ id: 'field-c', label: '동의' }] },
+    ] }
+    const result = orderedSiteFormFields(project, ['field-c', 'missing', 'field-a', 'field-c'])
+    expect(result.map((field) => field.id)).toEqual(['field-c', 'field-a', 'field-b'])
   })
 
   it('adds and removes repeatable content without exceeding safe limits', () => {

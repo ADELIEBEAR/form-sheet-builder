@@ -1,7 +1,9 @@
 import {
+  ArrowDown,
   ArrowCounterClockwise,
   ArrowClockwise,
   ArrowSquareOut,
+  ArrowUp,
   Cards,
   ChartBar,
   Check,
@@ -47,6 +49,7 @@ import {
   emptySite,
   makeSiteSection,
   MAX_SITE_SECTIONS,
+  orderedSiteFormFields,
   removeSiteCollectionItem,
   SECTION_STYLE_OPTIONS,
   SITE_BLOCKS,
@@ -121,6 +124,7 @@ export default function SiteStudio() {
   const [notice, setNotice] = useState(siteId ? '저장됨' : '저장 전')
   const [error, setError] = useState('')
   const [dragIndex, setDragIndex] = useState(-1)
+  const [dragFormFieldId, setDragFormFieldId] = useState('')
   const [historyVersion, setHistoryVersion] = useState(0)
   const dirtyRef = useRef(false)
   const savingRef = useRef(false)
@@ -190,6 +194,10 @@ export default function SiteStudio() {
 
   const selectedSection = useMemo(() => site.content?.sections?.find((section) => section.id === selectedSectionId), [selectedSectionId, site.content?.sections])
   const linkedProject = useMemo(() => projects.find((project) => project.id === site.formProjectId) || null, [projects, site.formProjectId])
+  const linkedFormFields = useMemo(
+    () => orderedSiteFormFields(linkedProject, selectedSection?.type === 'form' ? selectedSection.data?.fieldOrder : []),
+    [linkedProject, selectedSection],
+  )
   const storageSummary = useMemo(() => {
     const bytes = new TextEncoder().encode(JSON.stringify({ content: site.content, theme: site.theme, settings: site.settings })).length
     const imageCount = (site.content?.sections || []).filter((section) => section.data?.imageUrl).length
@@ -296,6 +304,27 @@ export default function SiteStudio() {
   function updateSelectedStyle(key, value) {
     if (!selectedSection) return
     updateSectionStyle(selectedSection.id, key, value)
+  }
+
+  function setLandingFieldOrder(fieldIds) {
+    if (selectedSection?.type !== 'form') return
+    updateSection(selectedSection.id, 'fieldOrder', fieldIds)
+  }
+
+  function moveLandingField(fieldId, direction) {
+    const from = linkedFormFields.findIndex((field) => field.id === fieldId)
+    const to = from + direction
+    if (from < 0 || to < 0 || to >= linkedFormFields.length) return
+    const next = move(linkedFormFields, from, to)
+    setLandingFieldOrder(next.map((field) => field.id))
+  }
+
+  function dropLandingField(targetId) {
+    const from = linkedFormFields.findIndex((field) => field.id === dragFormFieldId)
+    const to = linkedFormFields.findIndex((field) => field.id === targetId)
+    setDragFormFieldId('')
+    if (from < 0 || to < 0 || from === to) return
+    setLandingFieldOrder(move(linkedFormFields, from, to).map((field) => field.id))
   }
 
   function applyComposition(presetId) {
@@ -587,6 +616,20 @@ export default function SiteStudio() {
               {SITE_LAYOUT_OPTIONS[selectedSection.type]?.length ? <section className="site-setting-group"><div className="site-group-heading"><div><h3>블록 구성</h3><p>내용은 그대로 두고 배치만 바꿉니다</p></div></div><div className="site-layout-choice-grid" role="group" aria-label={`${selectedInfo?.label || '블록'} 구성`}>{SITE_LAYOUT_OPTIONS[selectedSection.type].map(([value, label]) => <button className={`${selectedSection.style?.layout === value ? 'active' : ''} preview-${selectedSection.type}-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('layout', value)} aria-pressed={selectedSection.style?.layout === value}><i><span /><span /><span /></i><strong>{label}</strong></button>)}</div></section> : null}
               <section className="site-setting-group"><h3>표면과 효과</h3><div className="site-choice-grid" role="group" aria-label="블록 표면">{SECTION_STYLE_OPTIONS.tone.map(([value, label]) => <button className={`${selectedSection.style?.tone === value ? 'active' : ''} tone-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('tone', value)} aria-pressed={selectedSection.style?.tone === value}><i /><span>{label}</span></button>)}</div><label>배경 패턴<select value={selectedSection.style?.pattern || 'none'} onChange={(event) => updateSelectedStyle('pattern', event.target.value)}>{SECTION_STYLE_OPTIONS.pattern.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><div className="site-segment-field"><span>입체감</span><div role="group" aria-label="블록 입체감">{SECTION_STYLE_OPTIONS.elevation.map(([value, label]) => <button className={selectedSection.style?.elevation === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('elevation', value)} aria-pressed={selectedSection.style?.elevation === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>등장 모션</span><div role="group" aria-label="블록 등장 모션">{SECTION_STYLE_OPTIONS.motion.map(([value, label]) => <button className={selectedSection.style?.motion === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('motion', value)} aria-pressed={selectedSection.style?.motion === value}>{label}</button>)}</div></div></section>
               {SITE_COLLECTION_RULES[selectedSection.type] ? <section className="site-setting-group site-item-manager"><div className="site-group-heading"><div><h3>항목 관리</h3><p>글자는 캔버스에서 바로 수정하세요</p></div><button type="button" onClick={() => changeCollectionItem('add')} disabled={selectedSection.data.items.length >= SITE_COLLECTION_RULES[selectedSection.type].max}><Plus /> 추가</button></div><div className="site-item-list">{selectedSection.data.items.map((item, index) => <div key={index}><span>{String(index + 1).padStart(2, '0')} · {typeof item === 'string' ? item : item.title || item.question || item.value || SITE_COLLECTION_RULES[selectedSection.type].label}</span><button type="button" onClick={() => changeCollectionItem('remove', index)} disabled={selectedSection.data.items.length <= SITE_COLLECTION_RULES[selectedSection.type].min} aria-label={`${index + 1}번째 ${SITE_COLLECTION_RULES[selectedSection.type].label} 삭제`}><Trash /></button></div>)}</div></section> : null}
+              {selectedSection.type === 'form' ? <>
+                <section className="site-setting-group site-form-size-settings"><div className="site-group-heading"><div><h3>폼 내용 크기</h3><p>랜딩에 보이는 폼만 조절합니다</p></div></div>
+                  <label>질문 글씨 <span>{selectedSection.data.questionSize || 20}px</span><input type="range" min="12" max="34" value={selectedSection.data.questionSize || 20} onChange={(event) => updateSection(selectedSection.id, 'questionSize', Number(event.target.value))} /></label>
+                  <label>설명 글씨 <span>{selectedSection.data.descriptionSize || 13}px</span><input type="range" min="10" max="24" value={selectedSection.data.descriptionSize || 13} onChange={(event) => updateSection(selectedSection.id, 'descriptionSize', Number(event.target.value))} /></label>
+                  <label>입력 글씨 <span>{selectedSection.data.inputSize || 15}px</span><input type="range" min="11" max="24" value={selectedSection.data.inputSize || 15} onChange={(event) => updateSection(selectedSection.id, 'inputSize', Number(event.target.value))} /></label>
+                  <label>입력칸 높이 <span>{selectedSection.data.inputHeight || 48}px</span><input type="range" min="40" max="76" value={selectedSection.data.inputHeight || 48} onChange={(event) => updateSection(selectedSection.id, 'inputHeight', Number(event.target.value))} /></label>
+                  <label>문항 간격 <span>{selectedSection.data.fieldSpacing ?? 16}px</span><input type="range" min="6" max="34" value={selectedSection.data.fieldSpacing ?? 16} onChange={(event) => updateSection(selectedSection.id, 'fieldSpacing', Number(event.target.value))} /></label>
+                </section>
+                <section className="site-setting-group site-form-order-settings"><div className="site-group-heading"><div><h3>질문 순서</h3><p>잡고 끌거나 화살표를 누르세요</p></div></div>
+                  {linkedFormFields.length ? <div className="site-form-order-list">{linkedFormFields.map((field, index) => <div key={field.id} className={dragFormFieldId === field.id ? 'is-dragging' : ''} draggable onDragStart={() => setDragFormFieldId(field.id)} onDragEnd={() => setDragFormFieldId('')} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); dropLandingField(field.id) }}>
+                    <DotsSixVertical weight="bold" /><span><small>{String(index + 1).padStart(2, '0')}</small><strong>{field.label || '제목 없는 문항'}</strong></span><button type="button" onClick={() => moveLandingField(field.id, -1)} disabled={index === 0} aria-label={`${field.label || '문항'} 위로 이동`}><ArrowUp /></button><button type="button" onClick={() => moveLandingField(field.id, 1)} disabled={index === linkedFormFields.length - 1} aria-label={`${field.label || '문항'} 아래로 이동`}><ArrowDown /></button>
+                  </div>)}</div> : <p className="site-setting-help">먼저 사이트 설정에서 신청 폼을 연결해 주세요.</p>}
+                </section>
+              </> : null}
               {['hero', 'story'].includes(selectedSection.type) ? <section className="site-setting-group"><h3>이미지</h3><ImageUpload value={selectedSection.data.imageUrl} formId={site.id} maxEdge={1600} quality={0.76} maxBytes={2 * 1024 * 1024} label="섹션 이미지" onChange={(url) => updateSection(selectedSection.id, 'imageUrl', url)} /><label>이미지 설명<input value={selectedSection.data.imageAlt || ''} onChange={(event) => updateSection(selectedSection.id, 'imageAlt', event.target.value)} /></label>{selectedSection.type === 'story' ? <label>이미지 위치<select value={selectedSection.data.imagePosition || 'right'} onChange={(event) => updateSection(selectedSection.id, 'imagePosition', event.target.value)}><option value="right">오른쪽</option><option value="left">왼쪽</option></select></label> : null}</section> : null}
               <section className="site-setting-group"><h3>빠른 작업</h3><div className="site-section-actions"><button type="button" onClick={() => duplicateSection()} disabled={selectedSection.type === 'form'}><Copy /> 복제</button><button type="button" onClick={() => toggleSection()}>{selectedSection.enabled === false ? <Eye /> : <EyeSlash />} {selectedSection.enabled === false ? '표시' : '숨김'}</button><button className="danger" type="button" onClick={() => deleteSection()} disabled={['hero', 'form'].includes(selectedSection.type)}><Trash /> 삭제</button></div></section>
             </> : <div className="site-no-selection"><SlidersHorizontal /><strong>캔버스에서 블록을 선택하세요</strong><p>글자는 바로 수정하고, 이곳에서는 폭과 간격, 배경 효과를 조절할 수 있습니다.</p><button type="button" onClick={() => { setLeftMode('blocks'); setOutlineOpen(true) }}><Plus /> 블록 추가</button></div>}

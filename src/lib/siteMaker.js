@@ -253,6 +253,12 @@ const blockDefaults = {
     title: '대응 알림 신청',
     description: '아래 항목을 입력하면 기존 응답 관리자와 백업 흐름으로 바로 연결됩니다.',
     emptyMessage: '오른쪽 설정에서 연결할 폼을 선택해 주세요.',
+    questionSize: 20,
+    descriptionSize: 13,
+    inputSize: 15,
+    inputHeight: 48,
+    fieldSpacing: 16,
+    fieldOrder: [],
   },
   cta: {
     title: '지금 필요한 안내를 신청하세요',
@@ -287,6 +293,24 @@ function initialSectionStyle(type) {
 export function makeSiteSection(type) {
   const safeType = SITE_BLOCKS.some((block) => block.type === type) ? type : 'story'
   return { id: id(), type: safeType, enabled: true, style: initialSectionStyle(safeType), textStyles: {}, data: structuredClone(blockDefaults[safeType]) }
+}
+
+export function orderedSiteFormFields(project, fieldOrder = []) {
+  const fields = (project?.pages || []).flatMap((page) => page?.fields || [])
+  const byId = new Map(fields.map((field) => [field.id, field]))
+  const ordered = []
+  const seen = new Set()
+  ;(Array.isArray(fieldOrder) ? fieldOrder : []).forEach((fieldId) => {
+    if (typeof fieldId !== 'string' || seen.has(fieldId) || !byId.has(fieldId)) return
+    seen.add(fieldId)
+    ordered.push(byId.get(fieldId))
+  })
+  fields.forEach((field) => {
+    if (seen.has(field.id)) return
+    seen.add(field.id)
+    ordered.push(field)
+  })
+  return ordered
 }
 
 export function emptySite() {
@@ -436,6 +460,16 @@ function sanitizeSection(section) {
     title: text(source.title, fallback.title, 180),
     description: text(source.description, fallback.description, 500),
     emptyMessage: text(source.emptyMessage, fallback.emptyMessage, 200),
+    questionSize: boundedNumber(source.questionSize, fallback.questionSize, 12, 34),
+    descriptionSize: boundedNumber(source.descriptionSize, fallback.descriptionSize, 10, 24),
+    inputSize: boundedNumber(source.inputSize, fallback.inputSize, 11, 24),
+    inputHeight: boundedNumber(source.inputHeight, fallback.inputHeight, 40, 76),
+    fieldSpacing: boundedNumber(source.fieldSpacing, fallback.fieldSpacing, 6, 34),
+    fieldOrder: (Array.isArray(source.fieldOrder) ? source.fieldOrder : fallback.fieldOrder)
+      .slice(0, 120)
+      .filter((fieldId) => typeof fieldId === 'string')
+      .map((fieldId) => text(fieldId, '', 100))
+      .filter((fieldId, index, values) => fieldId && values.indexOf(fieldId) === index),
   })
   if (type === 'cta') Object.assign(data, {
     title: text(source.title, fallback.title, 180),

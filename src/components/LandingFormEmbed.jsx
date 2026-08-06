@@ -1,22 +1,49 @@
-import { ArrowRight, CheckCircle, SpinnerGap, WarningCircle } from '@phosphor-icons/react'
+import { ArrowDown, ArrowRight, ArrowUp, CheckCircle, DotsSixVertical, SpinnerGap, WarningCircle } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
 import { api } from '../lib/api'
+import { orderedSiteFormFields } from '../lib/siteMaker'
 import { fieldAnswerError } from '../lib/validation'
 import FormField from './FormField'
 
-export default function LandingFormEmbed({ project, preview = false }) {
+export default function LandingFormEmbed({ project, preview = false, settings = {}, onFieldOrderChange }) {
   const [answers, setAnswers] = useState({})
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('ready')
   const [message, setMessage] = useState('')
   const [startedAt, setStartedAt] = useState(Date.now())
-  const fields = useMemo(() => (project?.pages || []).flatMap((page) => page.fields || []), [project])
+  const [dragFieldId, setDragFieldId] = useState('')
+  const fields = useMemo(() => orderedSiteFormFields(project, settings.fieldOrder), [project, settings.fieldOrder])
 
   if (!project) return <div className="site-form-empty"><strong>연결된 폼이 없습니다</strong><p>사이트 편집기에서 신청받을 폼을 선택해 주세요.</p></div>
 
   function updateAnswer(field, value) {
     setAnswers((current) => ({ ...current, [field.id]: value }))
     if (!fieldAnswerError(field, value)) setErrors((current) => ({ ...current, [field.id]: '' }))
+  }
+
+  function applyOrder(nextFields) {
+    onFieldOrderChange?.(nextFields.map((field) => field.id))
+  }
+
+  function moveField(fieldId, direction) {
+    const index = fields.findIndex((field) => field.id === fieldId)
+    const target = index + direction
+    if (index < 0 || target < 0 || target >= fields.length) return
+    const next = [...fields]
+    const [field] = next.splice(index, 1)
+    next.splice(target, 0, field)
+    applyOrder(next)
+  }
+
+  function dropField(targetId) {
+    const from = fields.findIndex((field) => field.id === dragFieldId)
+    const to = fields.findIndex((field) => field.id === targetId)
+    setDragFieldId('')
+    if (from < 0 || to < 0 || from === to) return
+    const next = [...fields]
+    const [field] = next.splice(from, 1)
+    next.splice(to, 0, field)
+    applyOrder(next)
   }
 
   async function submit(event) {
@@ -49,20 +76,43 @@ export default function LandingFormEmbed({ project, preview = false }) {
   )
 
   return (
-    <form className="site-embedded-form" onSubmit={submit} noValidate>
-      {fields.map((field) => <FormField
+    <form
+      className={`site-embedded-form ${preview ? 'is-order-editing' : ''}`}
+      style={{
+        '--landing-question-size': `${settings.questionSize || 20}px`,
+        '--landing-description-size': `${settings.descriptionSize || 13}px`,
+        '--landing-input-size': `${settings.inputSize || 15}px`,
+        '--landing-input-height': `${settings.inputHeight || 48}px`,
+        '--landing-field-spacing': `${settings.fieldSpacing ?? 16}px`,
+      }}
+      onSubmit={submit}
+      noValidate
+    >
+      {fields.map((field, index) => <div
+        className={`site-embedded-field ${preview ? 'is-editable' : ''} ${dragFieldId === field.id ? 'is-dragging' : ''}`}
         key={field.id}
-        field={field}
-        value={answers[field.id]}
-        onChange={(value) => updateAnswer(field, value)}
-        error={errors[field.id]}
-        preview={preview}
-        accent={project.theme?.accent}
-        requiredLabel={project.settings?.requiredLabel || '필수'}
-        answerPlaceholder={project.settings?.answerPlaceholder || '답변을 입력해 주세요'}
-        selectPlaceholder={project.settings?.selectPlaceholder || '선택해 주세요'}
-        consentLabel={project.settings?.consentLabel || '내용을 확인했으며 동의합니다.'}
-      />)}
+        onDragOver={preview ? (event) => event.preventDefault() : undefined}
+        onDrop={preview ? (event) => { event.preventDefault(); event.stopPropagation(); dropField(field.id) } : undefined}
+      >
+        {preview ? <div className="site-field-order-tools" role="toolbar" aria-label={`${field.label || '문항'} 순서`} onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="site-field-drag-handle" draggable onDragStart={(event) => { event.stopPropagation(); setDragFieldId(field.id); event.dataTransfer.effectAllowed = 'move' }} onDragEnd={() => setDragFieldId('')} title="끌어서 문항 순서 변경" aria-label={`${field.label || '문항'} 끌어서 이동`}><DotsSixVertical weight="bold" /></button>
+          <span>{String(index + 1).padStart(2, '0')}</span>
+          <button type="button" onClick={() => moveField(field.id, -1)} disabled={index === 0} title="위로 이동" aria-label={`${field.label || '문항'} 위로 이동`}><ArrowUp /></button>
+          <button type="button" onClick={() => moveField(field.id, 1)} disabled={index === fields.length - 1} title="아래로 이동" aria-label={`${field.label || '문항'} 아래로 이동`}><ArrowDown /></button>
+        </div> : null}
+        <FormField
+          field={field}
+          value={answers[field.id]}
+          onChange={(value) => updateAnswer(field, value)}
+          error={errors[field.id]}
+          preview={preview}
+          accent={project.theme?.accent}
+          requiredLabel={project.settings?.requiredLabel || '필수'}
+          answerPlaceholder={project.settings?.answerPlaceholder || '답변을 입력해 주세요'}
+          selectPlaceholder={project.settings?.selectPlaceholder || '선택해 주세요'}
+          consentLabel={project.settings?.consentLabel || '내용을 확인했으며 동의합니다.'}
+        />
+      </div>)}
       <label className="honeypot" aria-hidden="true" hidden>웹사이트<input name="website" tabIndex="-1" autoComplete="off" /></label>
       {message ? <p className="site-form-error"><WarningCircle weight="fill" />{message}</p> : null}
       <button className="site-submit-button" type="submit" disabled={preview || status === 'submitting'}>

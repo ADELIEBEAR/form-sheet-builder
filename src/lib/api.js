@@ -156,8 +156,13 @@ async function edgeFunctionError(error, fallback) {
 async function personalSheetRequest(projectId, action = 'status') {
   await ownedProject(projectId)
   const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new ApiError('Google 시트를 연결하려면 다시 로그인해 주세요.', 401)
   const ephemeral = getEphemeralGoogleTokens()
   const { data, error } = await supabase.functions.invoke('form-maker-sheet-sync', {
+    // OAuth can replace the signed-in Google account during the redirect flow.
+    // Pass the freshly restored session explicitly so the Edge Function never
+    // authorizes the request with a stale account token.
+    headers: { Authorization: `Bearer ${session.access_token}` },
     body: {
       action,
       projectId,

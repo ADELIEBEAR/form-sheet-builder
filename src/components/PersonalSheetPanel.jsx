@@ -1,5 +1,5 @@
 import { ArrowSquareOut, CheckCircle, GoogleLogo, LinkBreak, SpinnerGap, WarningCircle } from '@phosphor-icons/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
@@ -10,6 +10,7 @@ export default function PersonalSheetPanel({ projectId }) {
   const [loading, setLoading] = useState(Boolean(projectId))
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
+  const callbackHandled = useRef(false)
 
   const load = useCallback(async () => {
     if (!projectId) return
@@ -50,6 +51,8 @@ export default function PersonalSheetPanel({ projectId }) {
     if (!projectId) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('connectSheet') !== '1') return
+    if (callbackHandled.current) return
+    callbackHandled.current = true
     params.delete('connectSheet')
     const query = params.toString()
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`)

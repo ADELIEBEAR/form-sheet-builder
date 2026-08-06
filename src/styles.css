@@ -392,8 +392,15 @@ button:active, a:active { transform: translateY(1px); }
 .swatches button { width: 32px; height: 32px; border: 2px solid transparent; border-radius: 9px; color: #fff; display: grid; place-items: center; cursor: pointer; }
 .swatches button.active { border-color: var(--app-text); box-shadow: inset 0 0 0 2px #fff; }
 .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.image-upload > img, .image-placeholder { width: 100%; height: 135px; border-radius: 9px; object-fit: cover; background: var(--app-soft); }
-.image-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--app-muted); font-size: 11px; }
+.image-upload { position: relative; }
+.image-upload-preview { width: 100%; padding: 0; border: 1px dashed color-mix(in srgb, var(--app-muted) 35%, transparent); border-radius: 10px; background: transparent; display: block; overflow: hidden; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.image-upload-preview:hover, .image-upload.is-dragging .image-upload-preview { border-color: var(--app-accent); background: var(--app-accent-soft); }
+.image-upload.is-dragging .image-upload-preview { transform: scale(.985); }
+.image-upload-preview:focus-visible { outline: 3px solid color-mix(in srgb, var(--app-accent) 18%, transparent); outline-offset: 2px; }
+.image-upload-preview > img, .image-placeholder { width: 100%; height: 135px; object-fit: cover; background: var(--app-soft); }
+.image-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--app-muted); font-size: 11px; }
+.image-placeholder strong { color: var(--app-text); font-size: 11px; }
+.image-placeholder small { font-size: 9px; font-weight: 600; }
 .image-actions { margin-top: 7px; display: flex; gap: 5px; }
 .image-actions .button { min-height: 35px; padding: 0 10px; border: 1px solid var(--app-line); border-radius: 7px; background: var(--app-surface); display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; cursor: pointer; }
 .image-actions .icon-button { width: 35px; border: 1px solid var(--app-line); border-radius: 7px; background: var(--app-surface); color: var(--app-danger); }

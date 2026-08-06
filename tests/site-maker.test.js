@@ -134,6 +134,23 @@ describe('landing site maker', () => {
     expect(savedHero.data.imageRatio).toBe('portrait')
   })
 
+  it('stores landing images as a frame or full block background', () => {
+    const base = emptySite()
+    const hero = base.content.sections.find((section) => section.type === 'hero')
+    const story = makeSiteSection('story')
+    hero.data.imageMode = 'background'
+    hero.data.overlayStrength = 1
+    story.data.imageMode = 'background'
+    story.data.overlayStrength = 999
+    const result = sanitizeSite({ ...base, title: '배경 이미지 테스트', content: { ...base.content, sections: [hero, story, ...base.content.sections.filter((section) => !['hero', 'story'].includes(section.type))] } })
+    const savedHero = result.content.sections.find((section) => section.type === 'hero')
+    const savedStory = result.content.sections.find((section) => section.type === 'story')
+    expect(savedHero.data.imageMode).toBe('background')
+    expect(savedHero.data.overlayStrength).toBe(30)
+    expect(savedStory.data.imageMode).toBe('background')
+    expect(savedStory.data.overlayStrength).toBe(90)
+  })
+
   it('upgrades old sections that do not have style settings', () => {
     const base = emptySite()
     const legacySections = base.content.sections.map(({ style, ...section }) => section)

@@ -19,6 +19,7 @@ export default function ImageUpload({ value, formId, onChange, maxEdge = 1800, q
   const inputRef = useRef(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [dragging, setDragging] = useState(false)
 
   async function upload(file) {
     if (!file?.type.startsWith('image/')) return setError('이미지 파일만 올릴 수 있습니다.')
@@ -54,13 +55,15 @@ export default function ImageUpload({ value, formId, onChange, maxEdge = 1800, q
   }
 
   return (
-    <div className="image-upload">
-      {value ? <img src={value} alt={`${label} 미리보기`} /> : <div className="image-placeholder"><ImageSquare size={30} /><span>{label}</span></div>}
+    <div className={`image-upload ${dragging ? 'is-dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); upload(event.dataTransfer.files?.[0]) }}>
+      <button className="image-upload-preview" type="button" onClick={() => inputRef.current?.click()} disabled={busy} aria-label={`${label} 선택`}>
+        {value ? <img src={value} alt={`${label} 미리보기`} /> : <span className="image-placeholder"><ImageSquare size={30} /><strong>{label}</strong><small>클릭하거나 사진을 끌어 놓으세요</small></span>}
+      </button>
       <div className="image-actions">
         <button className="button secondary" type="button" onClick={() => inputRef.current?.click()} disabled={busy}>{busy ? <SpinnerGap className="spin" /> : <ImageSquare />} {value ? '이미지 변경' : '이미지 올리기'}</button>
         {value ? <button className="icon-button danger" type="button" onClick={remove} disabled={busy} aria-label="이미지 제거"><Trash /></button> : null}
       </div>
-      <input ref={inputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => upload(event.target.files?.[0])} />
+      <input ref={inputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { upload(event.target.files?.[0]); event.target.value = '' }} />
       {error ? <p className="inline-error">{error}</p> : null}
     </div>
   )

@@ -37,6 +37,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AppFrame from '../components/AppFrame'
 import ImageUpload from '../components/ImageUpload'
+import ImagePositionControl from '../components/ImagePositionControl'
 import SiteRenderer from '../components/SiteRenderer'
 import { api } from '../lib/api'
 import { AUTO_SAVE_INTERVAL } from '../lib/autosave'
@@ -102,6 +103,31 @@ function isTypingTarget(target) {
 function formatDataSize(bytes) {
   if (bytes < 1024) return `${bytes}B`
   return `${Math.max(1, Math.round(bytes / 1024))}KB`
+}
+
+function LandingImageSettings({ section, siteId, updateSection }) {
+  const data = section.data || {}
+  const cinematic = section.type === 'hero' && section.style?.layout === 'cinematic'
+  const mode = cinematic ? 'background' : data.imageMode || 'frame'
+  const ratio = { landscape: '16 / 9', square: '1 / 1', portrait: '4 / 5' }[data.imageRatio] || '16 / 9'
+  const patch = (key, value) => updateSection(section.id, key, value)
+  return <section className="site-setting-group site-image-settings" id={`site-image-settings-${section.id}`}>
+    <div className="site-group-heading"><div><h3>이미지</h3><p>사진을 끌어 위치를 맞추고 바로 배경으로 바꾸세요</p></div></div>
+    <ImageUpload value={data.imageUrl} formId={siteId} maxEdge={1600} quality={0.76} maxBytes={2 * 1024 * 1024} label="섹션 이미지" onChange={(url) => patch('imageUrl', url)} />
+    {data.imageUrl ? <>
+      {cinematic ? <div className="site-image-mode-notice"><Image weight="duotone" /><span><strong>시네마틱 배경</strong><small>현재 구성에서는 사진이 블록 전체 배경으로 표시됩니다.</small></span></div> : <div className="site-image-mode-cards" role="group" aria-label="이미지 표시 방식">
+        <button className={mode === 'frame' ? 'active' : ''} type="button" onClick={() => patch('imageMode', 'frame')} aria-pressed={mode === 'frame'}><span className="mode-frame-preview"><i /></span><strong>이미지 칸</strong><small>글 옆에 사진 배치</small></button>
+        <button className={mode === 'background' ? 'active' : ''} type="button" onClick={() => patch('imageMode', 'background')} aria-pressed={mode === 'background'}><span className="mode-background-preview"><i /></span><strong>블록 배경</strong><small>사진 위에 글 배치</small></button>
+      </div>}
+      <ImagePositionControl src={data.imageUrl} x={data.imageFocus ?? 50} y={data.imagePositionY ?? 50} scale={data.imageScale ?? 100} ratio={mode === 'background' ? '16 / 8' : ratio} overlay={mode === 'background' ? data.overlayStrength ?? 58 : 0} maxScale={160} label="랜딩 이미지 위치 조절" onChange={({ x, y, scale }) => { patch('imageFocus', x); patch('imagePositionY', y); patch('imageScale', scale) }} />
+      <p className="site-setting-help image-direct-note">사진을 끌면 중심이 이동합니다. 아래 − / +로 확대하고 ‘중앙 맞춤’으로 즉시 되돌릴 수 있습니다.</p>
+      {mode === 'background' ? <label>배경 어둡기 <strong>{data.overlayStrength ?? 58}%</strong><input type="range" min={cinematic ? 30 : 20} max={cinematic ? 92 : 90} step="1" value={data.overlayStrength ?? (cinematic ? 72 : 58)} onChange={(event) => patch('overlayStrength', Number(event.target.value))} /></label> : <>
+        <div className="site-segment-field"><span>사진 비율</span><div role="group" aria-label="이미지 비율">{[['landscape', '가로'], ['square', '정사각'], ['portrait', '세로']].map(([value, label]) => <button className={data.imageRatio === value ? 'active' : ''} type="button" key={value} onClick={() => patch('imageRatio', value)} aria-pressed={data.imageRatio === value}>{label}</button>)}</div></div>
+        {section.type === 'story' ? <div className="site-segment-field"><span>사진 위치</span><div role="group" aria-label="이미지 위치">{[['left', '왼쪽'], ['right', '오른쪽']].map(([value, label]) => <button className={(data.imagePosition || 'right') === value ? 'active' : ''} type="button" key={value} onClick={() => patch('imagePosition', value)} aria-pressed={(data.imagePosition || 'right') === value}>{label}</button>)}</div></div> : null}
+      </>}
+      <details className="site-image-accessibility"><summary>이미지 설명</summary><label>화면 읽기용 설명<input value={data.imageAlt || ''} onChange={(event) => patch('imageAlt', event.target.value)} /></label></details>
+    </> : <p className="site-setting-help">클릭하거나 사진을 끌어 놓으면 자동 압축해 올립니다.</p>}
+  </section>
 }
 
 export default function SiteStudio() {
@@ -632,6 +658,7 @@ export default function SiteStudio() {
             <div><span>{selectedInfo?.category}</span><strong>{selectedInfo?.label}</strong></div>
             <fieldset><legend>폭</legend>{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)}>{label}</button>)}</fieldset>
             <fieldset><legend>내용 전체 정렬</legend>{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} title={`블록 안의 모든 내용을 ${label} 정렬`}>{label}</button>)}</fieldset>
+            {['hero', 'story'].includes(selectedSection.type) ? <button className="dock-icon dock-image" type="button" onClick={() => { setPanel('object'); setInspectorOpen(true); setMobilePane('inspector'); requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`site-image-settings-${selectedSection.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))) }} title="이미지 배경·크기 조절"><Image /></button> : null}
             <button className="dock-icon" type="button" onClick={() => { setPanel('object'); setInspectorOpen(true) }} title="세부 디자인"><SlidersHorizontal /></button>
             <button className="dock-icon" type="button" onClick={() => duplicateSection()} disabled={selectedSection.type === 'form'} title="복제"><Copy /></button>
           </div> : <button className="site-empty-canvas-add" type="button" onClick={(event) => { event.stopPropagation(); setLeftMode('blocks'); setOutlineOpen(true) }}><Plus /> 요소 추가</button>}
@@ -662,7 +689,7 @@ export default function SiteStudio() {
                   </div>})}</div> : <p className="site-setting-help">먼저 사이트 설정에서 신청 폼을 연결해 주세요.</p>}
                 </section>
               </> : null}
-              {['hero', 'story'].includes(selectedSection.type) ? <section className="site-setting-group site-image-settings"><div className="site-group-heading"><div><h3>이미지</h3><p>올린 뒤에도 자르기와 초점을 바꿀 수 있어요</p></div></div><ImageUpload value={selectedSection.data.imageUrl} formId={site.id} maxEdge={1600} quality={0.76} maxBytes={2 * 1024 * 1024} label="섹션 이미지" onChange={(url) => updateSection(selectedSection.id, 'imageUrl', url)} /><label>이미지 설명<input value={selectedSection.data.imageAlt || ''} onChange={(event) => updateSection(selectedSection.id, 'imageAlt', event.target.value)} /></label>{selectedSection.type === 'hero' && selectedSection.style?.layout === 'cinematic' ? <label>배경 어둡기 <strong>{selectedSection.data.overlayStrength || 72}%</strong><input type="range" min="30" max="92" step="1" value={selectedSection.data.overlayStrength || 72} onChange={(event) => updateSection(selectedSection.id, 'overlayStrength', Number(event.target.value))} /></label> : <div className="site-segment-field"><span>이미지 비율</span><div role="group" aria-label="이미지 비율">{[['landscape', '가로'], ['square', '정사각'], ['portrait', '세로']].map(([value, label]) => <button className={selectedSection.data.imageRatio === value ? 'active' : ''} type="button" key={value} onClick={() => updateSection(selectedSection.id, 'imageRatio', value)} aria-pressed={selectedSection.data.imageRatio === value}>{label}</button>)}</div></div>}<label>가로 초점 <strong>{selectedSection.data.imageFocus ?? 50}%</strong><input type="range" min="0" max="100" step="1" value={selectedSection.data.imageFocus ?? 50} onChange={(event) => updateSection(selectedSection.id, 'imageFocus', Number(event.target.value))} /></label><label>세로 초점 <strong>{selectedSection.data.imagePositionY ?? 50}%</strong><input type="range" min="0" max="100" step="1" value={selectedSection.data.imagePositionY ?? 50} onChange={(event) => updateSection(selectedSection.id, 'imagePositionY', Number(event.target.value))} /></label>{selectedSection.style?.layout !== 'cinematic' ? <label>이미지 확대 <strong>{selectedSection.data.imageScale ?? 100}%</strong><input type="range" min="100" max="160" step="1" value={selectedSection.data.imageScale ?? 100} onChange={(event) => updateSection(selectedSection.id, 'imageScale', Number(event.target.value))} /></label> : null}{selectedSection.type === 'story' ? <label>이미지 위치<select value={selectedSection.data.imagePosition || 'right'} onChange={(event) => updateSection(selectedSection.id, 'imagePosition', event.target.value)}><option value="right">오른쪽</option><option value="left">왼쪽</option></select></label> : null}<p className="site-setting-help">이미지를 비워두면 기본 그래픽을 사용합니다. 업로드 파일은 자동 압축됩니다.</p></section> : null}
+              {['hero', 'story'].includes(selectedSection.type) ? <LandingImageSettings section={selectedSection} siteId={site.id} updateSection={updateSection} /> : null}
               <section className="site-setting-group"><h3>빠른 작업</h3><div className="site-section-actions"><button type="button" onClick={() => duplicateSection()} disabled={selectedSection.type === 'form'}><Copy /> 복제</button><button type="button" onClick={() => toggleSection()}>{selectedSection.enabled === false ? <Eye /> : <EyeSlash />} {selectedSection.enabled === false ? '표시' : '숨김'}</button><button className="danger" type="button" onClick={() => deleteSection()} disabled={['hero', 'form'].includes(selectedSection.type)}><Trash /> 삭제</button></div></section>
             </> : <div className="site-no-selection"><SlidersHorizontal /><strong>캔버스에서 블록을 선택하세요</strong><p>글자는 바로 수정하고, 이곳에서는 폭과 간격, 배경 효과를 조절할 수 있습니다.</p><button type="button" onClick={() => { setLeftMode('blocks'); setOutlineOpen(true) }}><Plus /> 블록 추가</button></div>}
           </div> : null}

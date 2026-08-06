@@ -105,19 +105,24 @@ function imageFrameStyle(data) {
   }
 }
 
+function SectionBackgroundImage({ data }) {
+  return <div className="site-section-image-background" style={{ ...imageFrameStyle(data), '--site-image-overlay': Number(data?.overlayStrength ?? 58) / 100 }} aria-hidden="true"><img src={data.imageUrl} alt="" /><span /></div>
+}
+
 function Hero({ section, edit }) {
   const data = section.data
   const editing = Boolean(edit('title'))
   const cinematic = section.style?.layout === 'cinematic'
+  const background = !cinematic && data.imageUrl && data.imageMode === 'background'
   return (
-    <section className="site-section site-hero">
+    <section className={`site-section site-hero ${background ? 'has-background-image' : ''}`}>
       <div className="site-hero-copy">
         <Editable as="span" publicAs="span" className="site-hero-eyebrow" value={data.eyebrow} onChange={edit('eyebrow')} label="첫 화면 작은 제목" />
         <Editable as="textarea" publicAs="h1" className="site-hero-title" value={data.title} onChange={edit('title')} label="첫 화면 제목" />
         <Editable as="textarea" publicAs="p" className="site-hero-description" value={data.description} onChange={edit('description')} label="첫 화면 설명" />
         {editing ? <div className="site-main-cta is-editor-control"><Editable as="span" publicAs="span" value={data.buttonLabel} onChange={edit('buttonLabel')} label="신청 버튼 문구" /><ArrowDown weight="bold" /></div> : <button type="button" className="site-main-cta" onClick={goToForm}><span>{data.buttonLabel}</span><ArrowDown weight="bold" /></button>}
       </div>
-      {!cinematic && (data.imageUrl ? <figure className="site-hero-image" style={imageFrameStyle(data)}><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>)}
+      {!cinematic && !background && (data.imageUrl ? <figure className="site-hero-image" style={imageFrameStyle(data)}><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : <div className="site-signal-art" aria-hidden="true"><span /><span /><span /><b /></div>)}
     </section>
   )
 }
@@ -148,13 +153,14 @@ function Benefits({ section, edit }) {
 
 function Story({ section, edit, editing }) {
   const data = section.data
+  const background = data.imageUrl && data.imageMode === 'background'
   return (
-    <section className={`site-section site-story image-${data.imagePosition || 'right'} ${!data.imageUrl ? 'without-image' : ''}`}>
+    <section className={`site-section site-story image-${data.imagePosition || 'right'} ${!data.imageUrl ? 'without-image' : ''} ${background ? 'has-background-image' : ''}`}>
       <div className="site-story-copy">
         <Editable as="textarea" publicAs="h2" value={data.title} onChange={edit('title')} label="상세 설명 제목" />
         <Editable as="textarea" publicAs="p" value={data.description} onChange={edit('description')} label="상세 설명 내용" />
       </div>
-      {data.imageUrl ? <figure style={imageFrameStyle(data)}><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : editing ? <div className="site-image-placeholder"><ImageSquare /><span>속성 패널에서 이미지를 추가할 수 있어요</span></div> : null}
+      {data.imageUrl && !background ? <figure style={imageFrameStyle(data)}><img src={data.imageUrl} alt={data.imageAlt || ''} /></figure> : !data.imageUrl && editing ? <div className="site-image-placeholder"><ImageSquare /><span>속성 패널에서 이미지를 추가할 수 있어요</span></div> : null}
     </section>
   )
 }
@@ -289,7 +295,9 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
     const edit = (path) => change(section, path)
     const selected = selectedSectionId === section.id
     const sectionIndex = sections.findIndex((item) => item.id === section.id)
-    return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${extraClass} ${selected ? 'is-selected' : ''}`} onClick={(event) => select(event, section.id)}>
+    const backgroundImage = ['hero', 'story'].includes(section.type) && section.data?.imageUrl && section.data?.imageMode === 'background' && section.style?.layout !== 'cinematic'
+    return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${extraClass} ${backgroundImage ? 'has-section-background-image' : ''} ${selected ? 'is-selected' : ''}`} onClick={(event) => select(event, section.id)}>
+      {backgroundImage ? <SectionBackgroundImage data={section.data} /> : null}
       {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
       {editing && selected ? <BlockToolbar section={section} index={sectionIndex} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
       {editing && selected ? <SectionResizeHandles section={section} onStyleChange={onSectionStyleChange} /> : null}

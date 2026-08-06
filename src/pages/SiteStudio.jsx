@@ -465,7 +465,7 @@ export default function SiteStudio() {
   }, [selectedSectionId, site])
 
   async function save(nextStatus = site.status, automatic = false) {
-    if (savingRef.current || (automatic && (!dirtyRef.current || loading))) return
+    if (savingRef.current || (automatic && (!dirtyRef.current || loading || !siteId))) return
     if (nextStatus === 'published' && !linkedProject) {
       setError('공개하려면 먼저 신청 폼을 연결해 주세요.')
       setPanel('site')

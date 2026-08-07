@@ -316,6 +316,190 @@ export function makeSiteSection(type) {
   return { id: id(), type: safeType, enabled: true, style: initialSectionStyle(safeType), textStyles: {}, data: structuredClone(blockDefaults[safeType]) }
 }
 
+export const SITE_TEMPLATES = [
+  {
+    id: 'market-signal',
+    name: '금융 대응 알림',
+    category: '금융',
+    description: '수치와 대응 기준을 빠르게 전달하는 다크 시그널형',
+    preview: 'market',
+    themeId: 'midnight-cobalt',
+    brandName: 'MARKET SIGNAL',
+    settings: { footerText: '제공되는 내용은 참고용이며 최종 판단과 책임은 신청자 본인에게 있습니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'cinematic', pattern: 'grain', spacing: 'air' }, data: { eyebrow: '실시간 대응 알림', title: '변화가 보일 때, 대응은 빨라야 합니다', description: '핵심 변화와 확인할 기준을 정리해 필요한 시점에 알려드립니다.', buttonLabel: '알림 신청하기', overlayStrength: 78, imageMode: 'background' } },
+      { type: 'ticker', style: { layout: 'marquee' }, data: { items: ['시장 변화 확인', '핵심 기준 정리', '신청자별 안내'] } },
+      { type: 'stats', style: { layout: 'ledger', tone: 'surface', spacing: 'compact' }, data: { title: '복잡한 시장을 세 가지 기준으로', items: [{ value: '빠르게', label: '변화를 확인하고' }, { value: '명확하게', label: '대응 기준을 정리해' }, { value: '한곳에', label: '신청과 안내를 연결' }] } },
+      { type: 'benefits', style: { layout: 'list' }, data: { title: '확인해야 할 내용만 남겼습니다', description: '처음 보는 사람도 신청 이유를 바로 이해할 수 있습니다.', items: [{ title: '변화의 이유', description: '무엇이 달라졌는지 짧고 명확하게 정리합니다.' }, { title: '확인할 기준', description: '지금 봐야 할 가격과 상황을 함께 안내합니다.' }, { title: '빠른 연락', description: '조건에 맞는 변화가 생기면 신청자에게 전달합니다.' }] } },
+      { type: 'steps', style: { layout: 'compact', tone: 'soft' }, data: { title: '신청부터 안내까지', description: '필요한 정보만 남기면 확인 후 안내를 시작합니다.', items: [{ title: '정보 남기기', description: '이름과 연락처 등 필요한 내용을 입력합니다.' }, { title: '신청 확인', description: '운영자가 접수 내용을 확인합니다.' }, { title: '대응 알림 받기', description: '안내가 필요한 시점에 연락드립니다.' }] } },
+      { type: 'form', style: { layout: 'panel', tone: 'surface', elevation: 'float', spacing: 'compact' }, data: { title: '대응 알림 신청', description: '필요한 정보를 입력하면 바로 접수됩니다.', questionSize: 15, descriptionSize: 11, inputSize: 13, inputHeight: 44, fieldSpacing: 9 } },
+      { type: 'notice', style: { layout: 'panel', spacing: 'compact' }, data: { title: '신청 전 확인', description: '제공되는 내용은 참고용이며 특정 결과를 보장하지 않습니다. 최종 판단과 책임은 신청자 본인에게 있습니다.' } },
+    ],
+  },
+  {
+    id: 'reservation-studio',
+    name: '예약·상담 스튜디오',
+    category: '예약',
+    description: '서비스 분위기와 상담 흐름을 차분하게 보여주는 예약형',
+    preview: 'reservation',
+    themeId: 'chrome',
+    brandName: 'STUDIO RESERVE',
+    settings: { footerText: '예약 내용은 일정 확인과 상담 안내 목적으로만 사용됩니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'split', pattern: 'mesh', spacing: 'air' }, data: { eyebrow: 'PRIVATE RESERVATION', title: '당신에게 맞는 시간을 예약하세요', description: '서비스를 확인하고 원하는 일정과 상담 내용을 한 번에 남길 수 있습니다.', buttonLabel: '상담 예약하기', imageRatio: 'portrait' } },
+      { type: 'story', style: { layout: 'overlap', tone: 'surface', elevation: 'soft' }, data: { title: '충분히 듣고 정확하게 제안합니다', description: '상담 전 필요한 내용을 미리 확인해 방문하거나 통화하는 시간을 더 편안하게 만듭니다.', imageRatio: 'landscape' } },
+      { type: 'benefits', style: { layout: 'bento' }, data: { title: '예약 전에 확인할 수 있어요', description: '서비스 선택부터 일정 조율까지 한 페이지에서 이어집니다.', items: [{ title: '서비스 안내', description: '가능한 서비스와 특징을 먼저 확인합니다.' }, { title: '일정 요청', description: '희망 날짜와 시간을 편하게 남깁니다.' }, { title: '맞춤 상담', description: '남긴 내용을 바탕으로 상담을 준비합니다.' }] } },
+      { type: 'quote', style: { layout: 'edge', tone: 'soft', align: 'left' }, data: { quote: '좋은 상담은 충분히 듣는 것에서 시작합니다.', name: '예약 운영 원칙', role: '상담 안내 기준' } },
+      { type: 'steps', style: { layout: 'timeline' }, data: { title: '예약은 이렇게 진행됩니다', description: '신청 후 담당자가 가능 일정을 확인해 연락드립니다.', items: [{ title: '내용 작성', description: '원하는 서비스와 일정을 남깁니다.' }, { title: '일정 확인', description: '담당자가 가능 여부를 확인합니다.' }, { title: '예약 확정', description: '최종 일정을 안내받으면 예약이 완료됩니다.' }] } },
+      { type: 'form', style: { layout: 'plain', tone: 'surface' }, data: { title: '상담 예약', description: '원하는 서비스와 일정을 알려주세요.', questionSize: 18, inputHeight: 50, fieldSpacing: 14 } },
+      { type: 'faq', style: { layout: 'columns', width: 'normal' }, data: { title: '예약 전 자주 묻는 질문', items: [{ question: '일정은 언제 확정되나요?', answer: '신청 내용을 확인한 뒤 가능한 일정을 개별 안내합니다.' }, { question: '예약 내용을 바꿀 수 있나요?', answer: '확정 전 담당자에게 알려주시면 조정할 수 있습니다.' }, { question: '상담 비용이 있나요?', answer: '서비스별 비용이 다를 수 있어 상담 전에 안내합니다.' }] } },
+      { type: 'notice', style: { layout: 'inline', spacing: 'compact' }, data: { title: '예약 안내', description: '신청만으로 예약이 확정되지는 않습니다. 담당자의 최종 안내를 확인해 주세요.' } },
+    ],
+  },
+  {
+    id: 'property-consult',
+    name: '부동산 상담',
+    category: '상담',
+    description: '핵심 조건과 상담 절차를 신뢰감 있게 정리한 안내형',
+    preview: 'property',
+    themeId: 'forest',
+    brandName: 'GROUND GUIDE',
+    settings: { footerText: '상담 내용은 문의 확인과 관련 안내를 위해서만 사용됩니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'minimal', pattern: 'paper', spacing: 'air' }, data: { eyebrow: '맞춤 상담 안내', title: '조건을 먼저 확인하면 선택이 선명해집니다', description: '희망 지역과 예산, 목적을 남기면 상담에 필요한 내용을 정리해 드립니다.', buttonLabel: '상담 신청하기' } },
+      { type: 'stats', style: { layout: 'tiles', tone: 'surface' }, data: { title: '상담에서 먼저 확인하는 기준', items: [{ value: '지역', label: '생활권과 이동 조건' }, { value: '예산', label: '가능한 범위와 계획' }, { value: '목적', label: '거주 또는 투자 방향' }] } },
+      { type: 'benefits', style: { layout: 'rail' }, data: { title: '복잡한 조건을 순서대로 정리합니다', description: '상담 전에 필요한 판단 기준을 짧게 확인할 수 있습니다.', items: [{ title: '희망 조건 정리', description: '지역, 면적, 예산 등 우선순위를 확인합니다.' }, { title: '가능 범위 안내', description: '현재 조건에서 확인할 수 있는 범위를 설명합니다.' }, { title: '다음 단계 제안', description: '추가 확인이나 방문이 필요한지 안내합니다.' }] } },
+      { type: 'steps', style: { layout: 'cards', tone: 'soft' }, data: { title: '상담 진행 과정', description: '문의 내용을 확인한 뒤 순서대로 연락드립니다.', items: [{ title: '조건 입력', description: '원하는 지역과 예산을 남깁니다.' }, { title: '내용 검토', description: '상담에 필요한 정보를 정리합니다.' }, { title: '개별 상담', description: '확인된 내용을 바탕으로 안내합니다.' }] } },
+      { type: 'form', style: { layout: 'panel', tone: 'surface', elevation: 'soft' }, data: { title: '맞춤 상담 신청', description: '희망 조건을 남기면 확인 후 연락드립니다.', questionSize: 17, inputHeight: 48, fieldSpacing: 12 } },
+      { type: 'notice', style: { layout: 'panel', spacing: 'compact' }, data: { title: '상담 전 확인', description: '제공되는 정보는 일반적인 안내이며 계약이나 수익을 보장하지 않습니다. 최종 결정 전 관련 서류와 조건을 직접 확인해 주세요.' } },
+    ],
+  },
+  {
+    id: 'event-launch',
+    name: '이벤트 사전 신청',
+    category: '이벤트',
+    description: '한 문장과 참가 혜택을 강하게 보여주는 포스터형',
+    preview: 'event',
+    themeId: 'lime-black',
+    brandName: 'OPEN SESSION',
+    settings: { footerText: '행사 일정과 운영 내용은 상황에 따라 변경될 수 있습니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'poster', pattern: 'stripes', spacing: 'air' }, data: { eyebrow: '사전 참가 신청', title: '지금 신청하고 현장에서 만나세요', description: '행사 핵심 내용과 참가 방법을 확인하고 빠르게 신청할 수 있습니다.', buttonLabel: '참가 신청하기' } },
+      { type: 'ticker', style: { layout: 'marquee' }, data: { items: ['사전 신청 접수', '현장 프로그램 안내', '참가자 개별 연락'] } },
+      { type: 'cards', style: { layout: 'mosaic' }, data: { title: '이 행사에서 만나는 것', description: '긴 설명보다 참가자가 실제로 경험할 내용을 먼저 보여줍니다.', items: [{ title: '핵심 세션', description: '주제에 필요한 내용을 집중해서 다룹니다.' }, { title: '현장 질문', description: '궁금한 내용을 직접 묻고 답을 들을 수 있습니다.' }, { title: '참가 자료', description: '행사 후 다시 볼 수 있는 안내를 제공합니다.' }, { title: '후속 안내', description: '원하는 사람에게 다음 소식을 전달합니다.' }] } },
+      { type: 'stats', style: { layout: 'row', tone: 'soft' }, data: { title: '참가 전에 확인하세요', items: [{ value: '일정', label: '행사 날짜와 시간' }, { value: '장소', label: '참가 방식과 위치' }, { value: '준비', label: '필요한 사전 안내' }] } },
+      { type: 'form', style: { layout: 'panel', tone: 'surface', elevation: 'float', spacing: 'compact' }, data: { title: '사전 참가 신청', description: '참가자 정보를 남기면 확인 안내를 보내드립니다.', questionSize: 16, inputHeight: 46, fieldSpacing: 10 } },
+      { type: 'notice', style: { layout: 'inline', spacing: 'compact' }, data: { title: '행사 안내', description: '신청 인원과 운영 상황에 따라 일정 또는 프로그램이 조정될 수 있습니다.' } },
+    ],
+  },
+  {
+    id: 'clinic-appointment',
+    name: '클리닉 예약',
+    category: '예약',
+    description: '과장 없이 과정과 상담 기준을 편안하게 보여주는 클린형',
+    preview: 'clinic',
+    themeId: 'ice',
+    brandName: 'CLEAR APPOINTMENT',
+    settings: { footerText: '작성한 내용은 예약 확인과 상담 안내 목적으로만 사용됩니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'split', pattern: 'waves', spacing: 'air' }, data: { eyebrow: '편안한 상담 예약', title: '충분히 확인하고 나에게 맞게 선택하세요', description: '필요한 상담 내용을 먼저 남기면 방문 전 확인할 사항을 안내합니다.', buttonLabel: '예약 상담하기', imageRatio: 'portrait' } },
+      { type: 'benefits', style: { layout: 'list' }, data: { title: '상담에서 중요하게 보는 것', description: '과장된 표현보다 과정과 주의사항을 분명하게 안내합니다.', items: [{ title: '현재 상태 확인', description: '불편한 점과 원하는 방향을 먼저 듣습니다.' }, { title: '과정 안내', description: '가능한 방법과 진행 순서를 설명합니다.' }, { title: '주의사항 확인', description: '결정 전에 알아야 할 내용을 함께 안내합니다.' }] } },
+      { type: 'story', style: { layout: 'editorial', tone: 'surface' }, data: { title: '결정보다 먼저 충분한 설명이 필요합니다', description: '상담 과정에서 궁금한 점을 확인하고, 본인에게 맞는 선택인지 천천히 판단할 수 있도록 돕습니다.', imageRatio: 'landscape' } },
+      { type: 'quote', style: { layout: 'center', tone: 'soft' }, data: { quote: '충분히 이해한 뒤 선택할 수 있도록 안내합니다.', name: '상담 운영 기준', role: '예약 안내 원칙' } },
+      { type: 'form', style: { layout: 'plain', tone: 'surface' }, data: { title: '상담 예약', description: '원하는 일정과 상담 내용을 남겨주세요.', questionSize: 17, inputHeight: 50, fieldSpacing: 14 } },
+      { type: 'faq', style: { layout: 'stack', width: 'normal' }, data: { title: '상담 전 자주 묻는 질문', items: [{ question: '신청하면 바로 예약되나요?', answer: '가능한 일정을 확인한 뒤 개별 연락으로 예약을 확정합니다.' }, { question: '상담 전에 준비할 것이 있나요?', answer: '필요한 내용이 있다면 예약 확정 안내에서 함께 알려드립니다.' }, { question: '작성한 정보는 어디에 쓰이나요?', answer: '예약 확인과 상담 안내에 필요한 범위에서만 사용합니다.' }] } },
+      { type: 'notice', style: { layout: 'panel', spacing: 'compact' }, data: { title: '예약 전 확인', description: '상담 결과와 진행 가능 여부는 개인 상황에 따라 달라질 수 있습니다. 자세한 내용은 상담 과정에서 확인해 주세요.' } },
+    ],
+  },
+  {
+    id: 'creator-class',
+    name: '강의·자료 신청',
+    category: '콘텐츠',
+    description: '강의 가치와 제공 자료를 보기 좋게 나누는 콘텐츠형',
+    preview: 'creator',
+    themeId: 'cobalt',
+    brandName: 'PRACTICE CLASS',
+    settings: { footerText: '강의와 자료의 저작권은 제작자에게 있으며 무단 배포를 금합니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'poster', pattern: 'grid', spacing: 'air' }, data: { eyebrow: '실전 강의와 자료', title: '배운 내용을 바로 써먹을 수 있게', description: '핵심 개념과 실제 활용 방법을 한 번에 익히는 신청 페이지입니다.', buttonLabel: '강의 신청하기' } },
+      { type: 'benefits', style: { layout: 'bento' }, data: { title: '이 강의에서 가져가는 것', description: '강의가 끝난 뒤에도 다시 사용할 수 있는 기준과 자료를 제공합니다.', items: [{ title: '핵심 개념', description: '꼭 알아야 할 내용을 짧고 정확하게 설명합니다.' }, { title: '실전 예시', description: '실제 상황에 적용하는 방법을 보여줍니다.' }, { title: '복습 자료', description: '강의 후 다시 확인할 수 있는 자료를 제공합니다.' }] } },
+      { type: 'cards', style: { layout: 'rail', tone: 'soft' }, data: { title: '이런 분에게 잘 맞습니다', description: '현재 필요한 내용과 맞는지 먼저 확인해 보세요.', items: [{ title: '처음 시작하는 분', description: '기초부터 순서대로 배우고 싶은 분' }, { title: '정리가 필요한 분', description: '알고 있는 내용을 실전 기준으로 묶고 싶은 분' }, { title: '바로 적용할 분', description: '업무나 프로젝트에 곧바로 활용할 분' }] } },
+      { type: 'quote', style: { layout: 'edge', tone: 'surface', align: 'left' }, data: { quote: '좋은 강의는 듣는 시간보다 써먹는 시간을 늘려줍니다.', name: '강의 제작 원칙', role: '실전 활용 중심' } },
+      { type: 'faq', style: { layout: 'columns' }, data: { title: '신청 전 확인해 주세요', items: [{ question: '초보자도 들을 수 있나요?', answer: '처음 접하는 분도 따라올 수 있도록 핵심부터 설명합니다.' }, { question: '자료는 어떻게 받나요?', answer: '신청 확인 후 안내된 방법으로 전달합니다.' }, { question: '신청 내용을 바꿀 수 있나요?', answer: '운영자에게 알려주시면 확인 후 반영합니다.' }] } },
+      { type: 'form', style: { layout: 'panel', tone: 'surface', elevation: 'soft' }, data: { title: '강의 신청', description: '참가자 정보와 필요한 내용을 알려주세요.', questionSize: 17, inputHeight: 48, fieldSpacing: 12 } },
+      { type: 'notice', style: { layout: 'inline', spacing: 'compact' }, data: { title: '자료 이용 안내', description: '제공되는 강의와 자료는 신청자 본인의 학습 목적으로만 이용해 주세요.' } },
+    ],
+  },
+  {
+    id: 'recruit-apply',
+    name: '채용 지원',
+    category: '채용',
+    description: '역할과 지원 과정을 선명하게 설명하는 리크루팅형',
+    preview: 'recruit',
+    themeId: 'ink',
+    brandName: 'JOIN THE TEAM',
+    settings: { footerText: '지원 정보는 채용 검토와 결과 안내 목적으로만 사용됩니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'minimal', pattern: 'grain', spacing: 'air' }, data: { eyebrow: '새로운 동료를 찾습니다', title: '잘하는 일을 더 크게 만들 사람', description: '역할과 일하는 방식을 확인하고 간단한 지원 정보를 남겨주세요.', buttonLabel: '지원하기' } },
+      { type: 'ticker', style: { layout: 'static' }, data: { items: ['역할 중심 채용', '지원서 간편 접수', '검토 후 개별 안내'] } },
+      { type: 'benefits', style: { layout: 'list' }, data: { title: '함께 일할 때 중요하게 보는 것', description: '화려한 표현보다 실제 경험과 일하는 방식을 확인합니다.', items: [{ title: '문제를 이해하는 힘', description: '주어진 상황을 정확히 파악하고 질문합니다.' }, { title: '끝까지 만드는 태도', description: '작은 일도 책임 있게 마무리합니다.' }, { title: '함께 나누는 과정', description: '진행 상황과 생각을 투명하게 공유합니다.' }] } },
+      { type: 'steps', style: { layout: 'timeline', tone: 'soft' }, data: { title: '지원 과정', description: '지원서를 확인한 뒤 필요한 과정과 일정을 안내합니다.', items: [{ title: '간단 지원', description: '기본 정보와 경험을 남깁니다.' }, { title: '지원서 검토', description: '역할과 경험이 잘 맞는지 확인합니다.' }, { title: '개별 안내', description: '다음 과정이 필요한 분께 연락드립니다.' }] } },
+      { type: 'faq', style: { layout: 'stack', width: 'normal' }, data: { title: '지원 전 자주 묻는 질문', items: [{ question: '정해진 양식이 있나요?', answer: '폼에 안내된 항목에 맞춰 필요한 내용만 작성하면 됩니다.' }, { question: '결과는 언제 알 수 있나요?', answer: '검토가 끝난 뒤 지원자에게 개별 안내합니다.' }, { question: '지원 정보를 수정할 수 있나요?', answer: '운영자에게 알려주시면 확인 후 반영합니다.' }] } },
+      { type: 'form', style: { layout: 'plain', tone: 'surface' }, data: { title: '간단 지원', description: '지원자 정보와 경험을 알려주세요.', questionSize: 17, inputHeight: 50, fieldSpacing: 14 } },
+      { type: 'notice', style: { layout: 'panel', spacing: 'compact' }, data: { title: '지원 정보 안내', description: '작성한 정보는 채용 검토와 결과 안내에 필요한 범위에서만 사용합니다.' } },
+    ],
+  },
+  {
+    id: 'quick-lead',
+    name: '초간단 문의',
+    category: '상담',
+    description: '설명은 짧게, 문의 전환은 빠르게 만든 압축형',
+    preview: 'lead',
+    themeId: 'rose',
+    brandName: 'QUICK CONTACT',
+    settings: { footerText: '문의 내용은 상담 확인과 답변을 위해서만 사용됩니다.', stickyCta: true },
+    sections: [
+      { type: 'hero', style: { layout: 'split', pattern: 'none', spacing: 'normal' }, data: { eyebrow: '빠른 문의 접수', title: '궁금한 내용을 남겨주세요', description: '길게 설명하지 않아도 됩니다. 확인 후 필요한 내용을 다시 안내합니다.', buttonLabel: '문의 남기기', imageRatio: 'square' } },
+      { type: 'benefits', style: { layout: 'rail', spacing: 'compact' }, data: { title: '문의가 쉬워지는 세 가지', description: '복잡한 가입 없이 필요한 내용만 입력합니다.', items: [{ title: '간단하게', description: '최소한의 정보만 남깁니다.' }, { title: '정확하게', description: '문의 내용을 확인하고 답변합니다.' }, { title: '빠르게', description: '확인되는 순서대로 연락드립니다.' }] } },
+      { type: 'form', style: { layout: 'panel', tone: 'surface', elevation: 'soft', spacing: 'compact' }, data: { title: '문의 남기기', description: '연락받을 정보와 문의 내용을 적어주세요.', questionSize: 16, descriptionSize: 11, inputSize: 13, inputHeight: 44, fieldSpacing: 9 } },
+      { type: 'notice', style: { layout: 'inline', spacing: 'compact' }, data: { title: '문의 안내', description: '문의 내용에 따라 답변에 시간이 더 필요할 수 있습니다.' } },
+    ],
+  },
+]
+
+function siteSectionFromTemplate(blueprint, previousForm) {
+  const section = makeSiteSection(blueprint.type)
+  const data = { ...section.data, ...structuredClone(blueprint.data || {}) }
+  if (blueprint.type === 'form' && previousForm) {
+    data.fieldOrder = structuredClone(previousForm.data?.fieldOrder || [])
+    data.fieldStyles = structuredClone(previousForm.data?.fieldStyles || {})
+  }
+  return {
+    ...section,
+    enabled: blueprint.enabled !== false,
+    style: { ...section.style, ...(blueprint.style || {}) },
+    textStyles: structuredClone(blueprint.textStyles || {}),
+    data,
+  }
+}
+
+export function applySiteTemplate(site, templateId) {
+  const template = SITE_TEMPLATES.find((item) => item.id === templateId)
+  if (!template) return site
+  const theme = SITE_THEME_PRESETS.find((item) => item.id === template.themeId)?.theme
+  const previousForm = site.content?.sections?.find((section) => section.type === 'form')
+  return {
+    ...site,
+    content: {
+      ...site.content,
+      brandName: template.brandName,
+      sections: template.sections.map((section) => siteSectionFromTemplate(section, previousForm)),
+    },
+    theme: theme ? { ...theme } : site.theme,
+    settings: { ...site.settings, ...template.settings },
+  }
+}
+
 export function alignSiteSection(section, align) {
   const nextAlign = ['left', 'center', 'right'].includes(align) ? align : 'left'
   const textStyles = Object.fromEntries(Object.entries(section?.textStyles || {}).map(([label, value]) => {
@@ -389,6 +573,7 @@ function boundedNumber(value, fallback, min, max) {
 function imageUrl(value) {
   const input = text(value, '', 1200).trim()
   if (!input) return ''
+  if (/^\/assets\/[a-z0-9_./-]+$/i.test(input)) return input
   try {
     const parsed = new URL(input)
     return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : ''

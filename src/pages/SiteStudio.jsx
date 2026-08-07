@@ -48,6 +48,7 @@ import {
   addSiteCollectionItem,
   alignSiteSection,
   applySiteComposition,
+  applySiteTemplate,
   emptySite,
   makeSiteSection,
   MAX_SITE_SECTIONS,
@@ -58,6 +59,7 @@ import {
   SITE_COMPOSITION_PRESETS,
   SITE_COLLECTION_RULES,
   SITE_LAYOUT_OPTIONS,
+  SITE_TEMPLATES,
   SITE_THEME_PRESETS,
 } from '../lib/siteMaker'
 
@@ -105,6 +107,16 @@ function formatDataSize(bytes) {
   return `${Math.max(1, Math.round(bytes / 1024))}KB`
 }
 
+function SiteTemplateThumb({ template, large = false }) {
+  return <span className={`site-template-thumb template-${template.preview} ${large ? 'is-large' : ''}`} aria-hidden="true">
+    <i className="template-nav" />
+    <i className="template-title" />
+    <i className="template-copy" />
+    <i className="template-media" />
+    <i className="template-action" />
+  </span>
+}
+
 function LandingImageSettings({ section, siteId, updateSection }) {
   const data = section.data || {}
   const cinematic = section.type === 'hero' && section.style?.layout === 'cinematic'
@@ -139,6 +151,10 @@ export default function SiteStudio() {
   const [device, setDevice] = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 'mobile' : 'desktop'))
   const [panel, setPanel] = useState('object')
   const [leftMode, setLeftMode] = useState('layers')
+  const [kitMode, setKitMode] = useState('templates')
+  const [templateCategory, setTemplateCategory] = useState('전체')
+  const [templatePreviewId, setTemplatePreviewId] = useState(SITE_TEMPLATES[0]?.id || '')
+  const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(() => typeof window === 'undefined' || window.innerWidth > 1100)
   const [inspectorOpen, setInspectorOpen] = useState(() => typeof window === 'undefined' || window.innerWidth > 900)
   const [mobilePane, setMobilePane] = useState('canvas')
@@ -380,6 +396,25 @@ export default function SiteStudio() {
     setLeftMode('layers')
   }
 
+  function chooseTemplateCategory(category) {
+    const firstTemplate = SITE_TEMPLATES.find((template) => category === '전체' || template.category === category)
+    setTemplateCategory(category)
+    if (firstTemplate) setTemplatePreviewId(firstTemplate.id)
+    setTemplateConfirmOpen(false)
+  }
+
+  function applyTemplate(templateId) {
+    const template = SITE_TEMPLATES.find((item) => item.id === templateId)
+    if (!template) return
+    const next = applySiteTemplate(site, templateId)
+    changeSite(next)
+    setSelectedSectionId(next.content?.sections?.[0]?.id || '')
+    setTemplateConfirmOpen(false)
+    setNotice(`${template.name} 템플릿 적용됨`)
+    setLeftMode('layers')
+    setPanel('object')
+  }
+
   function selectSection(sectionId, { revealCanvas = false } = {}) {
     setSelectedSectionId(sectionId)
     if (!sectionId) return
@@ -595,6 +630,9 @@ export default function SiteStudio() {
   const availableBlocks = SITE_BLOCKS.filter((block) => block.type !== 'hero'
     && !(block.type === 'form' && site.content.sections.some((section) => section.type === 'form'))
     && !(block.type === 'ticker' && site.content.sections.some((section) => section.type === 'ticker')))
+  const templateCategories = ['전체', ...new Set(SITE_TEMPLATES.map((template) => template.category))]
+  const visibleTemplates = SITE_TEMPLATES.filter((template) => templateCategory === '전체' || template.category === templateCategory)
+  const selectedTemplate = SITE_TEMPLATES.find((template) => template.id === templatePreviewId) || visibleTemplates[0] || SITE_TEMPLATES[0]
 
   return (
     <AppFrame backTo="/sites" center={<div className="site-studio-title"><input value={site.title} onChange={(event) => changeSite((current) => ({ ...current, title: event.target.value }))} aria-label="사이트 관리용 제목" /><span className={dirty ? 'is-dirty' : ''}>{notice}</span></div>} actions={<>
@@ -610,7 +648,7 @@ export default function SiteStudio() {
         <nav className="site-tool-rail" aria-label="랜딩 제작 도구">
           <button className={leftMode === 'layers' && outlineOpen ? 'active' : ''} type="button" onClick={() => { setLeftMode('layers'); setOutlineOpen(true) }} aria-pressed={leftMode === 'layers' && outlineOpen}><Rows /><span>레이어</span></button>
           <button className={leftMode === 'blocks' && outlineOpen ? 'active' : ''} type="button" onClick={() => { setLeftMode('blocks'); setOutlineOpen(true) }} aria-pressed={leftMode === 'blocks' && outlineOpen}><Plus /><span>요소</span></button>
-          <button className={leftMode === 'kits' && outlineOpen ? 'active' : ''} type="button" onClick={() => { setLeftMode('kits'); setOutlineOpen(true) }} aria-pressed={leftMode === 'kits' && outlineOpen}><MagicWand weight="fill" /><span>구성</span></button>
+          <button className={leftMode === 'kits' && outlineOpen ? 'active' : ''} type="button" onClick={() => { setLeftMode('kits'); setOutlineOpen(true) }} aria-pressed={leftMode === 'kits' && outlineOpen}><MagicWand weight="fill" /><span>템플릿</span></button>
           <i />
           <button className={panel === 'theme' && inspectorOpen ? 'active' : ''} type="button" onClick={() => { setPanel('theme'); setInspectorOpen(true) }} aria-pressed={panel === 'theme' && inspectorOpen}><PaintBrush /><span>디자인</span></button>
           <button className={panel === 'site' && inspectorOpen ? 'active' : ''} type="button" onClick={() => { setPanel('site'); setInspectorOpen(true) }} aria-pressed={panel === 'site' && inspectorOpen}><GlobeHemisphereWest /><span>사이트</span></button>
@@ -621,9 +659,10 @@ export default function SiteStudio() {
           <button className={mobilePane === 'inspector' ? 'active' : ''} type="button" onClick={() => setMobilePane('inspector')} aria-pressed={mobilePane === 'inspector'}><SlidersHorizontal /> 속성</button>
         </nav>
         <aside className="site-outline-panel" aria-hidden={!outlineOpen && mobilePane !== 'layers'}>
-          <header className="site-panel-heading"><div><span>{leftMode === 'layers' ? '페이지' : leftMode === 'blocks' ? '라이브러리' : '스타일 키트'}</span><strong>{leftMode === 'layers' ? '레이어' : leftMode === 'blocks' ? '디자인 요소' : '한 번에 구성 바꾸기'}</strong></div>{leftMode !== 'layers' ? <button type="button" onClick={() => setLeftMode('layers')} aria-label="레이어로 돌아가기"><Rows /></button> : <button type="button" onClick={() => setLeftMode('blocks')} aria-label="블록 추가"><Plus /></button>}</header>
+          <header className="site-panel-heading"><div><span>{leftMode === 'layers' ? '페이지' : leftMode === 'blocks' ? '라이브러리' : '홍보사이트'}</span><strong>{leftMode === 'layers' ? '레이어' : leftMode === 'blocks' ? '디자인 요소' : '템플릿'}</strong></div>{leftMode !== 'layers' ? <button type="button" onClick={() => setLeftMode('layers')} aria-label="레이어로 돌아가기"><Rows /></button> : <button type="button" onClick={() => setLeftMode('blocks')} aria-label="블록 추가"><Plus /></button>}</header>
           {leftMode === 'layers' ? <>
             <p className="site-panel-intro">끌어서 순서를 바꾸고 눌러서 편집하세요.</p>
+            <div className="site-mobile-library-shortcuts"><button type="button" onClick={() => setLeftMode('blocks')}><Plus /> 요소 추가</button><button type="button" onClick={() => { setLeftMode('kits'); setKitMode('templates') }}><MagicWand weight="fill" /> 템플릿</button></div>
             <div className="site-outline-list">
               {site.content.sections.map((section, index) => {
                 const info = SITE_BLOCKS.find((block) => block.type === section.type)
@@ -639,9 +678,28 @@ export default function SiteStudio() {
               const Icon = BLOCK_ICONS[block.type] || Rows
               return <button type="button" key={block.type} onClick={() => addBlock(block.type)} disabled={site.content.sections.length >= MAX_SITE_SECTIONS}><span className={`site-block-thumb type-${block.type}`}><Icon /></span><strong>{block.label}</strong><small>{block.description}</small></button>
             })}</div></section>)}
-          </div> : <div className="site-composition-library">
-            <p>글자는 그대로 두고 테마와 레이아웃 조합만 바꿉니다.</p>
-            <div>{SITE_COMPOSITION_PRESETS.map((preset) => <button type="button" key={preset.id} onClick={() => applyComposition(preset.id)}><span className={`site-composition-preview preview-${preset.preview}`}><i /><i /><i /><i /></span><span><strong>{preset.name}</strong><small>{preset.description}</small></span><MagicWand weight="fill" /></button>)}</div>
+          </div> : <div className="site-kit-library">
+            <nav className="site-kit-tabs" aria-label="템플릿 종류">
+              <button className={kitMode === 'templates' ? 'active' : ''} type="button" onClick={() => setKitMode('templates')} aria-pressed={kitMode === 'templates'}>완성형 템플릿</button>
+              <button className={kitMode === 'styles' ? 'active' : ''} type="button" onClick={() => setKitMode('styles')} aria-pressed={kitMode === 'styles'}>스타일만</button>
+            </nav>
+            {kitMode === 'templates' && selectedTemplate ? <div className="site-template-library">
+              <p className="site-template-note">문구와 블록까지 완성된 홍보사이트를 골라 시작하세요.</p>
+              <div className="site-template-categories" role="group" aria-label="템플릿 업종">{templateCategories.map((category) => <button className={templateCategory === category ? 'active' : ''} type="button" key={category} onClick={() => chooseTemplateCategory(category)} aria-pressed={templateCategory === category}>{category}</button>)}</div>
+              <section className="site-template-feature" aria-live="polite">
+                <SiteTemplateThumb template={selectedTemplate} large />
+                <div className="site-template-feature-copy"><span>{selectedTemplate.category}</span><h3>{selectedTemplate.name}</h3><p>{selectedTemplate.description}</p><small>{selectedTemplate.sections.map((section) => SITE_BLOCKS.find((block) => block.type === section.type)?.label).filter(Boolean).join(' / ')}</small></div>
+                {templateConfirmOpen ? <div className="site-template-confirm" role="alert"><p>현재 블록, 문구, 테마가 바뀝니다. 연결 폼과 공개 주소는 그대로 유지됩니다.</p><div><button type="button" onClick={() => setTemplateConfirmOpen(false)}>취소</button><button type="button" onClick={() => applyTemplate(selectedTemplate.id)}>적용하기</button></div></div> : <button className="site-template-apply" type="button" onClick={() => setTemplateConfirmOpen(true)}><MagicWand weight="fill" /> 이 템플릿 사용</button>}
+              </section>
+              <div className="site-template-grid">{visibleTemplates.map((template) => <button className={selectedTemplate.id === template.id ? 'active' : ''} type="button" key={template.id} onClick={() => { setTemplatePreviewId(template.id); setTemplateConfirmOpen(false) }} aria-pressed={selectedTemplate.id === template.id}>
+                <SiteTemplateThumb template={template} />
+                <span><small>{template.category}</small><strong>{template.name}</strong><em>{template.description}</em></span>
+                <b>{template.sections.length}블록</b>
+              </button>)}</div>
+            </div> : <div className="site-composition-library">
+              <p>작성한 글자는 그대로 두고 색과 블록 배치만 바꿉니다.</p>
+              <div>{SITE_COMPOSITION_PRESETS.map((preset) => <button type="button" key={preset.id} onClick={() => applyComposition(preset.id)}><span className={`site-composition-preview preview-${preset.preview}`}><i /><i /><i /><i /></span><span><strong>{preset.name}</strong><small>{preset.description}</small></span><MagicWand weight="fill" /></button>)}</div>
+            </div>}
           </div>}
         </aside>
 

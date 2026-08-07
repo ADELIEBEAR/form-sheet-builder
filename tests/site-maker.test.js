@@ -3,6 +3,7 @@ import {
   addSiteCollectionItem,
   alignSiteSection,
   applySiteComposition,
+  applySiteTemplate,
   emptySite,
   makeSiteSection,
   MAX_SITE_SECTIONS,
@@ -13,6 +14,7 @@ import {
   SITE_COLLECTION_RULES,
   SITE_COMPOSITION_PRESETS,
   SITE_LAYOUT_OPTIONS,
+  SITE_TEMPLATES,
 } from '../src/lib/siteMaker'
 
 describe('landing site maker', () => {
@@ -55,6 +57,47 @@ describe('landing site maker', () => {
     expect(hero.data.imageFocus).toBe(52)
     expect(form.data.questionSize).toBe(14)
     expect(form.data.inputHeight).toBe(42)
+  })
+
+  it('ships complete promotional templates with valid blocks and layouts', () => {
+    expect(SITE_TEMPLATES.length).toBeGreaterThanOrEqual(8)
+    expect(new Set(SITE_TEMPLATES.map((template) => template.id)).size).toBe(SITE_TEMPLATES.length)
+    SITE_TEMPLATES.forEach((template) => {
+      expect(template.name).toBeTruthy()
+      expect(template.category).toBeTruthy()
+      expect(template.sections.filter((section) => section.type === 'hero')).toHaveLength(1)
+      expect(template.sections.filter((section) => section.type === 'form')).toHaveLength(1)
+      expect(template.sections.length).toBeLessThanOrEqual(MAX_SITE_SECTIONS)
+      template.sections.forEach((section) => {
+        expect(SITE_BLOCKS.some((block) => block.type === section.type)).toBe(true)
+        if (section.style?.layout) expect(SITE_LAYOUT_OPTIONS[section.type].some(([layout]) => layout === section.style.layout)).toBe(true)
+      })
+    })
+  })
+
+  it('applies a promotional template without changing the form connection or public address', () => {
+    const site = { ...emptySite(), id: 'site-1', title: '내 홍보사이트', slug: 'my-signal', formProjectId: 'form-1', status: 'published' }
+    const currentForm = site.content.sections.find((section) => section.type === 'form')
+    currentForm.data.fieldOrder = ['phone', 'name']
+    currentForm.data.fieldStyles = { phone: { width: 72, scale: 110 } }
+    const oldHeroId = site.content.sections.find((section) => section.type === 'hero').id
+    const result = applySiteTemplate(site, 'reservation-studio')
+    const nextForm = result.content.sections.find((section) => section.type === 'form')
+    expect(result.id).toBe('site-1')
+    expect(result.title).toBe('내 홍보사이트')
+    expect(result.slug).toBe('my-signal')
+    expect(result.formProjectId).toBe('form-1')
+    expect(result.status).toBe('published')
+    expect(result.content.brandName).toBe('STUDIO RESERVE')
+    expect(result.content.sections.find((section) => section.type === 'hero').id).not.toBe(oldHeroId)
+    expect(nextForm.data.fieldOrder).toEqual(['phone', 'name'])
+    expect(nextForm.data.fieldStyles).toEqual({ phone: { width: 72, scale: 110 } })
+  })
+
+  it('keeps built-in template images as local assets when saving', () => {
+    const site = emptySite()
+    site.content.sections[0].data.imageUrl = '/assets/finance-signal-hero-v1.webp'
+    expect(sanitizeSite(site).content.sections[0].data.imageUrl).toBe('/assets/finance-signal-hero-v1.webp')
   })
 
   it('stores direct text design safely and clamps oversized values', () => {

@@ -51,7 +51,7 @@ export default function Studio() {
   const [selectedFieldId, setSelectedFieldId] = useState(COVER_VIEW)
   const [drawer, setDrawer] = useState('design')
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
-  const [device, setDevice] = useState('desktop')
+  const [device, setDevice] = useState(() => (typeof window !== 'undefined' && window.innerWidth <= 720 ? 'mobile' : 'desktop'))
   const [snapToGrid, setSnapToGrid] = useState(initialSnapPreference)
   const [loading, setLoading] = useState(Boolean(projectId))
   const [saving, setSaving] = useState(false)
@@ -475,11 +475,11 @@ export default function Studio() {
 
   return (
     <AppFrame backTo="/workspace" center={center} actions={actions}>
-      <main className="studio-layout">
+      <main className="studio-layout studio-v4">
         <aside className="studio-outline">
           <div className="outline-heading">
-            <strong>콘텐츠</strong>
-            <button type="button" onClick={addPage}><Plus /> 추가</button>
+            <div><span>구성</span><strong>폼 화면</strong></div>
+            <button type="button" onClick={addPage}><Plus /> 페이지</button>
           </div>
 
           <button className={selectedFieldId === COVER_VIEW ? 'outline-special active' : 'outline-special'} type="button" onClick={() => setSelectedFieldId(COVER_VIEW)}><span>01</span><div><strong>시작 화면</strong><small>제목과 소개</small></div></button>
@@ -576,8 +576,8 @@ export default function Studio() {
 
           <div className="stage-toolbar">
             <div className="studio-toolbar-copy">
-              <strong>화면에서 바로 디자인</strong>
-              <span>글자나 버튼의 이동점을 잡아 크기와 위치를 조절하세요</span>
+              <strong>캔버스</strong>
+              <span>내용을 누르면 바로 수정됩니다</span>
             </div>
             <div className="studio-toolbar-actions">
               <div className="history-controls" aria-label="실행 취소와 다시 실행">
@@ -621,8 +621,7 @@ export default function Studio() {
 
         <aside className={`studio-drawer studio-drawer-docked ${mobileInspectorOpen ? 'mobile-open' : ''}`} aria-label={drawer === 'design' ? '디자인 설정' : '폼 설정'}>
               <div className="drawer-heading">
-                <div><span>{drawer === 'design' ? 'FORM STYLE' : 'FORM SETTINGS'}</span><strong>{drawer === 'design' ? '디자인' : '설정 및 연동'}</strong></div>
-                <small>항상 열림</small>
+                <div><span>속성</span><strong>{drawer === 'design' ? '디자인' : '설정 및 연동'}</strong><p>{drawer === 'design' ? '폼 전체의 분위기와 배경' : '공개·연동·관리 정보'}</p></div>
                 <button className="mobile-drawer-close" type="button" onClick={() => setMobileInspectorOpen(false)} aria-label="설정 닫기"><X /></button>
               </div>
 

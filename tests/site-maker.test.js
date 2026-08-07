@@ -162,6 +162,21 @@ describe('landing site maker', () => {
     expect(result.theme.sectionScale).toBe(1.35)
   })
 
+  it('stores precise desktop and mobile block sizes inside safe limits', () => {
+    const base = emptySite()
+    const form = base.content.sections.find((section) => section.type === 'form')
+    form.style.widthPercent = 3
+    form.style.mobileWidthPercent = 150
+    form.style.heightPx = 3000
+    form.style.mobileHeightPx = 20
+    const result = sanitizeSite(base)
+    const saved = result.content.sections.find((section) => section.type === 'form').style
+    expect(saved.widthPercent).toBe(24)
+    expect(saved.mobileWidthPercent).toBe(100)
+    expect(saved.heightPx).toBe(1400)
+    expect(saved.mobileHeightPx).toBe(180)
+  })
+
   it('keeps image crop controls inside safe bounds', () => {
     const site = emptySite()
     const hero = site.content.sections.find((section) => section.type === 'hero')

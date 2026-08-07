@@ -1682,6 +1682,59 @@
   font-weight: 820;
 }
 
+.site-studio-v4 .site-block-size-settings .site-group-heading > button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--workbench-line);
+  border-radius: 7px;
+  background: var(--workbench-surface);
+  color: var(--workbench-accent-strong);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.site-studio-v4 .site-direct-size-summary {
+  min-height: 44px;
+  margin: 11px 0 13px;
+  padding: 8px 10px;
+  border: 1px solid #d9d5e8;
+  border-radius: 9px;
+  background: var(--workbench-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.site-studio-v4 .site-direct-size-summary > span {
+  color: var(--workbench-accent-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  font-weight: 820;
+}
+
+.site-studio-v4 .site-direct-size-summary svg {
+  width: 14px;
+  height: 14px;
+}
+
+.site-studio-v4 .site-direct-size-summary strong {
+  color: var(--workbench-ink);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.site-studio-v4 .site-direct-size-summary strong i {
+  width: 1px;
+  height: 10px;
+  margin: 0 4px;
+  background: #c8c2df;
+  display: inline-block;
+  vertical-align: -1px;
+}
+
 .site-studio-v4 .site-setting-group label,
 .site-studio-v4 .site-segment-field > span {
   color: #5f626b;

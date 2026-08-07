@@ -231,47 +231,83 @@ function BlockToolbar({ section, index, count, onMoveSection, onDuplicateSection
   </div>
 }
 
-function SectionResizeHandles({ section, onStyleChange }) {
-  const widthValues = ['narrow', 'normal', 'wide']
-  const spacingValues = ['compact', 'normal', 'air']
+function isFiniteSize(value) {
+  return Number.isFinite(Number(value))
+}
+
+function sectionSizeStyle(section, mobile, cinematicForm = false) {
+  const style = section.style || {}
+  const desktopWidth = isFiniteSize(style.widthPercent) ? Number(style.widthPercent) : null
+  const mobileWidth = isFiniteSize(style.mobileWidthPercent) ? Number(style.mobileWidthPercent) : null
+  const desktopHeight = isFiniteSize(style.heightPx) ? Number(style.heightPx) : null
+  const mobileHeight = isFiniteSize(style.mobileHeightPx) ? Number(style.mobileHeightPx) : null
+  const presetWidth = { narrow: 62, normal: 79, wide: 97 }[style.width || 'wide']
+  const editorWidth = mobile ? (mobileWidth || 94) : (desktopWidth || (cinematicForm ? 37 : presetWidth))
+  return {
+    ...(desktopWidth ? { '--site-block-width': `${desktopWidth}%` } : {}),
+    ...(mobileWidth ? { '--site-block-mobile-width': `${mobileWidth}%` } : {}),
+    ...(desktopHeight ? { '--site-block-height': `${desktopHeight}px` } : {}),
+    ...(mobileHeight ? { '--site-block-mobile-height': `${mobileHeight}px` } : {}),
+    '--site-editor-active-width': `${editorWidth}%`,
+  }
+}
+
+function SectionResizeHandles({ section, mobile, snapToGrid, onStyleChange }) {
+  const widthKey = mobile ? 'mobileWidthPercent' : 'widthPercent'
+  const heightKey = mobile ? 'mobileHeightPx' : 'heightPx'
   function startResize(event, kind) {
     if (event.button !== 0) return
     event.preventDefault()
     event.stopPropagation()
+    const shell = event.currentTarget.closest('.site-block-shell')
+    if (!shell) return
+    const cinematicForm = shell.classList.contains('site-cinematic-form-shell')
+    const target = cinematicForm ? shell : shell.querySelector(':scope > .site-section') || shell
+    const widthParent = cinematicForm ? shell.closest('.site-cinematic-stage') || shell.parentElement : shell
+    const targetRect = target.getBoundingClientRect()
+    const parentRect = widthParent.getBoundingClientRect()
     const startX = event.clientX
     const startY = event.clientY
-    const values = kind === 'width' ? widthValues : spacingValues
-    const current = kind === 'width' ? (section.style?.width || 'wide') : (section.style?.spacing || 'normal')
-    const startIndex = Math.max(0, values.indexOf(current))
-    let applied = startIndex
+    const startWidth = Math.max(1, (targetRect.width / Math.max(1, parentRect.width)) * 100)
+    const renderedScale = target.offsetHeight ? targetRect.height / target.offsetHeight : 1
+    const startHeight = Math.max(1, target.offsetHeight || targetRect.height)
+    const minWidth = mobile ? 56 : cinematicForm ? 24 : 36
+    const maxHeight = mobile ? 1800 : 1400
+    let applied = null
+    let historyCaptured = false
     const move = (moveEvent) => {
-      const distance = kind === 'width' ? moveEvent.clientX - startX : moveEvent.clientY - startY
-      const nextIndex = Math.max(0, Math.min(values.length - 1, startIndex + Math.round(distance / 64)))
-      if (nextIndex === applied) return
-      applied = nextIndex
-      onStyleChange?.(section.id, kind === 'width' ? 'width' : 'spacing', values[nextIndex])
+      const next = kind === 'width'
+        ? Math.max(minWidth, Math.min(100, Math.round((startWidth + ((moveEvent.clientX - startX) / Math.max(1, parentRect.width)) * 100) / (snapToGrid ? 2 : 1)) * (snapToGrid ? 2 : 1)))
+        : Math.max(180, Math.min(maxHeight, Math.round((startHeight + (moveEvent.clientY - startY) / Math.max(.01, renderedScale)) / (snapToGrid ? 16 : 4)) * (snapToGrid ? 16 : 4)))
+      if (next === applied) return
+      applied = next
+      onStyleChange?.(section.id, kind === 'width' ? widthKey : heightKey, next, { history: !historyCaptured })
+      historyCaptured = true
     }
     const end = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
-      document.body.classList.remove('site-section-resizing')
+      document.body.classList.remove('site-section-resizing', 'site-section-resizing-width', 'site-section-resizing-height')
     }
-    document.body.classList.add('site-section-resizing')
+    document.body.classList.add('site-section-resizing', `site-section-resizing-${kind}`)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
   }
+  const activeWidth = section.style?.[widthKey]
+  const activeHeight = section.style?.[heightKey]
+  const presetLabel = section.style?.width === 'narrow' ? '좁게' : section.style?.width === 'normal' ? '보통' : '넓게'
   return <>
-    <button className="site-section-resize site-section-resize-width" type="button" onPointerDown={(event) => startResize(event, 'width')} aria-label="블록 너비 드래그 조절" title="좌우로 드래그해 반응형 너비 조절" />
-    <button className="site-section-resize site-section-resize-space" type="button" onPointerDown={(event) => startResize(event, 'spacing')} aria-label="블록 세로 간격 드래그 조절" title="위아래로 드래그해 세로 간격 조절" />
-    <span className="site-section-size-badge">{section.style?.width === 'narrow' ? '좁게' : section.style?.width === 'normal' ? '보통' : '넓게'}</span>
+    <button className="site-section-resize site-section-resize-width" type="button" onPointerDown={(event) => startResize(event, 'width')} aria-label="블록 너비 자유 조절" title="좌우로 드래그해 너비를 자유롭게 조절" />
+    <button className="site-section-resize site-section-resize-space" type="button" onPointerDown={(event) => startResize(event, 'height')} aria-label="블록 높이 자유 조절" title="위아래로 드래그해 높이를 자유롭게 조절" />
+    <span className="site-section-size-badge">{mobile ? '모바일' : 'PC'} {activeWidth ? `${Math.round(activeWidth)}%` : presetLabel} · {activeHeight ? `${Math.round(activeHeight)}px` : '높이 자동'}</span>
   </>
 }
 
 function sectionClass(section) {
   const style = section.style || {}
-  return ['site-block-shell', `site-type-${section.type}`, `site-tone-${style.tone || 'inherit'}`, `site-space-${style.spacing || 'normal'}`, `site-width-${style.width || 'wide'}`, `site-align-${style.align || 'left'}`, `site-pattern-${style.pattern || 'none'}`, `site-layout-${style.layout || 'default'}`, `site-elevation-${style.elevation || 'flat'}`, `site-motion-${style.motion || 'none'}`].join(' ')
+  return ['site-block-shell', `site-type-${section.type}`, `site-tone-${style.tone || 'inherit'}`, `site-space-${style.spacing || 'normal'}`, `site-width-${style.width || 'wide'}`, `site-align-${style.align || 'left'}`, `site-pattern-${style.pattern || 'none'}`, `site-layout-${style.layout || 'default'}`, `site-elevation-${style.elevation || 'flat'}`, `site-motion-${style.motion || 'none'}`, isFiniteSize(style.widthPercent) ? 'has-desktop-width' : '', isFiniteSize(style.mobileWidthPercent) ? 'has-mobile-width' : '', isFiniteSize(style.heightPx) ? 'has-desktop-height' : '', isFiniteSize(style.mobileHeightPx) ? 'has-mobile-height' : ''].filter(Boolean).join(' ')
 }
 
 export default function SiteRenderer({ site, project, editing = false, selectedSectionId = '', snapToGrid = false, mobile = false, onSelectSection, onSectionChange, onSectionStyleChange, onTextStyleChange, onMoveSection, onDuplicateSection, onToggleSection, onDeleteSection }) {
@@ -296,11 +332,12 @@ export default function SiteRenderer({ site, project, editing = false, selectedS
     const selected = selectedSectionId === section.id
     const sectionIndex = sections.findIndex((item) => item.id === section.id)
     const backgroundImage = ['hero', 'story'].includes(section.type) && section.data?.imageUrl && section.data?.imageMode === 'background' && section.style?.layout !== 'cinematic'
-    return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${extraClass} ${backgroundImage ? 'has-section-background-image' : ''} ${selected ? 'is-selected' : ''}`} onClick={(event) => select(event, section.id)}>
+    const cinematicFormShell = extraClass.includes('site-cinematic-form-shell')
+    return <SiteEditContext.Provider value={{ section, selected, activeTextLabel, onTextSelect: setActiveTextLabel, onTextStyleChange, snapToGrid, mobile }} key={section.id}><div className={`${sectionClass(section)} ${extraClass} ${backgroundImage ? 'has-section-background-image' : ''} ${selected ? 'is-selected' : ''}`} style={sectionSizeStyle(section, mobile, cinematicFormShell)} onClick={(event) => select(event, section.id)}>
       {backgroundImage ? <SectionBackgroundImage data={section.data} /> : null}
       {editing ? <span className="site-block-label">{SITE_BLOCKS.find((block) => block.type === section.type)?.label || '블록'}</span> : null}
       {editing && selected ? <BlockToolbar section={section} index={sectionIndex} count={sections.length} onMoveSection={onMoveSection} onDuplicateSection={onDuplicateSection} onToggleSection={onToggleSection} onDeleteSection={onDeleteSection} /> : null}
-      {editing && selected ? <SectionResizeHandles section={section} onStyleChange={onSectionStyleChange} /> : null}
+      {editing && selected ? <SectionResizeHandles section={section} mobile={mobile} snapToGrid={snapToGrid} onStyleChange={onSectionStyleChange} /> : null}
       {section.type === 'hero' ? <Hero section={section} edit={edit} /> : null}
       {section.type === 'ticker' ? <Ticker section={section} edit={edit} editing={editing} /> : null}
       {section.type === 'benefits' ? <Benefits section={section} edit={edit} /> : null}

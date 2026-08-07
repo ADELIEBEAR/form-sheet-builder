@@ -326,16 +326,21 @@ export default function SiteStudio() {
     }))
   }
 
-  function updateSectionStyle(sectionId, key, value) {
+  function updateSectionStyle(sectionId, key, value, options = {}) {
     changeSite((current) => ({
       ...current,
       content: {
         ...current.content,
         sections: current.content.sections.map((section) => section.id === sectionId
-          ? { ...section, style: { ...section.style, [key]: value } }
+          ? (() => {
+            const style = { ...section.style }
+            if (value == null) delete style[key]
+            else style[key] = value
+            return { ...section, style }
+          })()
           : section),
       },
-    }))
+    }), options)
   }
 
   function updateTextStyle(sectionId, label, value) {
@@ -367,6 +372,42 @@ export default function SiteStudio() {
       return
     }
     updateSectionStyle(selectedSection.id, key, value)
+  }
+
+  function applySelectedWidthPreset(value) {
+    if (!selectedSection) return
+    const preciseKey = device === 'mobile' ? 'mobileWidthPercent' : 'widthPercent'
+    changeSite((current) => ({
+      ...current,
+      content: {
+        ...current.content,
+        sections: current.content.sections.map((section) => {
+          if (section.id !== selectedSection.id) return section
+          const style = { ...section.style, width: value }
+          delete style[preciseKey]
+          return { ...section, style }
+        }),
+      },
+    }))
+  }
+
+  function clearSelectedPreciseSize() {
+    if (!selectedSection) return
+    const widthKey = device === 'mobile' ? 'mobileWidthPercent' : 'widthPercent'
+    const heightKey = device === 'mobile' ? 'mobileHeightPx' : 'heightPx'
+    changeSite((current) => ({
+      ...current,
+      content: {
+        ...current.content,
+        sections: current.content.sections.map((section) => {
+          if (section.id !== selectedSection.id) return section
+          const style = { ...section.style }
+          delete style[widthKey]
+          delete style[heightKey]
+          return { ...section, style }
+        }),
+      },
+    }))
   }
 
   function setLandingFieldOrder(fieldIds) {
@@ -633,6 +674,13 @@ export default function SiteStudio() {
   const templateCategories = ['전체', ...new Set(SITE_TEMPLATES.map((template) => template.category))]
   const visibleTemplates = SITE_TEMPLATES.filter((template) => templateCategory === '전체' || template.category === templateCategory)
   const selectedTemplate = SITE_TEMPLATES.find((template) => template.id === templatePreviewId) || visibleTemplates[0] || SITE_TEMPLATES[0]
+  const preciseWidthKey = device === 'mobile' ? 'mobileWidthPercent' : 'widthPercent'
+  const preciseHeightKey = device === 'mobile' ? 'mobileHeightPx' : 'heightPx'
+  const selectedCinematicForm = selectedSection?.type === 'form' && site.content.sections.some((section) => section.type === 'hero' && section.style?.layout === 'cinematic')
+  const preciseWidthFallback = device === 'mobile' ? 94 : selectedCinematicForm ? 37 : ({ narrow: 62, normal: 79, wide: 97 }[selectedSection?.style?.width || 'wide'])
+  const preciseWidthValue = Number(selectedSection?.style?.[preciseWidthKey]) || preciseWidthFallback
+  const preciseHeightValue = Number(selectedSection?.style?.[preciseHeightKey]) || (selectedCinematicForm ? 410 : selectedSection?.type === 'hero' ? 720 : 360)
+  const hasPreciseSize = Boolean(selectedSection && (Number.isFinite(Number(selectedSection.style?.[preciseWidthKey])) || Number.isFinite(Number(selectedSection.style?.[preciseHeightKey]))))
 
   return (
     <AppFrame backTo="/sites" center={<div className="site-studio-title"><input value={site.title} onChange={(event) => changeSite((current) => ({ ...current, title: event.target.value }))} aria-label="사이트 관리용 제목" /><span className={dirty ? 'is-dirty' : ''}>{notice}</span></div>} actions={<>
@@ -729,7 +777,16 @@ export default function SiteStudio() {
             {selectedSection ? <>
               <section className="site-selection-head"><div><span>{selectedInfo?.category}</span><h2>{selectedInfo?.label}</h2><p>{selectedInfo?.description}</p></div><label className="site-switch"><input type="checkbox" checked={selectedSection.enabled !== false} onChange={(event) => updateSectionPatch(selectedSection.id, { enabled: event.target.checked })} /><span /></label></section>
               {['hero', 'story'].includes(selectedSection.type) ? <LandingImageSettings section={selectedSection} siteId={site.id} updateSection={updateSection} /> : null}
-              <section className="site-setting-group"><h3>레이아웃</h3><div className="site-segment-field"><span>폭</span><div role="group" aria-label="블록 폭">{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('width', value)} aria-pressed={selectedSection.style?.width === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>간격</span><div role="group" aria-label="블록 간격">{SECTION_STYLE_OPTIONS.spacing.map(([value, label]) => <button className={selectedSection.style?.spacing === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('spacing', value)} aria-pressed={selectedSection.style?.spacing === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>내용 전체 정렬</span><div role="group" aria-label="블록 안의 모든 내용 정렬">{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} aria-pressed={selectedSection.style?.align === value}>{label}</button>)}</div></div><p className="site-setting-help">여기서는 제목·설명·버튼을 한 번에 맞춥니다. 글자 하나만 다르게 맞추려면 캔버스에서 그 글자를 누르세요.</p></section>
+              <section className="site-setting-group site-block-size-settings">
+                <div className="site-group-heading"><div><h3>블록 크기</h3><p>{device === 'mobile' ? '모바일 화면에만 적용됩니다' : 'PC 화면에만 적용됩니다'}</p></div>{hasPreciseSize ? <button type="button" onClick={clearSelectedPreciseSize}>자동 크기</button> : null}</div>
+                <div className="site-direct-size-summary"><span>{device === 'mobile' ? <DeviceMobile /> : <Desktop />} {device === 'mobile' ? '모바일' : 'PC'}</span><strong>{Math.round(preciseWidthValue)}% <i /> {Number(selectedSection.style?.[preciseHeightKey]) ? `${Math.round(preciseHeightValue)}px` : '높이 자동'}</strong></div>
+                <label>너비 <span>{Math.round(preciseWidthValue)}%</span><input type="range" min={device === 'mobile' ? 56 : selectedCinematicForm ? 24 : 36} max="100" step="1" value={preciseWidthValue} onChange={(event) => updateSectionStyle(selectedSection.id, preciseWidthKey, Number(event.target.value))} /></label>
+                <label>높이 <span>{Number(selectedSection.style?.[preciseHeightKey]) ? `${Math.round(preciseHeightValue)}px` : '자동'}</span><input type="range" min="180" max={device === 'mobile' ? 1800 : 1400} step="4" value={preciseHeightValue} onChange={(event) => updateSectionStyle(selectedSection.id, preciseHeightKey, Number(event.target.value))} /></label>
+                <p className="site-setting-help">캔버스의 오른쪽 손잡이는 너비, 아래 손잡이는 높이입니다. 그리드를 켜면 일정 간격에 맞춰집니다.</p>
+                <div className="site-segment-field"><span>기본 폭</span><div role="group" aria-label="블록 기본 폭">{SECTION_STYLE_OPTIONS.width.map(([value, label]) => <button className={!Number.isFinite(Number(selectedSection.style?.[preciseWidthKey])) && selectedSection.style?.width === value ? 'active' : ''} type="button" key={value} onClick={() => applySelectedWidthPreset(value)} aria-pressed={!Number.isFinite(Number(selectedSection.style?.[preciseWidthKey])) && selectedSection.style?.width === value}>{label}</button>)}</div></div>
+                <div className="site-segment-field"><span>안쪽 여백</span><div role="group" aria-label="블록 안쪽 여백">{SECTION_STYLE_OPTIONS.spacing.map(([value, label]) => <button className={selectedSection.style?.spacing === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('spacing', value)} aria-pressed={selectedSection.style?.spacing === value}>{label}</button>)}</div></div>
+                <div className="site-segment-field"><span>내용 전체 정렬</span><div role="group" aria-label="블록 안의 모든 내용 정렬">{SECTION_STYLE_OPTIONS.align.map(([value, label]) => <button className={selectedSection.style?.align === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('align', value)} aria-pressed={selectedSection.style?.align === value}>{label}</button>)}</div></div>
+              </section>
               {SITE_LAYOUT_OPTIONS[selectedSection.type]?.length ? <section className="site-setting-group"><div className="site-group-heading"><div><h3>블록 구성</h3><p>내용은 그대로 두고 배치만 바꿉니다</p></div></div><div className="site-layout-choice-grid" role="group" aria-label={`${selectedInfo?.label || '블록'} 구성`}>{SITE_LAYOUT_OPTIONS[selectedSection.type].map(([value, label]) => <button className={`${selectedSection.style?.layout === value ? 'active' : ''} preview-${selectedSection.type}-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('layout', value)} aria-pressed={selectedSection.style?.layout === value}><i><span /><span /><span /></i><strong>{label}</strong></button>)}</div></section> : null}
               <details className="site-setting-group site-setting-disclosure"><summary><span><strong>표면과 효과</strong><small>배경·입체감·등장 모션</small></span></summary><div className="site-setting-disclosure-body"><div className="site-choice-grid" role="group" aria-label="블록 표면">{SECTION_STYLE_OPTIONS.tone.map(([value, label]) => <button className={`${selectedSection.style?.tone === value ? 'active' : ''} tone-${value}`} type="button" key={value} onClick={() => updateSelectedStyle('tone', value)} aria-pressed={selectedSection.style?.tone === value}><i /><span>{label}</span></button>)}</div><label>배경 패턴<select value={selectedSection.style?.pattern || 'none'} onChange={(event) => updateSelectedStyle('pattern', event.target.value)}>{SECTION_STYLE_OPTIONS.pattern.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><div className="site-segment-field"><span>입체감</span><div role="group" aria-label="블록 입체감">{SECTION_STYLE_OPTIONS.elevation.map(([value, label]) => <button className={selectedSection.style?.elevation === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('elevation', value)} aria-pressed={selectedSection.style?.elevation === value}>{label}</button>)}</div></div><div className="site-segment-field"><span>등장 모션</span><div role="group" aria-label="블록 등장 모션">{SECTION_STYLE_OPTIONS.motion.map(([value, label]) => <button className={selectedSection.style?.motion === value ? 'active' : ''} type="button" key={value} onClick={() => updateSelectedStyle('motion', value)} aria-pressed={selectedSection.style?.motion === value}>{label}</button>)}</div></div></div></details>
               {SITE_COLLECTION_RULES[selectedSection.type] ? <section className="site-setting-group site-item-manager"><div className="site-group-heading"><div><h3>항목 관리</h3><p>글자는 캔버스에서 바로 수정하세요</p></div><button type="button" onClick={() => changeCollectionItem('add')} disabled={selectedSection.data.items.length >= SITE_COLLECTION_RULES[selectedSection.type].max}><Plus /> 추가</button></div><div className="site-item-list">{selectedSection.data.items.map((item, index) => <div key={index}><span>{String(index + 1).padStart(2, '0')} · {typeof item === 'string' ? item : item.title || item.question || item.value || SITE_COLLECTION_RULES[selectedSection.type].label}</span><button type="button" onClick={() => changeCollectionItem('remove', index)} disabled={selectedSection.data.items.length <= SITE_COLLECTION_RULES[selectedSection.type].min} aria-label={`${index + 1}번째 ${SITE_COLLECTION_RULES[selectedSection.type].label} 삭제`}><Trash /></button></div>)}</div></section> : null}

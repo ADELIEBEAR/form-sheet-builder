@@ -597,6 +597,10 @@ function sanitizeSectionStyle(source, type) {
   const style = Object.fromEntries(Object.keys(SECTION_STYLE_OPTIONS).map((key) => [key, valid(key, input[key]) ? input[key] : fallback[key]]))
   const layouts = SITE_LAYOUT_OPTIONS[type] || []
   style.layout = layouts.some(([id]) => id === input.layout) ? input.layout : fallback.layout
+  if (Number.isFinite(Number(input.widthPercent))) style.widthPercent = boundedNumber(input.widthPercent, 100, 24, 100)
+  if (Number.isFinite(Number(input.mobileWidthPercent))) style.mobileWidthPercent = boundedNumber(input.mobileWidthPercent, 100, 56, 100)
+  if (Number.isFinite(Number(input.heightPx))) style.heightPx = boundedNumber(input.heightPx, 360, 180, 1400)
+  if (Number.isFinite(Number(input.mobileHeightPx))) style.mobileHeightPx = boundedNumber(input.mobileHeightPx, 360, 180, 1800)
   return style
 }
 

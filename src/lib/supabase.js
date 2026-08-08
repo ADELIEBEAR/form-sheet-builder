@@ -12,4 +12,4 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 })
 
 export const SUPABASE_URL = supabaseUrl
-export const ASSET_BUCKET = 'form-builder-assets'
+export const ASSET_BUCKET = 'form-maker-assets'

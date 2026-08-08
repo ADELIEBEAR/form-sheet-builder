@@ -1,0 +1,86 @@
+import { ArrowDown, ArrowUp, Check, Copy, LinkSimple, Plus, Trash } from '@phosphor-icons/react'
+import { changeFieldType, FIELD_TYPES, PRIVACY_CONSENT_DEFAULTS, resolveDirectTextStyle } from '../lib/maker'
+import DirectCanvasText from './DirectCanvasText'
+import FormField from './FormField'
+
+const OPTION_TYPES = ['single', 'multi', 'select']
+const PLACEHOLDER_TYPES = ['short', 'long', 'email', 'phone', 'number', 'date']
+
+export default function InlineFieldEditor({ field, index, total, selected, accent, requiredLabel, answerPlaceholder, selectPlaceholder, consentLabel, onSelect, onChange, onDuplicate, onDelete, onMove, directStyles, directFallbacks, activeTextRole, onTextRoleSelect, onDirectStyleChange, snapToGrid = false, device = 'desktop' }) {
+  const hasOptions = OPTION_TYPES.includes(field.type)
+  const hasPlaceholder = PLACEHOLDER_TYPES.includes(field.type)
+  const isConsent = field.type === 'consent'
+  const privacyConsent = isConsent && field.consentKind !== 'acknowledgement'
+  const mobilePreview = device === 'mobile'
+  const questionKey = mobilePreview ? 'questionMobile' : 'question'
+  const bodyKey = mobilePreview ? 'bodyMobile' : 'body'
+  const questionFallback = mobilePreview ? resolveDirectTextStyle(directStyles?.question, directFallbacks?.question || { size: 32 }) : (directFallbacks?.question || { size: 32 })
+  const bodyFallback = mobilePreview ? resolveDirectTextStyle(directStyles?.body, directFallbacks?.body || { size: 16 }) : (directFallbacks?.body || { size: 16 })
+  const patch = (next) => onChange({ ...field, ...next })
+  const changeConsentKind = (consentKind) => patch({
+    consentKind,
+    ...(consentKind === 'privacy' ? {
+      consentPurpose: field.consentPurpose || PRIVACY_CONSENT_DEFAULTS.consentPurpose,
+      consentItems: field.consentItems || PRIVACY_CONSENT_DEFAULTS.consentItems,
+      consentRetention: field.consentRetention || PRIVACY_CONSENT_DEFAULTS.consentRetention,
+      consentRefusal: field.consentRefusal || PRIVACY_CONSENT_DEFAULTS.consentRefusal,
+    } : {}),
+  })
+
+  return (
+    <article
+      className={`inline-field-editor ${selected ? 'selected' : ''} ${field.type === 'heading' ? 'heading-block' : ''}`}
+      data-field-id={field.id}
+      onMouseDown={onSelect}
+      onFocusCapture={onSelect}
+    >
+      <div className="inline-field-topline">
+        <span className="inline-field-number">{String(index + 1).padStart(2, '0')}</span>
+        <select aria-label={`${index + 1}번째 항목 종류`} value={field.type} onChange={(event) => onChange(changeFieldType(field, event.target.value))}>
+          {FIELD_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+        </select>
+        {field.type !== 'heading' ? <label className="inline-required" title={field.required ? '눌러서 선택 응답으로 변경' : '눌러서 필수 응답으로 변경'}><input type="checkbox" checked={Boolean(field.required)} onChange={(event) => patch({ required: event.target.checked })} /><span>{field.required ? (requiredLabel || '필수') : '선택'}</span></label> : null}
+        {selected ? <div className="inline-field-actions inline-field-actions-top">
+          <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label="위로 이동" title="위로 이동"><ArrowUp /></button>
+          <button type="button" onClick={() => onMove(1)} disabled={index === total - 1} aria-label="아래로 이동" title="아래로 이동"><ArrowDown /></button>
+          <button type="button" onClick={onDuplicate} aria-label="질문 복제" title="복제"><Copy /></button>
+          <button className="danger" type="button" onClick={onDelete} aria-label="질문 삭제" title="삭제"><Trash /></button>
+        </div> : null}
+      </div>
+
+      <DirectCanvasText className="direct-question-text" label={field.type === 'heading' ? '안내 제목' : '질문'} value={directStyles?.[questionKey]} fallback={questionFallback} minSize={20} maxSize={mobilePreview ? 48 : 72} selected={selected && activeTextRole === 'question'} onSelect={() => onTextRoleSelect?.('question')} onChange={(next) => onDirectStyleChange?.(questionKey, next)} snapToGrid={snapToGrid} mobile={mobilePreview}>
+        <textarea
+          className="inline-question-input"
+          rows="1"
+          value={field.label}
+          onChange={(event) => patch({ label: event.target.value })}
+          aria-label={`${index + 1}번째 ${field.type === 'heading' ? '제목' : '질문'}`}
+          placeholder={field.type === 'heading' ? '안내 제목' : isConsent ? '동의 항목 제목을 입력하세요' : '질문을 입력하세요'}
+        />
+      </DirectCanvasText>
+      <DirectCanvasText className="direct-question-body" label="설명" value={directStyles?.[bodyKey]} fallback={bodyFallback} minSize={12} maxSize={mobilePreview ? 22 : 32} selected={selected && activeTextRole === 'body'} onSelect={() => onTextRoleSelect?.('body')} onChange={(next) => onDirectStyleChange?.(bodyKey, next)} snapToGrid={snapToGrid} mobile={mobilePreview}>
+        <textarea
+          className="inline-description-input"
+          rows="1"
+          value={field.description || ''}
+          onChange={(event) => patch({ description: event.target.value })}
+          aria-label={`${index + 1}번째 설명`}
+          placeholder={isConsent ? '수집 항목·이용 목적·보관 기간 등 안내를 적어주세요' : '설명이 필요하면 여기에 입력하세요'}
+        />
+      </DirectCanvasText>
+
+      {field.type !== 'heading' && hasOptions ? <div className="inline-option-editor">{field.options.map((option, optionIndex) => <div key={`${field.id}-${optionIndex}`}><span className={field.type === 'single' ? 'option-dot' : 'option-box'} /><input value={option} onChange={(event) => patch({ options: field.options.map((item, itemIndex) => itemIndex === optionIndex ? event.target.value : item) })} aria-label={`${optionIndex + 1}번째 선택지`} />{selected ? <button type="button" onClick={() => patch({ options: field.options.filter((_, itemIndex) => itemIndex !== optionIndex) })} disabled={field.options.length === 1} aria-label={`${optionIndex + 1}번째 선택지 삭제`}><Trash /></button> : null}</div>)}<button className="inline-add-option" type="button" onClick={() => patch({ options: [...field.options, `선택 ${field.options.length + 1}`] })}><Plus /> 선택지 추가</button></div> : null}
+      {privacyConsent ? <details className="inline-privacy-consent"><summary><strong>개인정보 필수 고지 4개</strong><small>펼쳐서 수정</small></summary><div className="inline-privacy-consent-grid"><label><span>수집·이용 목적</span><textarea rows="2" value={field.consentPurpose || ''} onChange={(event) => patch({ consentPurpose: event.target.value })} /></label><label><span>수집 항목</span><textarea rows="2" value={field.consentItems || ''} onChange={(event) => patch({ consentItems: event.target.value })} /></label><label><span>보유·이용 기간</span><textarea rows="3" value={field.consentRetention || ''} onChange={(event) => patch({ consentRetention: event.target.value })} /></label><label><span>동의 거부 권리·불이익</span><textarea rows="3" value={field.consentRefusal || ''} onChange={(event) => patch({ consentRefusal: event.target.value })} /></label></div></details> : null}
+      {isConsent ? <div className="inline-consent-editor"><span className="choice-indicator"><Check weight="bold" /></span><label><small>체크박스 문구 · 눌러서 바로 수정</small><textarea rows="2" value={field.consentText == null ? consentLabel : field.consentText} maxLength="500" onChange={(event) => patch({ consentText: event.target.value })} aria-label={`${index + 1}번째 동의 체크박스 문구`} placeholder="응답자가 직접 체크할 동의 문구" /></label></div> : null}
+      {field.type !== 'heading' && !hasOptions && !isConsent ? <div className="inline-response-preview"><FormField field={field} preview hidePrompt accent={accent} requiredLabel={requiredLabel} answerPlaceholder={answerPlaceholder} selectPlaceholder={selectPlaceholder} consentLabel={consentLabel} /></div> : null}
+
+      {selected && (hasPlaceholder || field.type === 'rating' || isConsent) ? <div className="inline-field-controls">
+        <div className="inline-field-settings">
+          {hasPlaceholder ? <label><span>응답 입력 안내</span><input value={field.placeholder || ''} onChange={(event) => patch({ placeholder: event.target.value })} placeholder="예시 답변을 보여주세요" /></label> : null}
+          {field.type === 'rating' ? <label><span>별점 개수</span><select value={field.scale || 5} onChange={(event) => patch({ scale: Number(event.target.value) })}><option value="5">5개</option><option value="7">7개</option><option value="10">10개</option></select></label> : null}
+          {isConsent ? <div className="inline-consent-link-settings"><label><span>동의 유형</span><select value={privacyConsent ? 'privacy' : 'acknowledgement'} onChange={(event) => changeConsentKind(event.target.value)}><option value="privacy">개인정보 수집·이용</option><option value="acknowledgement">약관·주의사항 확인</option></select></label><p><LinkSimple /> 약관이나 개인정보 처리방침이 따로 있다면 연결하세요. 링크는 새 창에서 열립니다.</p><label><span>안내 링크 주소 <small>선택</small></span><input type="url" value={field.consentLinkUrl || ''} onChange={(event) => patch({ consentLinkUrl: event.target.value })} placeholder="https://example.com/privacy" /></label><label><span>링크 문구</span><input value={field.consentLinkLabel || ''} maxLength="120" disabled={!field.consentLinkUrl} onChange={(event) => patch({ consentLinkLabel: event.target.value })} placeholder={field.consentLinkUrl ? '개인정보 처리방침 보기' : '주소를 먼저 입력하세요'} /></label></div> : null}
+        </div>
+      </div> : null}
+    </article>
+  )
+}

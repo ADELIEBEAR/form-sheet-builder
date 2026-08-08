@@ -1,0 +1,260 @@
+import { emptyProject, makeField, THEME_PRESETS } from './maker'
+
+function field(type, label, options = {}) {
+  return { ...makeField(type), label, ...options }
+}
+
+function page(title, fields, description = '') {
+  return { id: crypto.randomUUID(), title, description, fields }
+}
+
+const definitions = [
+  {
+    id: 'contact',
+    category: '비즈니스',
+    themeId: 'lavender-soft',
+    title: '문의 접수',
+    description: '고객 문의와 상담 신청을 한 번에 받습니다.',
+    accent: '#7156d9',
+    questions: 4,
+    pages: () => [page('문의자 정보', [
+      field('short', '이름을 알려주세요'),
+      field('email', '답변받을 이메일을 입력해 주세요'),
+      field('phone', '연락 가능한 전화번호를 입력해 주세요', { required: false }),
+      field('long', '어떤 도움이 필요한가요?'),
+    ])],
+  },
+  {
+    id: 'reservation',
+    category: '예약·행사',
+    themeId: 'sky-cloud',
+    title: '예약 신청',
+    description: '원하는 일정과 연락처를 깔끔하게 수집합니다.',
+    accent: '#3157e8',
+    questions: 5,
+    pages: () => [page('예약 정보', [
+      field('short', '예약자 이름을 알려주세요'),
+      field('phone', '연락처를 입력해 주세요'),
+      field('date', '희망 날짜를 선택해 주세요'),
+      field('single', '희망 시간대를 선택해 주세요', { options: ['오전', '오후', '저녁'] }),
+      field('long', '추가로 전할 내용이 있나요?', { required: false }),
+    ])],
+  },
+  {
+    id: 'feedback',
+    category: '설문',
+    themeId: 'rose-milk',
+    title: '만족도 조사',
+    description: '경험과 개선 의견을 짧고 편하게 묻습니다.',
+    accent: '#d8436b',
+    questions: 4,
+    pages: () => [page('이용 경험', [
+      field('rating', '전반적으로 얼마나 만족하셨나요?', { scale: 5 }),
+      field('single', '가장 만족한 부분을 골라주세요', { options: ['서비스', '품질', '속도', '가격'] }),
+      field('long', '좋았던 점을 들려주세요', { required: false }),
+      field('long', '개선되었으면 하는 점이 있나요?', { required: false }),
+    ])],
+  },
+  {
+    id: 'event',
+    category: '예약·행사',
+    themeId: 'mint-soda',
+    title: '행사 참가 신청',
+    description: '참가자 정보와 참석 방식을 미리 확인합니다.',
+    accent: '#13866f',
+    questions: 5,
+    pages: () => [page('참가자 정보', [
+      field('short', '참가자 이름을 알려주세요'),
+      field('email', '안내받을 이메일을 입력해 주세요'),
+      field('single', '참석 방식을 선택해 주세요', { options: ['현장 참석', '온라인 참석'] }),
+      field('long', '미리 남길 질문이 있나요?', { required: false }),
+      field('consent', '개인정보 처리 동의', { consentText: '개인정보 수집 및 이용에 동의합니다.' }),
+    ])],
+  },
+  {
+    id: 'job',
+    category: '비즈니스',
+    themeId: 'mono-ink',
+    title: '입사 지원',
+    description: '지원자 기본 정보부터 경력과 포트폴리오까지 차분하게 받습니다.',
+    accent: '#242424',
+    questions: 7,
+    pages: () => [page('지원자 정보', [
+      field('short', '이름을 알려주세요'),
+      field('email', '연락받을 이메일을 입력해 주세요'),
+      field('phone', '전화번호를 입력해 주세요'),
+      field('select', '지원 분야를 선택해 주세요', { options: ['기획', '디자인', '개발', '마케팅', '기타'] }),
+      field('long', '관련 경험을 간단히 소개해 주세요'),
+      field('short', '포트폴리오 링크가 있다면 남겨주세요', { required: false }),
+      field('consent', '지원자 개인정보 동의', { consentText: '채용 절차를 위한 개인정보 수집 및 이용에 동의합니다.' }),
+    ])],
+  },
+  {
+    id: 'quote',
+    category: '비즈니스',
+    themeId: 'ocean-glass',
+    title: '견적 문의',
+    description: '예산과 희망 일정을 미리 받아 상담 시간을 줄입니다.',
+    accent: '#157caa',
+    questions: 6,
+    pages: () => [page('프로젝트 정보', [
+      field('short', '회사 또는 브랜드 이름을 알려주세요'),
+      field('email', '답변받을 이메일을 입력해 주세요'),
+      field('multi', '필요한 서비스를 모두 선택해 주세요', { options: ['기획', '디자인', '개발', '운영', '아직 잘 모르겠어요'] }),
+      field('select', '예상 예산 범위를 선택해 주세요', { options: ['100만원 미만', '100~300만원', '300~1,000만원', '1,000만원 이상', '협의가 필요해요'] }),
+      field('date', '희망 시작일을 선택해 주세요', { required: false }),
+      field('long', '만들고 싶은 내용을 자유롭게 설명해 주세요'),
+    ])],
+  },
+  {
+    id: 'class',
+    category: '예약·행사',
+    themeId: 'butter-cream',
+    title: '클래스 신청',
+    description: '수업 일정과 참가자 정보를 부담 없이 확인합니다.',
+    accent: '#b66b1b',
+    questions: 5,
+    pages: () => [page('수강 신청', [
+      field('short', '참가자 이름을 알려주세요'),
+      field('phone', '안내받을 연락처를 입력해 주세요'),
+      field('single', '원하는 클래스를 선택해 주세요', { options: ['평일 오전반', '평일 저녁반', '주말반'] }),
+      field('single', '참여 경험이 있나요?', { options: ['처음이에요', '조금 해봤어요', '익숙해요'] }),
+      field('long', '미리 알려주실 내용이 있나요?', { required: false }),
+    ])],
+  },
+  {
+    id: 'waitlist',
+    category: '비즈니스',
+    themeId: 'night-velvet',
+    title: '사전 알림 신청',
+    description: '새 서비스 출시 전 관심 고객을 빠르게 모읍니다.',
+    accent: '#7456d6',
+    questions: 4,
+    pages: () => [page('가장 먼저 알려드릴게요', [
+      field('short', '어떻게 불러드리면 될까요?'),
+      field('email', '소식을 받을 이메일을 입력해 주세요'),
+      field('single', '어떤 점이 가장 기대되나요?', { options: ['새로운 기능', '더 편한 사용성', '합리적인 가격', '아직 둘러보는 중이에요'] }),
+      field('consent', '소식 수신 동의', { consentText: '출시 소식과 이벤트 안내 수신에 동의합니다.' }),
+    ])],
+  },
+  {
+    id: 'order',
+    category: '신청·주문',
+    themeId: 'peach-sorbet',
+    title: '주문 제작 신청',
+    description: '옵션, 수량, 희망일을 한 흐름으로 받아 누락을 줄입니다.',
+    accent: '#ed6f54',
+    questions: 6,
+    pages: () => [page('원하는 제품', [
+      field('short', '주문자 이름을 알려주세요'),
+      field('phone', '연락 가능한 번호를 입력해 주세요'),
+      field('select', '제작 종류를 선택해 주세요', { options: ['기본형', '프리미엄', '맞춤 상담'] }),
+      field('number', '필요한 수량을 입력해 주세요'),
+      field('date', '희망 수령일을 선택해 주세요'),
+      field('long', '색상이나 문구 등 요청사항을 적어주세요', { required: false }),
+    ])],
+  },
+  {
+    id: 'rsvp',
+    category: '예약·행사',
+    themeId: 'candy-pop',
+    title: '초대장 참석 확인',
+    description: '모임과 파티의 참석 여부를 기분 좋게 확인합니다.',
+    accent: '#7a4ff2',
+    questions: 5,
+    pages: () => [page('함께하실래요?', [
+      field('short', '성함을 알려주세요'),
+      field('single', '참석 가능하신가요?', { options: ['네, 참석할게요', '아쉽지만 어려워요', '아직 잘 모르겠어요'] }),
+      field('number', '함께 오는 인원은 몇 명인가요?', { required: false }),
+      field('select', '선호하는 식사를 선택해 주세요', { options: ['일반식', '채식', '알레르기 상담 필요', '식사 안 함'] }),
+      field('long', '주최자에게 전할 한마디를 남겨주세요', { required: false }),
+    ])],
+  },
+  {
+    id: 'volunteer',
+    category: '커뮤니티',
+    themeId: 'forest-calm',
+    title: '봉사자 모집',
+    description: '가능한 시간과 관심 역할을 친절하게 확인합니다.',
+    accent: '#2f7658',
+    questions: 6,
+    pages: () => [page('참여 정보', [
+      field('short', '이름을 알려주세요'),
+      field('email', '안내받을 이메일을 입력해 주세요'),
+      field('phone', '연락처를 입력해 주세요'),
+      field('multi', '관심 있는 역할을 골라주세요', { options: ['현장 안내', '운영 지원', '사진·영상', '정리·환경', '어디든 좋아요'] }),
+      field('single', '참여 가능한 시간대를 선택해 주세요', { options: ['오전', '오후', '종일'] }),
+      field('long', '활동에 기대하는 점이 있나요?', { required: false }),
+    ])],
+  },
+  {
+    id: 'checkin',
+    category: '설문',
+    themeId: 'mint-soda',
+    title: '오늘의 체크인',
+    description: '팀과 커뮤니티의 상태를 짧고 따뜻하게 살핍니다.',
+    accent: '#168a77',
+    questions: 4,
+    pages: () => [page('지금의 마음', [
+      field('rating', '오늘의 컨디션은 몇 점인가요?', { scale: 5 }),
+      field('single', '지금 마음과 가장 가까운 것은?', { options: ['아주 좋아요', '괜찮아요', '조금 지쳐요', '도움이 필요해요'] }),
+      field('long', '오늘 가장 신경 쓰이는 일이 있나요?', { required: false }),
+      field('long', '함께 나누고 싶은 좋은 일이 있나요?', { required: false }),
+    ])],
+  },
+  {
+    id: 'stock-application',
+    category: '투자·금융',
+    themeId: 'sage-mesh',
+    title: '주식 신청',
+    description: '관심 종목과 투자 성향을 안전하고 차분하게 확인합니다.',
+    accent: '#38735d',
+    questions: 8,
+    pages: () => [page('신청자 정보', [
+      field('short', '이름 또는 닉네임을 알려주세요'),
+      field('email', '안내받을 이메일을 입력해 주세요'),
+      field('select', '주식 투자 경험은 어느 정도인가요?', { options: ['처음이에요', '1년 미만', '1~3년', '3년 이상'] }),
+      field('multi', '관심 있는 시장을 모두 골라주세요', { options: ['국내 주식', '미국 주식', 'ETF', '배당주', '아직 정하지 않았어요'] }),
+      field('long', '관심 종목이나 산업이 있다면 적어주세요', { required: false }),
+      field('select', '한 달 투자 예정 범위를 선택해 주세요', { options: ['10만원 미만', '10~50만원', '50~100만원', '100만원 이상', '응답하지 않음'] }),
+      field('single', '손실 가능성에 대한 안내를 확인했나요?', { options: ['네, 확인했습니다', '추가 설명이 필요합니다'] }),
+      field('consent', '투자 안내 확인', { consentKind: 'acknowledgement', consentText: '본 신청은 투자 권유나 수익 보장이 아님을 확인합니다.' }),
+    ])],
+  },
+  {
+    id: 'crypto-application',
+    category: '투자·금융',
+    themeId: 'midnight-star',
+    title: '코인 신청',
+    description: '참여 목적과 경험을 묻고 민감한 지갑 정보는 요구하지 않습니다.',
+    accent: '#8a77ef',
+    questions: 8,
+    pages: () => [page('참여 정보', [
+      field('short', '이름 또는 닉네임을 알려주세요'),
+      field('email', '안내받을 이메일을 입력해 주세요'),
+      field('select', '가상자산 경험은 어느 정도인가요?', { options: ['처음이에요', '1년 미만', '1~3년', '3년 이상'] }),
+      field('multi', '관심 있는 분야를 골라주세요', { options: ['비트코인', '이더리움', '알트코인', '스테이킹', '블록체인 기술'] }),
+      field('single', '참여 목적을 선택해 주세요', { options: ['기초 학습', '시장 정보', '커뮤니티 참여', '프로젝트 소식'] }),
+      field('long', '궁금한 점이나 기대하는 내용을 적어주세요', { required: false }),
+      field('consent', '보안 주의사항 확인', { consentKind: 'acknowledgement', consentText: '시드 문구·개인키·거래소 비밀번호를 절대 제출하지 않겠습니다.' }),
+      field('consent', '투자 위험 확인', { consentKind: 'acknowledgement', consentText: '가격 변동과 원금 손실 가능성에 대한 안내를 확인했습니다.' }),
+    ])],
+  },
+]
+
+export const FORM_TEMPLATES = definitions.map(({ pages, ...template }) => template)
+
+export function createTemplateProject(templateId) {
+  const definition = definitions.find((template) => template.id === templateId)
+  if (!definition) return emptyProject()
+  const base = emptyProject()
+  const themePreset = THEME_PRESETS.find((preset) => preset.id === definition.themeId)
+  return {
+    ...base,
+    title: definition.title,
+    slug: `${definition.id}-${crypto.randomUUID().slice(0, 7)}`,
+    description: definition.description,
+    pages: definition.pages(),
+    theme: { ...base.theme, ...(themePreset?.theme || {}), accent: definition.accent },
+  }
+}

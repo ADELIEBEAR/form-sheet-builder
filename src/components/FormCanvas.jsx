@@ -1,0 +1,314 @@
+import { ArrowLeft, ArrowRight, CheckCircle } from '@phosphor-icons/react'
+import { useEffect, useState } from 'react'
+import { FONT_STACKS, formSteps, resolveDirectTextStyle, resolvePageTypography } from '../lib/maker'
+import { textEffectCss } from '../lib/textEffects'
+import ColoredText from './ColoredText'
+import BrandMark from './BrandMark'
+import { publicButtonVariables } from './DirectCanvasButton'
+import FocusEffects from './FocusEffects'
+import FormField from './FormField'
+import FormMedia, { mediaMode, mediaVariables, transitionClass } from './FormMedia'
+
+function canvasStyle(project, page = null) {
+  const typography = resolvePageTypography(project, page)
+  return {
+    '--preview-accent': project.theme?.accent || '#7156d9',
+    '--preview-bg': project.theme?.background || '#f0edfb',
+    '--preview-card': project.theme?.card || '#ffffff',
+    '--preview-text': project.theme?.text || '#222131',
+    '--preview-radius': `${project.theme?.radius ?? 24}px`,
+    '--preview-font': FONT_STACKS[project.theme?.font] || FONT_STACKS.pretendard,
+    '--preview-title-size': `${typography.titleSize}px`,
+    '--preview-question-size': `${typography.questionSize}px`,
+    '--preview-body-size': `${typography.bodySize}px`,
+    '--preview-title-weight': typography.titleWeight,
+    '--preview-question-weight': typography.questionWeight,
+    '--preview-body-weight': typography.bodyWeight,
+    '--preview-title-line': typography.titleLineHeight / 100,
+    '--preview-question-line': typography.questionLineHeight / 100,
+    '--preview-body-line': typography.bodyLineHeight / 100,
+    '--preview-title-tracking': `${typography.titleTracking / 100}em`,
+    '--preview-question-tracking': `${typography.questionTracking / 100}em`,
+    '--preview-body-tracking': `${typography.bodyTracking / 100}em`,
+    '--preview-text-align': typography.textAlign,
+    '--form-transition-duration': `${project.theme?.transitionSpeed ?? 440}ms`,
+    ...mediaVariables(project.theme),
+  }
+}
+
+function publicTextStyle(value, fallback, mobileValue) {
+  const style = {}
+  const resolved = value && typeof value === 'object' ? resolveDirectTextStyle(value, fallback) : null
+  if (resolved) {
+    const effect = textEffectCss(resolved)
+    Object.assign(style, {
+      '--public-direct-font': FONT_STACKS[resolved.font] || FONT_STACKS.pretendard,
+      '--public-direct-size': `${resolved.size}px`,
+      '--public-direct-width': `${resolved.width}%`,
+      '--public-direct-x': `${resolved.offsetX}px`,
+      '--public-direct-y': `${resolved.offsetY}px`,
+      '--public-direct-align': resolved.align,
+      '--public-direct-shadow': effect.textShadow,
+      '--public-direct-stroke': effect.WebkitTextStroke,
+    })
+  }
+  if (mobileValue && typeof mobileValue === 'object') {
+    const mobile = resolveDirectTextStyle(mobileValue, resolved || fallback)
+    const effect = textEffectCss(mobile)
+    Object.assign(style, {
+      '--public-mobile-font': FONT_STACKS[mobile.font] || FONT_STACKS.pretendard,
+      '--public-mobile-size': `${mobile.size}px`,
+      '--public-mobile-width': `${mobile.width}%`,
+      '--public-mobile-x': `${mobile.offsetX}px`,
+      '--public-mobile-y': `${mobile.offsetY}px`,
+      '--public-mobile-align': mobile.align,
+      '--public-mobile-shadow': effect.textShadow,
+      '--public-mobile-stroke': effect.WebkitTextStroke,
+    })
+  }
+  return style
+}
+
+function coloredText(text, desktopStyle, mobileStyle) {
+  return <ColoredText text={text} desktopStyle={desktopStyle} mobileStyle={mobileStyle} />
+}
+
+function PublicButtonFrame({ value, fallback, mobileValue, className = '', children }) {
+  return <span className={`public-button-frame ${className}`} style={publicButtonVariables(value, fallback, mobileValue)}>{children}</span>
+}
+
+const CONFETTI_COLORS = ['#7156d9', '#ff6b8a', '#ffb547', '#40bfa5', '#4f83ff', '#f06cb5']
+const CONFETTI_PARTICLES = Array.from({ length: 30 }, (_, index) => ({
+  x: ((index * 47) % 330) - 165,
+  y: -55 - ((index * 29) % 155),
+  fall: 320 + ((index * 41) % 230),
+  rotate: 240 + ((index * 83) % 620),
+  delay: (index % 8) * 35,
+  color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+  shape: index % 3,
+}))
+
+function closeCompletedForm() {
+  const completedUrl = window.location.href
+  try {
+    window.open('', '_self')
+    window.close()
+  } catch {
+    // Some browsers block scripts from closing a directly opened tab.
+  }
+  window.setTimeout(() => {
+    if (window.closed) return
+    if (document.referrer && window.history.length > 1) {
+      window.history.back()
+      window.setTimeout(() => {
+        if (!window.closed && window.location.href === completedUrl) window.location.replace('about:blank')
+      }, 600)
+    } else window.location.replace('about:blank')
+  }, 250)
+}
+
+export function CompletionCelebration({ autoClose = false }) {
+  const [seconds, setSeconds] = useState(5)
+
+  useEffect(() => {
+    if (!autoClose) return undefined
+    const interval = window.setInterval(() => setSeconds((current) => Math.max(0, current - 1)), 1000)
+    const closeTimer = window.setTimeout(() => {
+      window.clearInterval(interval)
+      closeCompletedForm()
+    }, 5000)
+    return () => {
+      window.clearInterval(interval)
+      window.clearTimeout(closeTimer)
+    }
+  }, [autoClose])
+
+  return (
+    <>
+      <div className="completion-confetti" aria-hidden="true">
+        {CONFETTI_PARTICLES.map((particle, index) => <i className={`success-confetti-particle shape-${particle.shape}`} style={{ '--burst-x': `${particle.x}px`, '--burst-y': `${particle.y}px`, '--fall-x': `${Math.round(particle.x * 1.3)}px`, '--fall-y': `${particle.fall}px`, '--spin': `${particle.rotate}deg`, '--spin-end': `${particle.rotate * 2}deg`, '--delay': `${particle.delay}ms`, '--particle-color': particle.color }} key={index} />)}
+      </div>
+      {autoClose ? <div className="success-close-panel" aria-live="polite"><span>{seconds}초 뒤 자동으로 닫혀요.</span><button type="button" onClick={closeCompletedForm}>지금 닫기</button></div> : null}
+    </>
+  )
+}
+
+function SuccessScreen({ project, style, focus, onRestart, closeOnSuccess = false }) {
+  const transition = transitionClass(project.theme)
+  const typography = resolvePageTypography(project, null)
+  const directStyles = project.theme?.directStyles || {}
+  const buttonStyles = project.theme?.buttonStyles || {}
+  return (
+    <div className={focus ? 'focus-form-canvas focus-success-canvas' : 'form-canvas success-canvas'} style={style}>
+      <CompletionCelebration autoClose={closeOnSuccess} />
+      {focus ? <FocusBackdrop project={project} /> : null}
+      <div className={focus ? `focus-content-card focus-success-card ${transition}` : transition}>
+        <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
+        <div className="success-symbol"><CheckCircle weight="fill" /></div>
+        <h1 className="public-direct-text" style={publicTextStyle(directStyles.successTitle, { font: project.theme?.font, size: Math.min(typography.titleSize, 48), align: 'center' }, directStyles.successTitleMobile)}>{coloredText(project.settings?.successTitle, directStyles.successTitle, directStyles.successTitleMobile)}</h1>
+        <p className="public-direct-text" style={publicTextStyle(directStyles.successBody, { font: project.theme?.font, size: typography.bodySize, align: 'center' }, directStyles.successBodyMobile)}>{coloredText(project.settings?.successMessage, directStyles.successBody, directStyles.successBodyMobile)}</p>
+        {!closeOnSuccess && onRestart && project.settings?.restartLabel !== '' ? <PublicButtonFrame value={buttonStyles.restart} fallback={{ width: 140 }} mobileValue={buttonStyles.restartMobile}><button className="focus-restart" type="button" onClick={onRestart}>{project.settings?.restartLabel ?? '처음부터 보기'}</button></PublicButtonFrame> : null}
+      </div>
+    </div>
+  )
+}
+
+function FocusBackdrop({ project }) {
+  return (
+    <>
+      <FormMedia theme={project.theme} placement="background" />
+      <div className="focus-tint" />
+      <FocusEffects theme={project.theme} />
+    </>
+  )
+}
+
+function FocusCanvas({ project, stepIndex, answers, onAnswers, onStep, onRestart, errors, preview, submitted, submitting, closeOnSuccess }) {
+  const steps = formSteps(project)
+  const total = steps.length
+  const isCover = stepIndex === 0
+  const current = isCover ? null : steps[Math.min(Math.max(stepIndex - 1, 0), Math.max(total - 1, 0))]
+  const style = canvasStyle(project, current?.page)
+
+  if (submitted) return <SuccessScreen project={project} style={canvasStyle(project)} focus onRestart={onRestart} closeOnSuccess={closeOnSuccess} />
+
+  const currentNumber = current ? Math.min(stepIndex, total) : 0
+  const canContinue = total > 0
+  const copy = project.settings || {}
+  const transition = transitionClass(project.theme)
+  const hasBanner = Boolean(project.theme?.coverUrl && mediaMode(project.theme) === 'banner')
+  const typography = resolvePageTypography(project, null)
+  const directStyles = project.theme?.directStyles || {}
+  const buttonStyles = project.theme?.buttonStyles || {}
+
+  return (
+    <div className="focus-form-canvas" style={style}>
+      <FocusBackdrop project={project} />
+      <div className={`focus-shell ${hasBanner ? 'has-banner' : ''}`}>
+        <header className="focus-topbar">
+          <button className="focus-brand-mark focus-brand-button" type="button" onClick={() => onStep?.(0)} aria-label="처음 화면으로"><BrandMark /></button>
+          {project.theme?.showProgress !== false && !isCover ? <div className="focus-progress"><span style={{ width: `${(currentNumber / Math.max(total, 1)) * 100}%` }} /></div> : <span />}
+          <small>{isCover ? (copy.startStatusLabel ?? '시작') : `${currentNumber} / ${total}`}</small>
+        </header>
+
+        <FormMedia theme={project.theme} placement="banner" className="focus-banner-media" />
+
+        {isCover ? (
+          <main className={`focus-cover-card focus-content-card ${transition}`} key="cover">
+            <FormMedia theme={project.theme} placement="card" className="focus-card-media" />
+            {copy.coverKicker !== '' ? <span className="focus-kicker">{copy.coverKicker ?? 'WELCOME'}</span> : null}
+            <h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{coloredText(project.title, directStyles.coverTitle, directStyles.coverTitleMobile)}</h1>
+            {project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{coloredText(project.description, directStyles.coverBody, directStyles.coverBodyMobile)}</p> : null}
+            <PublicButtonFrame value={buttonStyles.start} fallback={{ width: 128 }} mobileValue={buttonStyles.startMobile}><button className="focus-primary" type="button" onClick={() => onStep?.(1)} disabled={preview || !canContinue} aria-label={copy.startLabel || '시작하기'}>{copy.startLabel ?? '시작하기'} <ArrowRight /></button></PublicButtonFrame>
+          </main>
+        ) : current ? (
+          <main className={`focus-question-card focus-content-card ${transition}`} key={current.field.id}>
+            <div className="focus-question-meta">
+              <span>{current.page.title || `페이지 ${current.pageIndex + 1}`}</span>
+              {current.field.required && copy.requiredLabel !== '' ? <small>{copy.requiredLabel ?? '필수'}</small> : null}
+            </div>
+            <FormField
+              field={current.field}
+              value={answers[current.field.id]}
+              onChange={(value) => onAnswers?.({ ...answers, [current.field.id]: value })}
+              error={errors[current.field.id]}
+              preview={preview}
+              accent={project.theme?.accent}
+              requiredLabel={copy.requiredLabel ?? '필수'}
+              answerPlaceholder={copy.answerPlaceholder ?? '답변을 입력해 주세요'}
+              selectPlaceholder={copy.selectPlaceholder ?? '선택해 주세요'}
+              consentLabel={copy.consentLabel ?? '내용을 확인했으며 동의합니다.'}
+            />
+            <footer className="focus-actions">
+              <PublicButtonFrame value={buttonStyles.back} fallback={{ width: 48 }} mobileValue={buttonStyles.backMobile}><button className="focus-back" type="button" onClick={() => onStep?.(Math.max(0, stepIndex - 1))} aria-label={copy.previousLabel || '이전'}><ArrowLeft /></button></PublicButtonFrame>
+              {stepIndex < total ? (
+                <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="focus-primary" type="button" onClick={() => onStep?.(stepIndex + 1)} disabled={preview} aria-label={copy.nextLabel || '다음'}>{copy.nextLabel ?? '다음'} <ArrowRight /></button></PublicButtonFrame>
+              ) : (
+                <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="focus-primary" type="submit" disabled={preview || submitting} aria-label={copy.submitLabel || '제출하기'}>{submitting ? (copy.submitPendingLabel ?? '저장 중') : (copy.submitLabel ?? '제출하기')}</button></PublicButtonFrame>
+              )}
+            </footer>
+          </main>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function CardCanvas({ project, pageIndex, answers, onAnswers, onPage, onRestart, errors, preview, selectedFieldId, onSelectField, submitted, submitting, closeOnSuccess }) {
+  const page = project.pages?.[pageIndex]
+  if (!page) return null
+  const style = canvasStyle(project, page)
+  const copy = project.settings || {}
+  const transition = transitionClass(project.theme)
+  const typography = resolvePageTypography(project, page)
+  const directStyles = project.theme?.directStyles || {}
+  const buttonStyles = project.theme?.buttonStyles || {}
+
+  if (submitted) return <SuccessScreen project={project} style={style} onRestart={onRestart} closeOnSuccess={closeOnSuccess} />
+
+  return (
+    <div className="form-canvas" style={style}>
+      <FormMedia theme={project.theme} placement="background" />
+      <FormMedia theme={project.theme} placement="banner" className="canvas-banner-media" />
+      <div className={`canvas-content ${transition}`} key={page.id}>
+        <FormMedia theme={project.theme} placement="card" className="canvas-card-media" />
+        {project.theme?.showProgress && project.pages.length > 1 ? <div className="page-progress"><span style={{ width: `${((pageIndex + 1) / project.pages.length) * 100}%` }} /></div> : null}
+        <header className="canvas-intro">
+          {pageIndex === 0 ? <><h1 className="public-direct-text" style={publicTextStyle(directStyles.coverTitle, { font: project.theme?.font, size: typography.titleSize, align: typography.textAlign }, directStyles.coverTitleMobile)}>{coloredText(project.title, directStyles.coverTitle, directStyles.coverTitleMobile)}</h1>{project.description ? <p className="public-direct-text" style={publicTextStyle(directStyles.coverBody, { font: project.theme?.font, size: typography.bodySize, align: typography.textAlign }, directStyles.coverBodyMobile)}>{coloredText(project.description, directStyles.coverBody, directStyles.coverBodyMobile)}</p> : null}</> : null}
+          {project.pages.length > 1 ? <div className="page-copy"><small>{pageIndex + 1} / {project.pages.length}</small><h2>{page.title}</h2>{page.description ? <p>{page.description}</p> : null}</div> : null}
+        </header>
+        <div className="canvas-fields">
+          {page.fields.map((field) => preview ? (
+            <div
+              className={`canvas-field-select ${selectedFieldId === field.id ? 'selected' : ''}`}
+              role="button"
+              tabIndex={0}
+              key={field.id}
+              onClick={() => onSelectField?.(field.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSelectField?.(field.id)
+                }
+              }}
+            >
+              <FormField field={field} value={answers[field.id]} preview accent={project.theme?.accent} requiredLabel={copy.requiredLabel ?? '필수'} answerPlaceholder={copy.answerPlaceholder ?? '답변을 입력해 주세요'} selectPlaceholder={copy.selectPlaceholder ?? '선택해 주세요'} consentLabel={copy.consentLabel ?? '내용을 확인했으며 동의합니다.'} />
+            </div>
+          ) : <FormField key={field.id} field={field} value={answers[field.id]} onChange={(value) => onAnswers?.({ ...answers, [field.id]: value })} error={errors[field.id]} accent={project.theme?.accent} requiredLabel={copy.requiredLabel ?? '필수'} answerPlaceholder={copy.answerPlaceholder ?? '답변을 입력해 주세요'} selectPlaceholder={copy.selectPlaceholder ?? '선택해 주세요'} consentLabel={copy.consentLabel ?? '내용을 확인했으며 동의합니다.'} />)}
+        </div>
+        <footer className="canvas-actions">
+          {pageIndex > 0 ? <PublicButtonFrame value={buttonStyles.back} fallback={{ width: 100 }} mobileValue={buttonStyles.backMobile}><button className="canvas-secondary" type="button" onClick={() => onPage?.(pageIndex - 1)} aria-label={copy.previousLabel || '이전'}><ArrowLeft /> {copy.previousLabel ?? '이전'}</button></PublicButtonFrame> : <span />}
+          {pageIndex < project.pages.length - 1 ? <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="canvas-primary" type="button" onClick={() => onPage?.(pageIndex + 1)} aria-label={copy.nextLabel || '다음'}>{copy.nextLabel ?? '다음'} <ArrowRight /></button></PublicButtonFrame> : <PublicButtonFrame value={buttonStyles.primary} fallback={{ width: 128 }} mobileValue={buttonStyles.primaryMobile}><button className="canvas-primary" type="submit" disabled={preview || submitting} aria-label={copy.submitLabel || '제출하기'}>{submitting ? (copy.submitPendingLabel ?? '저장 중') : (copy.submitLabel ?? '제출하기')}</button></PublicButtonFrame>}
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+export default function FormCanvas(props) {
+  const safeProps = {
+    ...props,
+    pageIndex: props.pageIndex ?? 0,
+    answers: props.answers || {},
+    errors: props.errors || {},
+  }
+  const focus = (safeProps.project.theme?.layout || 'focus') === 'focus'
+  if (focus) {
+    return (
+      <FocusCanvas
+        project={safeProps.project}
+        stepIndex={safeProps.pageIndex}
+        answers={safeProps.answers}
+        onAnswers={safeProps.onAnswers}
+        onStep={safeProps.onPage}
+        onRestart={safeProps.onRestart}
+        errors={safeProps.errors}
+        preview={safeProps.preview}
+        submitted={safeProps.submitted}
+        submitting={safeProps.submitting}
+        closeOnSuccess={safeProps.closeOnSuccess}
+      />
+    )
+  }
+  return <CardCanvas {...safeProps} />
+}
